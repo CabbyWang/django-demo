@@ -1,0 +1,11 @@
+requests
+django==1.11.6
+pillow
+mysqlclient
+djangorestframework
+coreapi
+markdown
+django-filter
+django-crispy-forms
+django-guardian
+djangorestframework-jwt
