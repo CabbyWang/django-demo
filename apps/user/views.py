@@ -113,7 +113,6 @@ class UserGroupViewSet(ListModelMixin,
 class UserViewSet(ListModelMixin,
                   mixins.RetrieveModelMixin,
                   mixins.CreateModelMixin,
-                  # mixins.UpdateModelMixin,
                   mixins.DestroyModelMixin,
                   viewsets.GenericViewSet):
     """

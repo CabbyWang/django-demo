@@ -3,8 +3,10 @@ from django.db import models
 from hub.models import Hub
 from user.models import User
 
+from base.models import BaseModel
 
-class Log(models.Model):
+
+class Log(BaseModel):
     """
     日志
     """
@@ -12,7 +14,6 @@ class Log(models.Model):
     event = models.CharField(max_length=64, help_text='操作事件')
     object = models.CharField(max_length=64, help_text='操作对象')
     memo = models.CharField(max_length=255, null=True, help_text='详情')
-    created_time = models.DateTimeField(auto_now_add=True, help_text='操作时间')
 
     class Meta:
         verbose_name = '日志'
@@ -24,7 +25,7 @@ class Log(models.Model):
         return self.event
 
 
-class Alert(models.Model):
+class Alert(BaseModel):
     """
     告警
     """
@@ -41,7 +42,7 @@ class Alert(models.Model):
     is_solved = models.BooleanField(default=False, help_text='是否解决')
     solver = models.ForeignKey(User, related_name='solved_alert', null=True, blank=True, help_text='处理人员')
     solved_time = models.DateTimeField(auto_now=True, null=True, blank=True, help_text='处理时间')
-    remain_times = models.IntegerField(default=5, help_text='告警剩余次数')
+    times = models.IntegerField(default=0, help_text='告警被听次数')
 
     class Meta:
         verbose_name = '告警'

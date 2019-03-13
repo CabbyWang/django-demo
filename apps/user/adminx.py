@@ -5,13 +5,11 @@ Create by 王思勇 on 2019/2/14
 """
 import xadmin
 
-from xadmin import views
-
 from user.models import UserGroup, User, Permission
 
 
 class UserGroupAdmin(object):
-    list_display = ["name", "memo", "created_time"]
+    list_display = ["name", "memo"]
 
 
 class UserAdmin(object):
@@ -27,20 +25,7 @@ class PermissionAdmin(object):
     list_display = ["is_deleted", "created_time", "updated_time", "deleted_time"]
 
 
-class BaseSettings(object):
-    enable_themes = True
-    use_bootswatch = True
-
-
-class GlobalSettings(object):
-    site_title = "smartlamp后台管理系统"
-    site_footer = "smartlamp"
-
-
 xadmin.site.register(UserGroup, UserGroupAdmin)
 xadmin.site.unregister(User)
 xadmin.site.register(User, UserAdmin)
 xadmin.site.register(Permission, PermissionAdmin)
-
-xadmin.site.register(views.BaseAdminView, BaseSettings)
-xadmin.site.register(views.CommAdminView, GlobalSettings)

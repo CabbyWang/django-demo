@@ -9,11 +9,13 @@ https://docs.djangoproject.com/en/1.11/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/1.11/ref/settings/
 """
-import datetime
 import os
+import sys
+import datetime
+
+from django.utils.translation import ugettext_lazy as _
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
-import sys
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, BASE_DIR)
@@ -45,6 +47,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'DjangoUeditor',
+    'base.apps.BaseConfig',
     'hub.apps.HubConfig',
     'lamp.apps.LampConfig',
     'asset.apps.AssetConfig',
@@ -53,6 +56,7 @@ INSTALLED_APPS = [
     'policy.apps.PolicyConfig',
     'projectinfo.apps.ProjectinfoConfig',
     'setting.apps.SettingConfig',
+    'report.apps.ReportConfig',
     'user.apps.UserConfig',
     'workorder.apps.WorkorderConfig',
     'django_filters',
@@ -65,6 +69,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.locale.LocaleMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -140,7 +145,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/1.11/topics/i18n/
 
-LANGUAGE_CODE = 'zh-hans'  # 中文支持，django1.8以后支持；1.8以前是zh-cn
+LANGUAGE_CODE = 'zh_hans'  # 中文支持，django1.8以后支持；1.8以前是zh-cn
 
 TIME_ZONE = 'Asia/Shanghai'
 
@@ -148,7 +153,8 @@ USE_I18N = True
 
 USE_L10N = True
 
-USE_TZ = False
+USE_TZ = True
+
 
 AUTHENTICATION_BACKENDS = (
     'user.auth.CustomBackend',
@@ -189,3 +195,15 @@ MODIFY_PSW_INTERVAL = datetime.timedelta(days=0.01)
 
 # 默认密码
 DEFAULT_PASSWORD = '12345678'
+
+# 翻译路径
+LOCALE_PATHS = [
+    os.path.join(BASE_DIR, 'locale')
+]
+
+LANGUAGES = (
+    ('en', _('English')),
+    ('zh-Hans', _('中文简体')),
+)
+
+

@@ -22,10 +22,14 @@ from rest_framework.documentation import include_docs_urls
 
 from user.auth import CustomObtainJSONWebToken
 from user.views import UserGroupViewSet, UserViewSet
-from hub.views import HubViewSet
+from hub.views import HubViewSet, UnitViewSet
+from setting.views import SettingViewSet
+from lamp.views import LampCtrlViewSet, LampCtrlStatusViewSet
+from projectinfo.views import ProjectInfoViewSet
 
 import xadmin
-xadmin.autodiscover()
+
+# xadmin.autodiscover()
 
 obtain_jwt_token = CustomObtainJSONWebToken.as_view()
 
@@ -42,6 +46,21 @@ router.register('users', UserViewSet, basename='users')
 
 # 集控
 router.register('hubs', HubViewSet, basename='hubs')
+
+# 管理单元
+router.register('units', UnitViewSet, base_name='units')
+
+# 设置
+router.register('settings', SettingViewSet, base_name='settings')
+
+# 灯控
+router.register('lampctrls', LampCtrlViewSet, base_name='lampctrls')
+
+# 灯控状态
+router.register('lampctrlstatus', LampCtrlStatusViewSet, base_name='lampctrlstatus')
+
+# 项目信息
+router.register('projectinfo', ProjectInfoViewSet, base_name='projectinfo')
 
 
 urlpatterns = [

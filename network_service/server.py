@@ -1,17 +1,12 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-"""
-Create by 王思勇 on 
-"""
 
 __author__ = 'wangsy'
 
-
-# coding:utf-8
 import sys
-import struct
 import json
 import time
+import struct
 
 from twisted.python import log
 from twisted.internet import reactor, task
@@ -31,7 +26,7 @@ class Server(Protocol):
         self.clients = clients
         self.user = None
         self._data_buffer = bytes()
-        self.last_heartbeat_time = 0
+        self.last_heartbeat_time = int(time.time())
         self.command_func_map = {
             1: self.handle_verify,
             2: self.handle_single_message,
@@ -41,21 +36,14 @@ class Server(Protocol):
         }
 
     def connectionMade(self):
-        """
-        连接刚建立后的操作
-        """
         log.msg("New connection established.")
         log.msg("The info of new connection is:", self.transport.getPeer())
 
     def connectionLost(self, reason):
-        """
-        连接丢失后的操作
-        """
-
         if self.user and not self.user.startswith('cmd'):
             log.msg("Connection break!")
         if self.user in self.clients:
-            log.msg("Remove <", self.user, "> from server!")
+            log.msg("Remove <{}> from server!".format(self.user))
             if not self.user.startswith(("cmd", "illuminance")):
                 SLMS.record_offline_hub(self.user)  # 记录脱网后的集控
             del self.clients[self.user]
@@ -315,18 +303,16 @@ class ServerFactory(Factory):
 
     def check_users_online(self):
         for hub, server in self.clients.items():
-            if server.last_heartbeat_time != 0 and int(time.time()) - server.last_heartbeat_time > 300:
-                log.msg("There is no heartbeat of <%s>. Break it." % hub.encode('utf-8'))
-                server.transport.abortConnection()       # 如果没有心跳，丢弃连接
-                offline_hub = hub
-                if not offline_hub.startswith(("cmd", "illuminance")):
-                    SLMS.record_offline_hub(offline_hub)
-
-            else:
-                # 记录心跳，用于集控通信调测
-                # SLMS.record_test_heartbeat(hub)
-                pass
-
+            # if server.last_heartbeat_time == 0:
+            #     continue
+            if int(time.time()) - server.last_heartbeat_time <= 300:
+                continue
+            log.msg("There is no heartbeat of <%s>. Break it." % hub.encode(
+                'utf-8'))
+            server.transport.abortConnection()  # 如果没有心跳，丢弃连接
+            offline_hub = hub
+            if not offline_hub.startswith(("cmd", "illuminance")):
+                SLMS.record_offline_hub(offline_hub)
 
 def start_reactor():
     sf = ServerFactory()

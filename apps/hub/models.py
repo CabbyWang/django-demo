@@ -1,7 +1,11 @@
+import datetime
+
 from django.db import models
 
+from base.models import BaseModel
 
-class Unit(models.Model):
+
+class Unit(BaseModel):
     """
     管理单元
     """
@@ -10,13 +14,14 @@ class Unit(models.Model):
     class Meta:
         verbose_name = "管理单元"
         verbose_name_plural = verbose_name
+        ordering = ('name',)
         db_table = "unit"
 
     def __str__(self):
         return self.name
 
 
-class Hub(models.Model):
+class Hub(BaseModel):
     """
     集控数据模型
     """
@@ -32,11 +37,7 @@ class Hub(models.Model):
     latitude = models.FloatField(max_length=8, verbose_name='纬度', help_text='纬度')
     memo = models.CharField(max_length=255, blank=True, null=True, verbose_name='备注', help_text='备注')
     registered_time = models.DateField(verbose_name='注册时间', help_text='注册时间')
-    is_redirect = models.BooleanField(default=False, verbose_name='是否为中继', help_text='是否为中继')
-    is_deleted = models.BooleanField(default=False, verbose_name='是否删除', help_text='是否删除')
-    created_time = models.DateTimeField(auto_now_add=True, verbose_name='创建时间', help_text='创建时间')
-    updated_time = models.DateTimeField(auto_now=True, null=True, blank=True, verbose_name='更新时间', help_text='更新时间')
-    deleted_time = models.DateTimeField(db_index=True, null=True, blank=True, verbose_name='删除时间', help_text='删除时间')
+    is_redirect = models.BooleanField(default=False, verbose_name='是否重定位', help_text='是否为中继')
 
     class Meta:
         verbose_name = '集控'
@@ -47,8 +48,34 @@ class Hub(models.Model):
     def __str__(self):
         return self.sn
 
+    def delete(self, using=None, keep_parents=False):
+        # 删除集控状态历史纪录
+        self.hub_hubstatus.update(deleted_time=datetime.datetime.now(), is_deleted=True)
+        # 删除灯控
+        self.hub_lampctrl.update(deleted_time=datetime.datetime.now(), is_deleted=True)
+        # 删除灯控分组
+        self.hub_group.update(deleted_time=datetime.datetime.now(), is_deleted=True)
+        # 删除告警
+        self.hub_alert.update(deleted_time=datetime.datetime.now(), is_deleted=True)
+        # 删除策略下发表
+        self.hub_send_down_policysets.update(deleted_time=datetime.datetime.now(), is_deleted=True)
+        # 删除集控当天能耗表
+        self.hub_consumption.update(deleted_time=datetime.datetime.now(), is_deleted=True)
+        # 删除用户权限
+        self.hub_permision.update(deleted_time=datetime.datetime.now(), is_deleted=True)
+        # 删除巡检报告
+        self.hub_inspetion.update(deleted_time=datetime.datetime.now(), is_deleted=True)
+        # TODO 删除工单？
+        # self.hub_lampctrl.update(deleted_time=datetime.datetime.now(), is_deleted=True)
+        # 删除巡检报告具体项表
+        self.hub_inspection_item.update(deleted_time=datetime.datetime.now(), is_deleted=True)
+        # 删除集控
+        self.deleted_time = datetime.datetime.now()
+        self.is_deleted = True
+        self.save()
 
-class HubStatus(models.Model):
+
+class HubStatus(BaseModel):
     """
     集控状态历史记录
     """

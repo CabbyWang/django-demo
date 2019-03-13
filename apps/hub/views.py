@@ -2,23 +2,43 @@ from django.shortcuts import render
 
 # Create your views here.
 
+from django.db import transaction
+from django.utils.translation import ugettext_lazy as _
+
 from rest_framework import viewsets, mixins, status
+from rest_framework.authentication import SessionAuthentication
 from rest_framework.decorators import action
 from rest_framework_jwt.authentication import JSONWebTokenAuthentication
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 
-from hub.models import Hub
-from user.models import Permission
-from hub.serializers import HubSerializer
+from hub.models import Hub, Unit
+from hub.permissions import IsOwnHubOrSuperUser
+from hub.serializers import (
+    HubPartialUpdateSerializer, HubDetailSerializer, UnitSerializer
+)
 from utils.paginator import CustomPagination
-from utils import mixins as _mixins
+from utils.mixins import ListModelMixin
+from utils.permissions import IsAdminUser
+from utils.exceptions import DeleteOnlineHubError
 
 
-class HubViewSet(mixins.RetrieveModelMixin,
-                 mixins.DestroyModelMixin,
-                 _mixins.ListModelMixin,
+class UnitViewSet(ListModelMixin,
+                  viewsets.GenericViewSet):
+    """
+    list:
+        获取所有管理单元
+    """
+    queryset = Unit.objects.all()
+    serializer_class = UnitSerializer
+    authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
+
+
+class HubViewSet(ListModelMixin,
+                 mixins.RetrieveModelMixin,
                  mixins.UpdateModelMixin,
-                 viewsets.GenericViewSet,
-                 ):
+                 mixins.DestroyModelMixin,
+                 viewsets.GenericViewSet):
     """
     list:
         集控列表数据
@@ -30,94 +50,46 @@ class HubViewSet(mixins.RetrieveModelMixin,
         修改集控信息
     partial_update:
         集控重定位
+
     """
-    queryset = Hub.objects.filter(is_deleted=False)
-    serializer_class = HubSerializer
     pagination_class = CustomPagination
-    authentication_classes = (JSONWebTokenAuthentication, )
+    authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
 
     def get_queryset(self):
-        """
-        根据用户权限来获取对应集控，admin除外
-        管理员也需要事先分配集控，否则会接收到所有集控的短信告警
-        """
-
+        # 管理员拥有所有集控的权限
         if self.request.user.is_superuser:
             return Hub.objects.filter(is_deleted=False)
-
         user = self.request.user
         return user.hubs.filter(is_deleted=False)
-        # permission_queryset = Permission.objects.filter(
-        # user_id=self.request.user.id, is_deleted=False)
-        # queryset = Hub.objects.none()
-        # for permission in permission_queryset:
-        #     hub = Hub.objects.filter(sn=permission.hub_sn, is_deleted=False)
-        #     queryset = queryset | hub
 
-    def partial_update(self, request, *args, **kwargs):
-        """
-            集控重定位
-            Patch  /hubs/{sn}/
-            {
-                "longitude": 21,
-                "latitude": 30
-            }
-        """
-        # 集控坐标重定位后，is_redirect=1
-        request.data['is_redirect'] = 1
-        return super(HubViewSet, self).partial_update(request, *args, **kwargs)
+    def get_serializer_class(self):
+        if self.action in ('list', 'retrieve'):
+            return HubDetailSerializer
+        if self.action == 'partial_update':
+            return HubPartialUpdateSerializer
+        return HubDetailSerializer
 
-    def destroy(self, request, *args, **kwargs):
-        """
-        删除一个集控，同时把集控下路灯、分组信息、策略信息、权限删除
-        """
-        if request.user.username != 'admin':
-            return Response(status=status.HTTP_406_NOT_ACCEPTABLE,
-                            data={'code': 2, 'message': '只有admin有权限删除集控'})
+    def get_permissions(self):
+        if self.action == 'destory':
+            return [IsAuthenticated(), IsAdminUser()]
+        return [IsAuthenticated(), IsOwnHubOrSuperUser()]
 
-        instance = self.get_object()
-        if instance.status != 3:
-            return Response(status=status.HTTP_406_NOT_ACCEPTABLE,
-                            data={'code': 2, 'message': '集控在线，无法删除'})
-
-        try:
-            with transaction.atomic():
-                hub_sn = instance.sn
-                # 删除权限
-                Permission.objects.filter(hub_sn=hub_sn).delete()
-                # 删除策略
-                PolicyAttribution.objects.filter(hub_sn=hub_sn).delete()
-                # 删除分组
-                GroupConfig.objects.filter(hub_sn=hub_sn).delete()
-                GroupLamp.objects.filter(hub_sn=hub_sn).delete()
-                # 删除路灯
-                LampCtrl.objects.filter(hub_sn=hub_sn).delete()
-                # 删除集控
-                Hub.objects.get(sn=hub_sn).delete()
-        except Exception as ex:
-            return Response(status=status.HTTP_406_NOT_ACCEPTABLE,
-                            data={'code': 2, 'message': str(ex)})
-
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
-    @action(methods=['GET'], detail=False, url_path='units')
-    def get_units(self, request, *args, **kwargs):
-        """获取所有管理单元"""
-        queryset = Unit.objects.all()
-        serializer = UnitSerializer(queryset, many=True)
-        ret_data = [tuple(data.values())[0] for data in serializer.data]
-        return Response(ret_data)
+    def get_object(self):
+        obj = super(HubViewSet, self).get_object()
+        if self.action == 'destroy' and obj.status != 3:
+            raise DeleteOnlineHubError
+        return obj
 
     @action(methods=['POST'], detail=False, url_path='load_inventory')
     def load_inventory(self, request, *args, **kwargs):
-        """
-        从集控中采集配置，覆盖数据库中对应的记录
-        (支持同时采集多个集控的配置)
+        """采集集控配置, 同步数据库(支持采集多个集控)
+        POST /hubs/load_inventory/
         {
             "targets": [hub1, hub2, ...]
         }
         """
-        _logger.info("load inventory")
+        # TODO 采集集控配置
+        # _logger.info("load inventory")
         hubs = request.data.get('targets')
         if not hubs:
             return Response(status=status.HTTP_406_NOT_ACCEPTABLE,
@@ -193,22 +165,11 @@ class HubViewSet(mixins.RetrieveModelMixin,
         lamp_status = ret_data.get('hub_status')
         return Response(status=status.HTTP_200_OK, data=lamp_status)
 
-    @action(methods=['GET'], detail=True, url_path='lamps')
-    def get_lamps(self, request, *args, **kwargs):
-        """
-        通过hub_sn获取终端id和address
-        """
-        hub_sn = kwargs.get('pk')
-        lamps_queryset = LampCtrl.objects.filter(hub_sn=hub_sn)
-        data = []
-        serializer = LampCtrlSerializer(lamps_queryset, many=True)
-        return Response(serializer.data)
-
     @action(methods=['PUT'], detail=False, url_path='cycle_time')
     def change_cycle_time(self, request, *args, **kwargs):
         """
         修改集控采集周期
-        PUT  /hubs/cycle_time/
+        PUT /hubs/cycle_time/
         {
             "cycle_time": 2*3600,
             "hubs": ['hub_sn1', 'hub_sn2', 'hub_sn3']  # 为空时， 修改全部集控
@@ -276,3 +237,11 @@ class HubViewSet(mixins.RetrieveModelMixin,
             return Response(status=status.HTTP_200_OK)
         finally:
             if msg_socket: del msg_socket
+
+    @action(methods=['POST'], detail=True, url_path='download_log')
+    def download_hub_log(self, request, *args, **kwargs):
+        """
+        下载集控日志
+        POST /hubs/{sn}/download_log/
+        """
+        pass

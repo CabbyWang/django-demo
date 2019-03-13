@@ -1,9 +1,10 @@
 from django.db import models
 
 from hub.models import Hub
+from base.models import BaseModel
 
 
-class TotalPowerConsumption(models.Model):
+class TotalPowerConsumption(BaseModel):
     """
     集控总能耗
     """
@@ -17,7 +18,7 @@ class TotalPowerConsumption(models.Model):
         db_table = "totalpowerconsumption"
 
 
-class Consumption(models.Model):
+class Consumption(BaseModel):
     """
     集控当天能耗表
     """

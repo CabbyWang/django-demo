@@ -1,9 +1,14 @@
+import datetime
+
 from django.db import models
+from django.utils import timezone
 
 from hub.models import Hub
 
+from base.models import BaseModel
 
-class LampCtrl(models.Model):
+
+class LampCtrl(BaseModel):
     """
     灯控
     """
@@ -23,17 +28,13 @@ class LampCtrl(models.Model):
     rf_band = models.IntegerField(help_text='信道')
     rf_addr = models.IntegerField(help_text='通讯模块逻辑地址')
     address = models.CharField(max_length=60, help_text='集控配置地址')
-    new_address = models.CharField(max_length=255, help_text='管控修改过的地址')
+    new_address = models.CharField(max_length=255, null=True, blank=True, help_text='管控修改过的地址')
     longitude = models.FloatField(max_length=8, help_text='经度')
     latitude = models.FloatField(max_length=8, help_text='纬度')
     on_map = models.BooleanField(default=False, help_text='是否在地图上显示')
     memo = models.CharField(max_length=255, null=True, blank=True, help_text='备注')
     failure_date = models.DateField(null=True, blank=True, help_text='故障日期')
-    registered_time = models.DateField(help_text='入网时间')
-    is_deleted = models.BooleanField(default=False, help_text='是否删除')
-    created_time = models.DateTimeField(auto_now_add=True, help_text='修改时间')
-    updated_time = models.DateTimeField(auto_now=True, null=True, blank=True, help_text='删除时间')
-    deleted_time = models.DateTimeField(null=True, blank=True)
+    registered_time = models.DateField(default=timezone.now, help_text='入网时间')
 
     class Meta:
         verbose_name = '灯控'
@@ -55,7 +56,7 @@ class LampCtrl(models.Model):
         return cls.__model_fields
 
 
-class LampCtrlGroup(models.Model):
+class LampCtrlGroup(BaseModel):
     """
     灯控分组
     """
@@ -92,7 +93,7 @@ class LampCtrlGroup(models.Model):
 #         return self.group_num
 
 
-class LampCtrlStatus(models.Model):
+class LampCtrlStatus(BaseModel):
     """
     灯控状态历史
     """

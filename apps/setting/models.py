@@ -1,12 +1,14 @@
 from django.db import models
 
+from base.models import BaseModel
 
-class SettingType(models.Model):
+
+class SettingType(BaseModel):
     """
     系统设置分类
     """
     name = models.CharField(max_length=255, unique=True)
-    name_zhcn = models.CharField(max_length=255)
+    # name_zhcn = models.CharField(max_length=255)
 
     class Meta:
         verbose_name = '系统设置分类'
@@ -17,12 +19,12 @@ class SettingType(models.Model):
         return self.name
 
 
-class Setting(models.Model):
+class Setting(BaseModel):
     """
     系统设置
     """
     option = models.CharField(max_length=255, unique=True)
-    option_zhcn = models.CharField(max_length=255)
+    # option_zhcn = models.CharField(max_length=255)
     value = models.CharField(max_length=255)
     s_type = models.ForeignKey(SettingType, related_name='settings')
 

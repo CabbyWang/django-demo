@@ -7,28 +7,39 @@ Create by 王思勇 on 2019/2/12
 from rest_framework import serializers
 
 from hub.models import Hub, Unit
-from lamp.models import LampCtrl
 
 
-class HubSerializer(serializers.ModelSerializer):
+class UnitSerializer(serializers.ModelSerializer):
 
-    hub_unit = serializers.ReadOnlyField()
+    class Meta:
+        model = Unit
+        fields = ("name", )
+
+
+class HubDetailSerializer(serializers.ModelSerializer):
+
+    unit = UnitSerializer()
+    lamps_num = serializers.SerializerMethodField()
+
+    @staticmethod
+    def get_lamps_num(obj):
+        return obj.hub_lampctrl.count()
 
     class Meta:
         model = Hub
         fields = "__all__"
 
-    lamps_num = serializers.SerializerMethodField()
 
-    @staticmethod
-    def get_lamps_num(obj):
-        hub_sn = obj.sn
-        return obj.hub_lampctrl.count()
-        # return LampCtrl.objects.filter(hub_sn=hub_sn).count()
+class HubPartialUpdateSerializer(serializers.ModelSerializer):
+    longitude = serializers.FloatField(max_value=180, min_value=0)
+    latitude = serializers.FloatField(max_value=90, min_value=0)
 
-
-class UnitSerializer(serializers.HyperlinkedModelSerializer):
+    def validate(self, attrs):
+        if all(i in attrs for i in ('longitude', 'latitude')):
+            # 集控重定位, is_redirect=True
+            attrs['is_redirect'] = True
+        return attrs
 
     class Meta:
-        model = Unit
-        fields = ("name", )
+        model = Hub
+        fields = "__all__"

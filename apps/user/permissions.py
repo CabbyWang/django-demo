@@ -18,18 +18,6 @@ class IsOwnerOrPriority(permissions.BasePermission):
         return obj.user == request.user
 
 
-# class NotOwnerOrPriority(permissions.BasePermission):
-#
-#     def has_object_permission(self, request, view, obj):
-#         if request.user.username == 'admin':
-#             return True
-#         if request.user.is_superuser and not obj.is_superuser:
-#             return True
-#
-#         # is owner
-#         return obj.user != request.user
-
-
 class IsOwner(permissions.BasePermission):
 
     def has_object_permission(self, request, view, obj):

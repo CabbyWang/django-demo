@@ -36,6 +36,7 @@ class CustomPagination(PageNumberPagination):
         """
         配置每页显示行数
         """
+        # TODO 每次都需要去查询数据库， 是否可以通过刷新django配置， 或信号的方式来解决?
         try:
             setting = Setting.objects.get(option='pagination')
             page_size = int(setting.value)

@@ -4,6 +4,7 @@
 Create by 王思勇 on 2019/2/28
 """
 import os
+import shutil
 import pathlib
 
 
@@ -18,8 +19,11 @@ def remove_migrations(source_dir):
         for i in migrations.iterdir():
             if i.name == '__init__.py':
                 continue
-            os.remove(i)
-            # print(i)
+            print(i)
+            if i.is_file():
+                os.remove(i)
+            elif i.is_dir():
+                shutil.rmtree(i)
 
 
 if __name__ == '__main__':
