@@ -9,6 +9,12 @@ from projectinfo.models import ProjectInfo
 
 
 class ProjectInfoSerializer(serializers.ModelSerializer):
+    created_time = serializers.DateTimeField(read_only=True,
+                                             format='%Y-%m-%d %H:%M:%S')
+    updated_time = serializers.DateTimeField(read_only=True,
+                                             format='%Y-%m-%d %H:%M:%S')
+    deleted_time = serializers.DateTimeField(read_only=True,
+                                             format='%Y-%m-%d %H:%M:%S')
 
     class Meta:
         model = ProjectInfo

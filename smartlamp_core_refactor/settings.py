@@ -51,7 +51,6 @@ INSTALLED_APPS = [
     'hub.apps.HubConfig',
     'lamp.apps.LampConfig',
     'asset.apps.AssetConfig',
-    'map.apps.MapConfig',
     'notify.apps.NotifyConfig',
     'policy.apps.PolicyConfig',
     'projectinfo.apps.ProjectinfoConfig',
@@ -153,7 +152,7 @@ USE_I18N = True
 
 USE_L10N = True
 
-USE_TZ = True
+USE_TZ = False
 
 
 AUTHENTICATION_BACKENDS = (

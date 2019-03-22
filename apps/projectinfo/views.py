@@ -2,29 +2,14 @@ import re
 import platform
 import subprocess
 
-from django.http import Http404
-from django.core.exceptions import ValidationError
-from django.shortcuts import get_object_or_404 as _get_object_or_404
-
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.exceptions import NotFound
+from rest_framework.generics import get_object_or_404
 
 from projectinfo.models import ProjectInfo
 from projectinfo.serializers import ProjectInfoSerializer
 from utils.mixins import ListModelMixin
-
-
-def get_object_or_404(queryset, *filter_args, **filter_kwargs):
-    """
-    Same as Django's standard shortcut, but make sure to also raise 404
-    if the filter_kwargs don't match the required types.
-    """
-    try:
-        return _get_object_or_404(queryset, *filter_args, **filter_kwargs)
-    except (TypeError, ValueError, ValidationError):
-        raise NotFound
 
 
 class ProjectInfoViewSet(ListModelMixin,
@@ -38,11 +23,17 @@ class ProjectInfoViewSet(ListModelMixin,
         获取系统版本信息
     """
 
-    queryset = ProjectInfo.objects.all()
     serializer_class = ProjectInfoSerializer
+
+    def get_queryset(self):
+        if self.action == 'get_position':
+            # 取第一条记录展示
+            return ProjectInfo.objects.filter_by()[:1]
+        return ProjectInfo.objects.filter_by()
 
     @action(detail=False, methods=['GET'], url_path='position')
     def get_position(self, request, *args, **kwargs):
+        a = self.get_queryset()
         serializer = self.get_serializer(get_object_or_404(self.get_queryset()))
         return Response(serializer.data)
 

@@ -27,7 +27,7 @@ class BaseModel(models.Model):
                                         verbose_name='更新时间', help_text='更新时间')
     deleted_time = models.DateTimeField(db_index=True, null=True, blank=True, verbose_name='删除时间', help_text='删除时间')
 
-    objects = MyManager
+    objects = MyManager()
 
     def soft_delete(self):
         self.deleted_time = datetime.datetime.now()

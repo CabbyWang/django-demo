@@ -1,6 +1,4 @@
-from django.shortcuts import render
-
-# Create your views here.
+from math import sqrt
 
 from django.db import transaction
 from django.utils.translation import ugettext_lazy as _
@@ -17,6 +15,7 @@ from hub.permissions import IsOwnHubOrSuperUser
 from hub.serializers import (
     HubPartialUpdateSerializer, HubDetailSerializer, UnitSerializer
 )
+from lamp.models import LampCtrl
 from utils.paginator import CustomPagination
 from utils.mixins import ListModelMixin
 from utils.permissions import IsAdminUser
@@ -50,7 +49,12 @@ class HubViewSet(ListModelMixin,
         修改集控信息
     partial_update:
         集控重定位
-
+    layout:
+        对集控下的指定路灯进行划线排布(单边分布/奇偶分布)
+    drop_layout:
+        取消集控下路灯的布放
+    get_layout_lamps:
+        获取路灯布放的情况
     """
     pagination_class = CustomPagination
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
@@ -79,6 +83,101 @@ class HubViewSet(ListModelMixin,
         if self.action == 'destroy' and obj.status != 3:
             raise DeleteOnlineHubError
         return obj
+
+    @action(methods=['POST'], detail=True, url_path='layout')
+    def layout(self, request, *args, **kwargs):
+        """
+        对指定集控下的路灯进行划线排布(支持单边分布和奇偶分布)
+        POST /hubs/{sn}/layout/
+        单边:
+            {
+                # "hub_sn": "201803210014",
+                "odd-even": False,
+                "points": [[116.203048, 39.801835],  [116.226478, 39.82416],  [116.256912, 39.873809]],
+                "sequence": [1, 2, 3, 4, 5, 7]
+            }
+        奇偶:
+            {
+                # "hub_sn": "201803210014",
+                "odd-even": True,
+                "points": {
+                    "odd": [],
+                    "even": []
+                },
+                "sequence": [1, 2, 3, 4, 5, 7]
+            }
+        """
+        request_data = request.data
+        hub_sn = kwargs.get('pk')
+        points = request_data.get('points')
+        is_odd_even = request_data.get('odd-even')
+        sequence = request_data.get('sequence')
+
+        if not is_odd_even:
+            # 单边分布
+            ret_points = self.average_endpoints(points, len(sequence))
+        else:
+            # 奇偶分布
+            odd_points = points.get('odd')
+            even_points = points.get('even')
+            odd_sequence = sequence[::2]
+            even_sequence = sequence[1::2]
+            odd_ret_points = self.average_endpoints(odd_points,
+                                                    len(odd_sequence))
+            even_ret_points = self.average_endpoints(even_points,
+                                                     len(even_sequence))
+            ret_points = odd_ret_points + even_ret_points
+
+        # 写入数据库
+        for i, point in enumerate(ret_points):
+            longitude, latitude = point
+            sequence_num = sequence[i]
+            LampCtrl.objects.filter(hub_sn=hub_sn,
+                                    sequence=sequence_num).update(
+                on_map=True,
+                longitude=longitude,
+                latitude=latitude
+            )
+
+        return Response(status=status.HTTP_200_OK,
+                        data={'code': 0, 'message': '路灯布放成功'})
+
+    @action(methods=['POST'], detail=True, url_path='drop_layout')
+    def drop_layout(self, request, *args, **kwargs):
+        """
+        取消指定集控下路灯的布放
+        POST /hubs/{sn}/drop_layout/
+        """
+        hub_sn = kwargs.get('pk')
+        hub = Hub.objects.get(sn=hub_sn)
+        lon = hub.longitude
+        lat = hub.latitude
+        lamps_on_map = LampCtrl.objects.filter(hub=hub, on_map=True)
+
+        for lamp in lamps_on_map:
+            lamp.objects.update(on_map=False, longitude=lon, latitude=lat)
+
+        return Response(data={'code': 0, 'message': '布放撤销成功'})
+
+    @action(methods=['GET'], detail=True, url_path='layout_lamps')
+    def get_layout_lamps(self, request, *args, **kwargs):
+        """
+        获取路灯布放的情况
+        GET /hubs/{sn}/layout_lamps/
+        """
+        hub_sn = kwargs.get('pk')
+        hub = Hub.objects.get(sn=hub_sn)
+        lamps_on_map = LampCtrl.objects.filter(hub_sn=hub_sn, on_map=True)
+        lamps_not_on_map = LampCtrl.objects.filter(hub_sn=hub_sn, on_map=False)
+        sequence_on_map = [lamp.sequence for lamp in lamps_on_map]
+        sequence_not_on_map = [lamp.sequence for lamp in lamps_not_on_map]
+        LampCtrl.objects.values_list()
+        result = {
+            "on_map": sequence_on_map,
+            "not_on_map": sequence_not_on_map
+        }
+
+        return Response(data=result)
 
     @action(methods=['POST'], detail=False, url_path='load_inventory')
     def load_inventory(self, request, *args, **kwargs):
@@ -245,3 +344,68 @@ class HubViewSet(ListModelMixin,
         POST /hubs/{sn}/download_log/
         """
         pass
+
+    @staticmethod
+    def average_endpoints(endpoints, divide_point_num):
+        """
+        将divide_point_num个点均匀分布在endpoints连成的线段上
+        :param endpoints: 顶点列表
+        :param divide_point_num: 使用divide_point_num个点来均分(包含起点和终点)
+        :return: 返回均分过后 各个点的坐标的列表
+        """
+        # 妈的 想复杂了
+        if divide_point_num == 1:
+            # 只有一个点, 直接取起点
+            return [endpoints[0]]
+        seg_num = divide_point_num - 1  # 分成多少段
+        distance_list = []
+        last_xy = ()  # 上一个点
+        ret_points = []
+
+        # 求总距离
+        sum_distance = 0  # 总距离
+        for i, (x, y) in enumerate(endpoints):
+            if i == 0:
+                last_xy = (x, y)
+                continue
+            x0, y0 = last_xy
+            dst = sqrt(pow((x - x0), 2) + pow((y - y0), 2))
+            distance_list.append(dst)  # 记录每条线段的长度
+            sum_distance += dst  # 计算总长度
+            last_xy = (x, y)
+        # 求每两个点之间的距离
+        seg = sum_distance / seg_num  # 每条线段的长度
+        # 遍历序列号 求各个终端的坐标
+        last_xy = endpoints.pop(0)
+        next_xy = endpoints[0]
+        distance = distance_list.pop(0)
+        distance_from_start = 0
+        temp = 0  # 已经计算过的线段总长度
+        for i in range(divide_point_num):
+            # (索引, 序列号)
+            if i == 0:
+                # 第一个点就是起点
+                point = last_xy
+                ret_points.append(point)
+                continue
+            # 距离起点的距离
+            distance_from_start = seg * i
+            # 遇到线段转角
+            if i != seg_num - 1 and distance_from_start - temp > distance:  # 解决计算误差进入语句的问题
+                temp += distance
+                last_xy = endpoints.pop(0)
+                next_xy = endpoints[0]
+                distance = distance_list.pop(0)
+            # 上一个端点 last_xy
+            x1, y1 = last_xy
+            # 下一个端点 next_xy
+            x2, y2 = next_xy
+            # 到上一个顶点的距离
+            d = distance_from_start - temp
+            # 线段长度 distance
+            # 等比公式 (x - x1) / (x2 - x1) = d / distance
+            x = (x2 - x1) * d / distance + x1
+            y = (y2 - y1) * d / distance + y1
+            ret_points.append((x, y))
+        return ret_points
+

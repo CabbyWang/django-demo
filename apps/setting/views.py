@@ -27,8 +27,6 @@ class SettingViewSet(ListModelMixin,
         数据库备份
     """
 
-    queryset = Setting.objects.all()
-
     def get_queryset(self):
         if self.action == 'list':
             return SettingType.objects.all()

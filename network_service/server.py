@@ -19,6 +19,8 @@ from network_service import __version__
 
 log.startLogging(sys.stdout)
 
+clients = {}
+
 
 class Server(Protocol):
 

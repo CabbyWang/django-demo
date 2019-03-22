@@ -39,6 +39,7 @@ class LampViewSet(ListModelMixin,
         获取灯杆列表信息
     retrieve:
         获取灯杆详细信息
+    update:
 
     """
 

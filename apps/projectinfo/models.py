@@ -1,7 +1,9 @@
 from django.db import models
 
+from base.models import BaseModel
 
-class ProjectInfo(models.Model):
+
+class ProjectInfo(BaseModel):
 
     name = models.CharField(max_length=16, help_text='公司名称')
     city = models.CharField(max_length=16, help_text='城市名称')
