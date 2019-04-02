@@ -4,6 +4,20 @@ from lamp.models import LampCtrl
 from base.models import BaseModel
 
 
+class PoleImage(BaseModel):
+    """灯杆图片"""
+    image = models.ImageField(upload_to='asset/pole/', verbose_name='灯杆图片')
+
+    class Meta:
+        verbose_name = '灯杆图片'
+        verbose_name_plural = verbose_name
+        ordering = ["-created_time"]
+        db_table = "pole_image"
+
+    def __str__(self):
+        return str(self.id)
+
+
 class Pole(BaseModel):
     """ 灯杆 """
     sn = models.CharField(max_length=32, primary_key=True, help_text='编号')
@@ -16,7 +30,7 @@ class Pole(BaseModel):
     address = models.CharField(max_length=32, null=True, blank=True, help_text='安装地址')
     memo = models.CharField(max_length=64, null=True, blank=True, help_text='备注')
     is_used = models.BooleanField(default=False, help_text='是否已用')
-    image = models.ImageField(upload_to='asset/pole/', null=True, blank=True, default=None)
+    image = models.ForeignKey(PoleImage, null=True, blank=True)
 
     def __str__(self):
         return str(self.sn)
@@ -26,6 +40,20 @@ class Pole(BaseModel):
         verbose_name_plural = verbose_name
         ordering = ["-created_time"]
         db_table = "pole"
+
+
+class LampImage(BaseModel):
+    """灯具图片"""
+    image = models.ImageField(upload_to='asset/lamp/', verbose_name='灯具图片')
+
+    class Meta:
+        verbose_name = '灯具图片'
+        verbose_name_plural = verbose_name
+        ordering = ["-created_time"]
+        db_table = "lamp_image"
+
+    def __str__(self):
+        return str(self.id)
 
 
 class Lamp(BaseModel):
@@ -39,7 +67,7 @@ class Lamp(BaseModel):
     address = models.CharField(max_length=32, null=True, blank=True, help_text='安装地址')
     memo = models.CharField(max_length=64, null=True, blank=True, help_text='备注')
     is_used = models.BooleanField(default=False, help_text='是否已用')
-    image = models.ImageField(upload_to='asset/lamp/', null=True, blank=True, default=None)
+    image = models.ForeignKey(LampImage, null=True, blank=True)
 
     def __str__(self):
         return str(self.sn)
@@ -49,6 +77,20 @@ class Lamp(BaseModel):
         verbose_name_plural = verbose_name
         ordering = ["-created_time"]
         db_table = "lamp"
+
+
+class CBoxImage(BaseModel):
+    """控制箱图片"""
+    image = models.ImageField(upload_to='asset/cbox/', verbose_name='控制箱图片')
+
+    class Meta:
+        verbose_name = '控制箱图片'
+        verbose_name_plural = verbose_name
+        ordering = ["-created_time"]
+        db_table = "cbox_image"
+
+    def __str__(self):
+        return str(self.id)
 
 
 class CBox(BaseModel):
@@ -62,7 +104,7 @@ class CBox(BaseModel):
     address = models.CharField(max_length=32, null=True, blank=True, help_text='安装地址')
     memo = models.CharField(max_length=64, null=True, blank=True, help_text='备注')
     is_used = models.BooleanField(default=False, help_text='是否已用')
-    image = models.ImageField(upload_to='asset/cbox/', null=True, blank=True, default=None)
+    image = models.ForeignKey(CBoxImage, null=True, blank=True)
 
     def __str__(self):
         return str(self.sn)

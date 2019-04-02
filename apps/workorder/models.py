@@ -51,7 +51,6 @@ class WorkorderImage(BaseModel):
     order = models.ForeignKey(WorkOrder, related_name='workorder_image')
     image = models.ImageField(upload_to='workorder')
     image_type = models.IntegerField(choices=enumerate(IMAGE_TYPE))
-    created_time = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         verbose_name = '工单图片'

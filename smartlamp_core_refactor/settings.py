@@ -108,12 +108,12 @@ DATABASES = {
     # }
     "default": {
         "ENGINE": "django.db.backends.mysql",
-        "NAME": "smartlamp_refactor",
+        "NAME": "smartlamp",
         "USER": "root",
         "PASSWORD": "smartlamp",
         "HOST": "localhost",
         # "HOST": "127.0.0.1",
-        # "PORT": "3306",
+        "PORT": "3305",
         # 'ATOMIC_REQUESTS': True,  # wrap each request in a transaction
         'OPTIONS': {
             # 'init_command': 'SET storage_engine=INNODB;'

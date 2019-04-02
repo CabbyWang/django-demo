@@ -26,6 +26,7 @@ from hub.views import HubViewSet, UnitViewSet
 from setting.views import SettingViewSet
 from lamp.views import LampCtrlViewSet, LampCtrlStatusViewSet
 from projectinfo.views import ProjectInfoViewSet
+from asset.views import PoleViewSet, CableViewSet, CBoxViewSet, LampViewSet
 
 import xadmin
 
@@ -61,6 +62,18 @@ router.register('lampctrlstatus', LampCtrlStatusViewSet, base_name='lampctrlstat
 
 # 项目信息
 router.register('projectinfo', ProjectInfoViewSet, base_name='projectinfo')
+
+# 灯杆
+router.register('pole', PoleViewSet, base_name='pole')
+
+# 灯具
+router.register('lamp', LampViewSet, base_name='lamp')
+
+# 控制箱
+router.register('cbox', CBoxViewSet, base_name='cbox')
+
+# 电缆
+router.register('cable', CableViewSet, base_name='cable')
 
 
 urlpatterns = [

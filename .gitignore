@@ -2,8 +2,14 @@
 __pycache__
 **.pyc
 
+# idea
+.vscode
+
 # db
 db.sqlite3
 
 # ide
 .idea
+
+# media
+media/
