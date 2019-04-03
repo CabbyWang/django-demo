@@ -26,7 +26,7 @@ class Setting(BaseModel):
     option = models.CharField(max_length=255, unique=True)
     # option_zhcn = models.CharField(max_length=255)
     value = models.CharField(max_length=255)
-    s_type = models.ForeignKey(SettingType, related_name='settings')
+    type = models.ForeignKey(SettingType, related_name='settings')
 
     class Meta:
         verbose_name = '系统设置'
