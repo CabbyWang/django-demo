@@ -14,8 +14,8 @@ Including another URLconf
     2. Add a URL to urlpatterns:  url(r'^blog/', include('blog.urls'))
 """
 from django.conf.urls import url, include
-
-# from django.contrib import admin
+from django.conf import settings
+from django.views.static import serve
 
 from rest_framework import routers
 from rest_framework.documentation import include_docs_urls
@@ -90,4 +90,5 @@ urlpatterns = [
     # url(r'^admin/', admin.site.urls),
     url(r'^login/', obtain_jwt_token),
     url(r'api_docs/', include_docs_urls(title="smartlamp")),
+    url(r'^(?P<path>.*)$', serve, {'document_root': settings.BASE_DIR})
 ]
