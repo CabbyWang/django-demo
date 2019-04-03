@@ -10,7 +10,7 @@ from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 
 from hub.models import Hub
-from smartlamp_core.settings import REGEX_MOBILE
+from django.conf import settings
 from user.models import UserGroup, User, Permission
 
 
@@ -42,7 +42,7 @@ class UserSerializer(serializers.ModelSerializer):
     @staticmethod
     def validate_mobile(mobile):
         # 验证手机号码
-        if not re.match(REGEX_MOBILE, mobile):
+        if not re.match(settings.REGEX_MOBILE, mobile):
             raise serializers.ValidationError('请输入有效的手机号码')
         return mobile
 
