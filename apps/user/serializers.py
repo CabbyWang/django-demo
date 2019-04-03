@@ -10,7 +10,7 @@ from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 
 from hub.models import Hub
-from smartlamp_core_refactor.settings import REGEX_MOBILE
+from smartlamp_core.settings import REGEX_MOBILE
 from user.models import UserGroup, User, Permission
 
 

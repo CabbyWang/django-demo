@@ -1,4 +1,4 @@
-"""smartlamp_core_refactor URL Configuration
+"""smartlamp_core URL Configuration
 
 The `urlpatterns` list routes URLs to views. For more information please see:
     https://docs.djangoproject.com/en/1.11/topics/http/urls/
@@ -27,6 +27,7 @@ from setting.views import SettingViewSet
 from lamp.views import LampCtrlViewSet, LampCtrlStatusViewSet
 from projectinfo.views import ProjectInfoViewSet
 from asset.views import PoleViewSet, CableViewSet, CBoxViewSet, LampViewSet
+from notify.views import LogViewSet, AlertViewSet
 
 import xadmin
 
@@ -64,16 +65,22 @@ router.register('lampctrlstatus', LampCtrlStatusViewSet, base_name='lampctrlstat
 router.register('projectinfo', ProjectInfoViewSet, base_name='projectinfo')
 
 # 灯杆
-router.register('pole', PoleViewSet, base_name='pole')
+router.register('poles', PoleViewSet, base_name='poles')
 
 # 灯具
-router.register('lamp', LampViewSet, base_name='lamp')
+router.register('lamps', LampViewSet, base_name='lamps')
 
 # 控制箱
-router.register('cbox', CBoxViewSet, base_name='cbox')
+router.register('cboxs', CBoxViewSet, base_name='cboxs')
 
 # 电缆
-router.register('cable', CableViewSet, base_name='cable')
+router.register('cables', CableViewSet, base_name='cables')
+
+# 日志
+router.register('logs', LogViewSet, base_name='logs')
+
+# 告警
+router.register('alerts', AlertViewSet, base_name='alerts')
 
 
 urlpatterns = [
