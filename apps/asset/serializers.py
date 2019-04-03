@@ -3,23 +3,34 @@
 """
 Create by 王思勇 on 2019/3/13
 """
-import os
-
-from django.conf import settings
 from rest_framework import serializers
 
 from .models import Pole, Lamp, Cable, CBox, CBoxImage, LampImage, PoleImage
 
 
 class PoleImageSerializer(serializers.ModelSerializer):
+    created_time = serializers.DateTimeField(read_only=True,
+                                             format='%Y-%m-%d %H:%M')
 
     class Meta:
         model = PoleImage
-        fields = '__all__'
+        fields = ('id', 'image', 'created_time')
+
+
+class PoleDetailSerializer(serializers.ModelSerializer):
+    image = PoleImageSerializer(read_only=True)
+    created_time = serializers.DateTimeField(read_only=True,
+                                             format='%Y-%m-%d %H:%M')
+    updated_time = serializers.DateTimeField(write_only=True)
+    deleted_time = serializers.DateTimeField(write_only=True)
+    is_deleted = serializers.BooleanField(write_only=True)
+
+    class Meta:
+        model = Pole
+        fields = "__all__"
 
 
 class PoleSerializer(serializers.ModelSerializer):
-    image = PoleImageSerializer()
 
     class Meta:
         model = Pole
@@ -27,14 +38,28 @@ class PoleSerializer(serializers.ModelSerializer):
 
 
 class LampImageSerializer(serializers.ModelSerializer):
+    created_time = serializers.DateTimeField(read_only=True,
+                                             format='%Y-%m-%d %H:%M')
 
     class Meta:
         model = LampImage
-        fields = '__all__'
+        fields = ('id', 'image', 'created_time')
+
+
+class LampDetailSerializer(serializers.ModelSerializer):
+    image = LampImageSerializer(read_only=True)
+    created_time = serializers.DateTimeField(read_only=True,
+                                             format='%Y-%m-%d %H:%M')
+    updated_time = serializers.DateTimeField(write_only=True)
+    deleted_time = serializers.DateTimeField(write_only=True)
+    is_deleted = serializers.BooleanField(write_only=True)
+
+    class Meta:
+        model = Lamp
+        fields = "__all__"
 
 
 class LampSerializer(serializers.ModelSerializer):
-    image = LampImageSerializer()
 
     class Meta:
         model = Lamp
@@ -42,14 +67,28 @@ class LampSerializer(serializers.ModelSerializer):
 
 
 class CBoxImageSerializer(serializers.ModelSerializer):
+    created_time = serializers.DateTimeField(read_only=True,
+                                             format='%Y-%m-%d %H:%M')
 
     class Meta:
         model = CBoxImage
-        fields = '__all__'
+        fields = fields = ('id', 'image', 'created_time')
+
+
+class CBoxDetailSerializer(serializers.ModelSerializer):
+    image = CBoxImageSerializer(read_only=True)
+    created_time = serializers.DateTimeField(read_only=True,
+                                             format='%Y-%m-%d %H:%M')
+    updated_time = serializers.DateTimeField(write_only=True)
+    deleted_time = serializers.DateTimeField(write_only=True)
+    is_deleted = serializers.BooleanField(write_only=True)
+
+    class Meta:
+        model = CBox
+        fields = "__all__"
 
 
 class CBoxSerializer(serializers.ModelSerializer):
-    image = CBoxImageSerializer()
 
     class Meta:
         model = CBox
