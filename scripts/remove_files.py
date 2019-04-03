@@ -8,7 +8,7 @@ import shutil
 import pathlib
 
 
-source_dir = r'D:\workspace\github\smartlamp_core\apps'
+source_dir = r'D:\workspace\github\smartlamp_core_refactor\apps'
 
 def remove_migrations(source_dir):
     source_dir = pathlib.Path(source_dir)

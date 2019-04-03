@@ -9,7 +9,7 @@ import django
 
 
 sys.path.append(os.path.dirname(__file__))
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "smartlamp_core.settings")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "smartlamp.settings")
 django.setup()
 
 from django.contrib.auth import get_user_model
