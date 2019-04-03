@@ -20,3 +20,23 @@ if __name__ == "__main__":
             )
         raise
     execute_from_command_line(sys.argv)
+
+
+def check_files_is_exists():
+    """检查文件是否存在, 不存在则创建"""
+    # log文件
+    from django.conf import settings
+    log_dir = settings.LOG_DIR
+    os.makedirs(log_dir, exist_ok=True)
+    crontab_log = os.path.join(settings.LOG_DIR, 'django_crontab.log')
+    smartlamp_log = os.path.join(settings.LOG_DIR, 'smartlamp.log')
+    with open(crontab_log, 'w'), open(smartlamp_log, 'w'):
+        pass
+
+    # media文件
+    for i in ('asset', 'audio', 'inspection', 'workorder'):
+        media_dir = os.path.join(settings.MEDIA_ROOT, i)
+        os.makedirs(media_dir, exist_ok=True)
+    for i in ('cbox', 'lamp', 'pole'):
+        assert_dir = os.path.join(settings.MEDIA_ROOT, 'assert', i)
+        os.makedirs(assert_dir, exist_ok=True)
