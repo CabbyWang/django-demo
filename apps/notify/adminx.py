@@ -5,7 +5,7 @@ Create by 王思勇 on 2019/2/21
 """
 import xadmin
 
-from notify.models import Log, Alert
+from notify.models import Log, Alert, AlertAudio
 
 
 class LogAdmin(object):
@@ -39,5 +39,19 @@ class AlertAdmin(object):
     ]
 
 
+class AlertAudioAdmin(object):
+
+    list_display = [
+        "alert", "audio", "times", "created_time"
+    ]
+    list_filter = [
+        "alert", "audio", "times"
+    ]
+    search_fields = [
+        "alert", "audio", "times", "created_time"
+    ]
+
+
 xadmin.site.register(Log, LogAdmin)
 xadmin.site.register(Alert, AlertAdmin)
+xadmin.site.register(AlertAudio, AlertAudioAdmin)

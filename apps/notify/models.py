@@ -42,13 +42,30 @@ class Alert(BaseModel):
     is_solved = models.BooleanField(default=False, help_text='是否解决')
     solver = models.ForeignKey(User, related_name='solved_alert', null=True, blank=True, help_text='处理人员')
     solved_time = models.DateTimeField(auto_now=True, null=True, blank=True, help_text='处理时间')
-    times = models.IntegerField(default=0, help_text='告警被听次数')
+    # audio = models.ForeignKey(AlertAudio, related_name='audio_alert', help_text='告警语音')
+    # times = models.IntegerField(default=0, help_text='告警被听次数')
 
     class Meta:
         verbose_name = '告警'
         verbose_name_plural = verbose_name
-        ordering = ('-occurred_time',)
+        ordering = ('-occurred_time', )
         db_table = "alert"
 
     def __str__(self):
         return self.event
+
+
+class AlertAudio(BaseModel):
+    """
+    告警语音
+    """
+    alert = models.OneToOneField(Alert, related_name='audio')
+    audio = models.FileField(upload_to='audio/', verbose_name='告警语音')
+    times = models.IntegerField(default=0)
+
+    class Meta:
+        verbose_name = '告警语音'
+        verbose_name_plural = verbose_name
+        # unique_together = ('alert_id', 'audio')
+        ordering = ('-id', )
+        db_table = "alert_audio"
