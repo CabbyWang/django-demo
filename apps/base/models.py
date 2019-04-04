@@ -30,6 +30,7 @@ class BaseModel(models.Model):
     objects = MyManager()
 
     def soft_delete(self):
+        self.is_deleted = True
         self.deleted_time = datetime.datetime.now()
         self.save()
 
