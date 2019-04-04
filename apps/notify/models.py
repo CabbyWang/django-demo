@@ -59,8 +59,8 @@ class AlertAudio(BaseModel):
     """
     告警语音
     """
-    alert = models.OneToOneField(Alert, related_name='audio')
-    audio = models.FileField(upload_to='audio/', verbose_name='告警语音')
+    alert = models.OneToOneField(Alert, related_name='alert_audio')
+    audio = models.FileField(upload_to='audio', verbose_name='告警语音')
     times = models.IntegerField(default=0)
 
     class Meta:
