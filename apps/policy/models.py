@@ -30,10 +30,13 @@ class Policy(BaseModel):
     """
     策略
     """
+    POLICY_TYPE = ('时控', '经纬度', '光控', '回路控制')
+
     name = models.CharField(max_length=255, verbose_name='策略名称')
     item = ListField(default=[])
     memo = models.CharField(max_length=255, null=True, blank=True, verbose_name='备注')
     creator = models.CharField(max_length=16, blank=True, null=True)
+    type = models.IntegerField(choices=enumerate(POLICY_TYPE), verbose_name='策略类型')
 
     class Meta:
         verbose_name = "策略"

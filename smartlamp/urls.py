@@ -28,6 +28,7 @@ from lamp.views import LampCtrlViewSet, LampCtrlStatusViewSet
 from projectinfo.views import ProjectInfoViewSet
 from asset.views import PoleViewSet, CableViewSet, CBoxViewSet, LampViewSet
 from notify.views import LogViewSet, AlertViewSet, AlertAudioViewSet
+from policy.views import PolicyViewSet, PolicySetViewSet
 
 import xadmin
 
@@ -84,6 +85,12 @@ router.register('alerts', AlertViewSet, base_name='alerts')
 
 # 告警语音
 router.register('alertaudios', AlertAudioViewSet, base_name='alertaudios')
+
+# 策略
+router.register('policies', PolicyViewSet, base_name='policies')
+
+# 策略集
+router.register('policysets', PolicySetViewSet, base_name='policysets')
 
 
 urlpatterns = [
