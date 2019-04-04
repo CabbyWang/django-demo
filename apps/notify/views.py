@@ -1,3 +1,7 @@
+import os
+
+from django.conf import settings
+
 from rest_framework import viewsets, mixins
 from rest_framework.authentication import SessionAuthentication
 from rest_framework_jwt.authentication import JSONWebTokenAuthentication
@@ -58,12 +62,20 @@ class AlertAudioViewSet(mixins.DestroyModelMixin,
     destroy:
         删除告警语音(通过alert_id删除)
     """
-    queryset = AlertAudio.objects.all()
+    queryset = AlertAudio.objects.filter_by()
     serializer_class = AlertAudioSerializers
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
     lookup_field = 'alert_id'
 
     def perform_destroy(self, instance):
         # TODO times + 1
+        instance.times += 1
+        instance.save()
         # TODO times==2时，删除告警语音文件
-        instance.delete()
+        if instance.times == 2:
+            audio_file = instance.audio.path
+            try:
+                os.remove(audio_file)
+            except FileNotFoundError:
+                pass
+            instance.soft_delete()
