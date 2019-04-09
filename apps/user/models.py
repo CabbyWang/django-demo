@@ -2,7 +2,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 
 from hub.models import Hub
-from base.models import BaseModel
+from base.models import BaseModel, MyAbstractUser
 
 
 class UserGroup(BaseModel):
@@ -24,13 +24,13 @@ class UserGroup(BaseModel):
         return self.name
 
 
-class User(AbstractUser, BaseModel):
+class User(MyAbstractUser):
     """
     用户
     """
     hubs = models.ManyToManyField(Hub, related_name='users', through='Permission')
     mobile = models.CharField(max_length=11, verbose_name="电话")
-    email = models.EmailField(max_length=100, verbose_name="邮箱")
+    # email = models.EmailField(max_length=100, verbose_name="邮箱")
     read_only_user = models.BooleanField(default=False, verbose_name="只读用户")
     receive_alarm = models.BooleanField(default=False, verbose_name="接收告警")
     password_modified_time = models.DateTimeField(auto_now=True, null=True, blank=True, verbose_name="密码修改时间")
