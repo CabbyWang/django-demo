@@ -24,22 +24,25 @@ class WorkOrder(BaseModel):
     )
     STATUS = (('todo', '未处理'), ('doing', '处理中'), ('finished', '已处理'))
 
-    alert = models.ForeignKey(Alert, related_name='alert_workorder', null=True, blank=True, help_text='告警编号')
-    w_type = models.IntegerField(choices=TYPES, help_text='工单类型')
-    obj_sn = models.CharField(max_length=32, null=True, blank=True, help_text='')
+    alert = models.OneToOneField(Alert, related_name='alert_workorder', null=True, blank=True, help_text='告警编号')
+    type = models.IntegerField(choices=TYPES, help_text='工单类型')
+    obj_sn = models.CharField(max_length=32, null=True, blank=True, help_text='对象编号')
     lampctrl = models.ForeignKey(LampCtrl, related_name='lampctrl_workorder', null=True, blank=True)
     sequence = models.IntegerField(null=True, blank=True)  # 维修历史根据逻辑号查，因为sn号可能会改变
     user = models.ForeignKey(User, related_name='user_workorder', null=True, blank=True)
-    message = models.CharField(null=True, blank=True, max_length=255)
+    message = models.CharField(max_length=255)
     status = models.CharField(choices=STATUS, default='todo', max_length=16)    # to-do/doing/finished
-    finished_time = models.DateTimeField(default=None, null=True)
-    memo = models.CharField(max_length=255, null=True, blank=True)
+    finished_time = models.DateTimeField(null=True, blank=True)
+    description = models.CharField(max_length=255, null=True, blank=True, help_text="处理结果描述")
 
     class Meta:
         verbose_name = '工单'
         verbose_name_plural = verbose_name
         ordering = ('-created_time', )
         db_table = "workorder"
+
+    def __str__(self):
+        return "WorkOrder[{}]: {}".format(self.id, self.message)
 
 
 class WorkorderImage(BaseModel):
@@ -50,12 +53,30 @@ class WorkorderImage(BaseModel):
 
     order = models.ForeignKey(WorkOrder, related_name='workorder_image')
     image = models.ImageField(upload_to='workorder')
-    image_type = models.IntegerField(choices=enumerate(IMAGE_TYPE))
+    image_type = models.IntegerField(choices=enumerate(IMAGE_TYPE), default=0)
 
     class Meta:
         verbose_name = '工单图片'
         verbose_name_plural = verbose_name
         db_table = "workorderimage"
+
+    def __str__(self):
+        return self.image.path
+
+
+class WorkOrderAudio(BaseModel):
+    """
+    工单语音
+    """
+    order = models.OneToOneField(WorkOrder, related_name='workorder_audio')
+    audio = models.FileField(upload_to='audio', verbose_name='工单语音')
+    times = models.IntegerField(default=0)
+
+    class Meta:
+        verbose_name = '工单语音'
+        verbose_name_plural = verbose_name
+        ordering = ('-id', )
+        db_table = "workorder_audio"
 
 
 class Inspection(BaseModel):
@@ -63,7 +84,7 @@ class Inspection(BaseModel):
     巡检报告表
     """
     user = models.ForeignKey(User, related_name='user_inspection')
-    hub = models.ForeignKey(Hub, related_name='hub_inspetion', null=False)
+    hub = models.ForeignKey(Hub, related_name='hub_inspetion')
     memo = models.CharField(null=True, max_length=1023)
 
     class Meta:
@@ -72,6 +93,9 @@ class Inspection(BaseModel):
         ordering = ('-created_time', )
         db_table = "inspection"
 
+    def __str__(self):
+        return str(self.id)
+
 
 class InspectionImage(BaseModel):
     """
@@ -79,12 +103,14 @@ class InspectionImage(BaseModel):
     """
     inspection = models.ForeignKey(Inspection, related_name='inspection_image')
     image = models.ImageField(upload_to='inspection')
-    created_time = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         verbose_name = '巡检图片'
         verbose_name_plural = verbose_name
         db_table = "inspectionimage"
+
+    def __str__(self):
+        return self.image.path
 
 
 class InspectionItem(BaseModel):
@@ -93,15 +119,17 @@ class InspectionItem(BaseModel):
     """
     STATUS_CHOICE = ((1, '正常'), (2, '故障'))
 
-    inspection = models.ForeignKey(Inspection)
+    inspection = models.ForeignKey(Inspection, related_name="inspection_item")
     hub = models.ForeignKey(Hub, related_name='hub_inspection_item')
-    lamp = models.ForeignKey(LampCtrl, related_name='lampctrl_inspection_item')
-    sequence = models.IntegerField()
+    lampctrl = models.ForeignKey(LampCtrl, related_name='lampctrl_inspection_item')
     status = models.IntegerField(choices=STATUS_CHOICE)
     memo = models.CharField(max_length=1023, null=True, blank=True)
 
     class Meta:
         verbose_name = '巡检具体项'
         verbose_name_plural = verbose_name
-        ordering = ('hub', 'sequence')
+        ordering = ('hub', 'lampctrl')
         db_table = "inspectionitem"
+
+    def __str__(self):
+        return str(self.id)

@@ -29,10 +29,12 @@ from projectinfo.views import ProjectInfoViewSet
 from asset.views import PoleViewSet, CableViewSet, CBoxViewSet, LampViewSet
 from notify.views import LogViewSet, AlertViewSet, AlertAudioViewSet
 from policy.views import PolicyViewSet, PolicySetViewSet
+from workorder.views import (
+    WorkOrderViewSet, WorkOrderImageViewSet, WorkOrderAudioViewSet,
+    InspectionViewSet, InspectionImageViewSet, InspectionItemViewSet
+)
 
 import xadmin
-
-# xadmin.autodiscover()
 
 obtain_jwt_token = CustomObtainJSONWebToken.as_view()
 
@@ -92,6 +94,24 @@ router.register('policies', PolicyViewSet, base_name='policies')
 # 策略集
 router.register('policysets', PolicySetViewSet, base_name='policysets')
 
+# 工单
+router.register('workorders', WorkOrderViewSet, base_name='workorders')
+
+# 工单图片
+router.register('workorderimages', WorkOrderImageViewSet, base_name='workorderimages')
+
+# 工单语音
+router.register('workorderaudios', WorkOrderAudioViewSet, base_name='workorderaudios')
+
+# 巡检
+router.register('inspections', InspectionViewSet, base_name='inspections')
+
+# 巡检图片
+router.register('inspection-images', InspectionImageViewSet, base_name='inspection-images')
+
+# 巡检项
+router.register('inspection-items', InspectionItemViewSet, base_name='inspection-items')
+
 
 urlpatterns = [
     url(r'^xadmin/', xadmin.site.urls),
@@ -99,6 +119,8 @@ urlpatterns = [
     url(r'^', include(router.urls)),
     # url(r'^admin/', admin.site.urls),
     url(r'^login/', obtain_jwt_token),
-    url(r'api_docs/', include_docs_urls(title="smartlamp")),
+    url(r'api_docs/', include_docs_urls(title="smartlamp",
+                                        authentication_classes=[],
+                                        permission_classes=[])),
     url(r'^(?P<path>.*)$', serve, {'document_root': settings.BASE_DIR})
 ]

@@ -68,7 +68,7 @@ class UserGroupDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = UserGroup
-        fields = ("name", 'memo', 'users')
+        fields = ("id", "name", 'memo', 'users')
 
 
 class UserGroupCreateSerializer(serializers.ModelSerializer):
@@ -82,7 +82,7 @@ class UserGroupCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = UserGroup
-        fields = ("name", "memo")
+        fields = ("id", "name", "memo")
 
 
 class AssignPermissionSerializer(serializers.Serializer):

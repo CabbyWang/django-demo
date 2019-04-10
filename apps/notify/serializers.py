@@ -10,21 +10,37 @@ from rest_framework import serializers
 from .models import Log, Alert, AlertAudio
 
 
-class LogSerializers(serializers.ModelSerializer):
+class LogSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Log
         fields = '__all__'
 
 
-class AlertSerializers(serializers.ModelSerializer):
+class AlertAudioSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = AlertAudio
+        fields = '__all__'
+
+
+class AlertSerializer(serializers.ModelSerializer):
+    audio = serializers.SerializerMethodField()
+
+    @staticmethod
+    def get_audio(instance):
+        # 返回语音文件路径，或None
+        alert_audio = instance.alert_audio
+        if alert_audio.is_deleted:
+            return
+        return alert_audio.audio.path
 
     class Meta:
         model = Alert
         fields = '__all__'
 
 
-class AlertUpdateSerializers(serializers.ModelSerializer):
+class AlertUpdateSerializer(serializers.ModelSerializer):
     is_deleted = serializers.BooleanField(read_only=True)
     deleted_time = serializers.DateTimeField(read_only=True)
     event = serializers.CharField(read_only=True)
@@ -43,11 +59,4 @@ class AlertUpdateSerializers(serializers.ModelSerializer):
 
     class Meta:
         model = Alert
-        fields = '__all__'
-
-
-class AlertAudioSerializers(serializers.ModelSerializer):
-
-    class Meta:
-        model = AlertAudio
         fields = '__all__'

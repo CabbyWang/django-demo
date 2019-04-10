@@ -6,28 +6,28 @@ Create by 王思勇 on 2019/2/21
 import xadmin
 
 from workorder.models import (
-    WorkOrder, WorkorderImage, Inspection,
-    InspectionImage, InspectionItem
+    WorkOrder, WorkorderImage, WorkOrderAudio,
+    Inspection, InspectionImage, InspectionItem
 )
 
 
 class WorkOrderAdmin(object):
 
     list_display = [
-        "alert", "w_type", "obj_sn", "lampctrl", "sequence", "user",
+        "alert", "type", "obj_sn", "lampctrl", "sequence", "user",
         "message", "status", "created_time", "finished_time", "memo"
     ]
     list_filter = [
-        "alert", "w_type", "obj_sn", "lampctrl", "sequence", "user",
+        "alert", "type", "obj_sn", "lampctrl", "sequence", "user",
         "message", "status", "memo"
     ]
     search_fields = [
-        "alert", "w_type", "obj_sn", "lampctrl", "sequence", "user",
+        "alert", "type", "obj_sn", "lampctrl", "sequence", "user",
     "message", "status", "created_time", "finished_time", "memo"
     ]
 
 
-class WorkorderImageAdmin(object):
+class WorkOrderImageAdmin(object):
 
     list_display = [
         "order", "image", "image_type", "created_time"
@@ -37,6 +37,19 @@ class WorkorderImageAdmin(object):
     ]
     search_fields = [
         "order", "image", "image_type", "created_time"
+    ]
+
+
+class WorkOrderAudioAdmin(object):
+
+    list_display = [
+        "order", "audio", "times", "created_time"
+    ]
+    list_filter = [
+        "order", "audio", "times"
+    ]
+    search_fields = [
+        "order", "audio", "times", "created_time"
     ]
 
 
@@ -69,18 +82,19 @@ class InspectionImageAdmin(object):
 class InspectionItemAdmin(object):
 
     list_display = [
-        "inspection", "hub", "lamp", "sequence", "status", "memo"
+        "inspection", "hub", "lampctrl", "status", "memo"
     ]
     list_filter = [
-        "inspection", "hub", "lamp", "sequence", "status", "memo"
+        "inspection", "hub", "lampctrl", "status", "memo"
     ]
     search_fields = [
-        "inspection", "hub", "lamp", "sequence", "status", "memo"
+        "inspection", "hub", "lampctrl", "status", "memo"
     ]
 
 
 xadmin.site.register(WorkOrder, WorkOrderAdmin)
-xadmin.site.register(WorkorderImage, WorkorderImageAdmin)
+xadmin.site.register(WorkorderImage, WorkOrderImageAdmin)
+xadmin.site.register(WorkOrderAudio, WorkOrderAudioAdmin)
 xadmin.site.register(Inspection, InspectionAdmin)
 xadmin.site.register(InspectionImage, InspectionImageAdmin)
 xadmin.site.register(InspectionItem, InspectionItemAdmin)

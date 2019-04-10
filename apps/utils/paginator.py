@@ -40,21 +40,20 @@ class CustomPagination(PageNumberPagination):
         2. 配置中的page_size
         3. 默认
         """
-        if self.page_size_query_param:
+        try:
+            self.page_size = _positive_int(
+                request.query_params[self.page_size_query_param],
+                strict=True,
+                cutoff=self.max_page_size
+            )
+        except (KeyError, ValueError):
+            # 使用配置
+            # TODO 每次都需要去查询数据库， 是否可以通过刷新django配置，
+            #  或信号的方式来解决?
             try:
-                self.page_size = _positive_int(
-                    request.query_params[self.page_size_query_param],
-                    strict=True,
-                    cutoff=self.max_page_size
-                )
-            except (KeyError, ValueError):
-                # 使用配置
-                # TODO 每次都需要去查询数据库， 是否可以通过刷新django配置，
-                #  或信号的方式来解决?
-                try:
-                    setting = Setting.objects.get(option='pagination')
-                    self.page_size = int(setting.value)
-                except (Setting.DoesNotExist, ValueError):
-                    self.page_size = 30
+                setting = Setting.objects.get(option='pagination')
+                self.page_size = int(setting.value)
+            except (Setting.DoesNotExist, ValueError):
+                self.page_size = 30
 
         return self.page_size

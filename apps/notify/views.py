@@ -7,8 +7,8 @@ from rest_framework.authentication import SessionAuthentication
 from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 
 from .models import Log, Alert, AlertAudio
-from .serializers import LogSerializers, AlertSerializers, \
-    AlertAudioSerializers, AlertUpdateSerializers
+from .serializers import LogSerializer, AlertSerializer, \
+    AlertAudioSerializer, AlertUpdateSerializer
 from utils.mixins import ListModelMixin
 
 
@@ -23,7 +23,7 @@ class LogViewSet(ListModelMixin,
         创建日志
     """
     queryset = Log.objects.all()
-    serializer_class = LogSerializers
+    serializer_class = LogSerializer
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
 
 
@@ -43,16 +43,16 @@ class AlertViewSet(ListModelMixin,
     partial_update:
         解除告警/撤销解除
     """
-    queryset = Alert.objects.all()
+    queryset = Alert.objects.filter_by()
     # serializer_class = AlertSerializers
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
 
     def get_serializer_class(self):
         # return AlertSerializers
         if self.action in ('partial_update', 'update'):
-            return AlertUpdateSerializers
+            return AlertUpdateSerializer
         else:
-            return AlertSerializers
+            return AlertSerializer
 
 
 class AlertAudioViewSet(mixins.DestroyModelMixin,
@@ -63,7 +63,7 @@ class AlertAudioViewSet(mixins.DestroyModelMixin,
         删除告警语音(通过alert_id删除)
     """
     queryset = AlertAudio.objects.filter_by()
-    serializer_class = AlertAudioSerializers
+    serializer_class = AlertAudioSerializer
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
     lookup_field = 'alert_id'
 

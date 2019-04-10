@@ -47,3 +47,6 @@ class ListModelMixin(_ListModelMixin):
         if request.query_params.get('all') != 'true':
             self.pagination_class = CustomPagination
         return super(ListModelMixin, self).list(request, *args, **kwargs)
+
+
+# TODO 是否需要重写mixins.DestroyModelMixin, 软删除

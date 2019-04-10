@@ -113,11 +113,11 @@ DATABASES = {
         "PASSWORD": "smartlamp",
         "HOST": "localhost",
         # "HOST": "127.0.0.1",
-        "PORT": "3305",
+        "PORT": "3315",
         # 'ATOMIC_REQUESTS': True,  # wrap each request in a transaction
         'OPTIONS': {
             # 'init_command': 'SET storage_engine=INNODB;'
-        }
+        },
     }
 }
 

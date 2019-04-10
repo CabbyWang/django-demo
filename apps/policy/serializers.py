@@ -16,9 +16,14 @@ class PolicySerializer(serializers.ModelSerializer):
     type = serializers.ChoiceField([(0, '时控'), (1, '经纬度'), (2, '光控'), (3, '回路控制')])
     item = serializers.ListField(allow_empty=True)
     creator = serializers.CharField(
-        read_only=True,
+        write_only=True,
         default=serializers.CurrentUserDefault()
     )
+    is_used = serializers.SerializerMethodField()
+
+    @staticmethod
+    def get_is_used(instance):
+        return PolicySetRelation.objects.filter_by(policy=instance).exists()
 
     def validate_item(self, item):
         """验证item"""
@@ -43,7 +48,8 @@ class PolicySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Policy
-        fields = "__all__"
+        fields = ('name', 'type', 'item', 'is_used', 'creator', 'created_time',
+                  'updated_time')
 
 
 class PolicySetRelationSerializer(serializers.ModelSerializer):
@@ -64,17 +70,23 @@ class PolicySetSerializer(serializers.ModelSerializer):
         source='policyset_relations', many=True, read_only=True)
     name = serializers.CharField(max_length=255)
     creator = serializers.CharField(
-        read_only=True,
+        write_only=True,
         default=serializers.CurrentUserDefault()
     )
     created_time = serializers.DateTimeField(read_only=True,
                                              format='%Y-%m-%d %H:%M')
     updated_time = serializers.DateTimeField(read_only=True,
                                              format='%Y-%m-%d %H:%M')
+    is_used = serializers.SerializerMethodField()
+
+    @staticmethod
+    def get_is_used(instance):
+        return PolicySetSendDown.objects.filter_by(policyset=instance).exists()
 
     class Meta:
         model = PolicySet
-        fields = ("id", "name", "policys", "creator", "memo", "created_time", "updated_time")
+        fields = ("id", "name", "policys", "creator", "memo", "created_time",
+                  "updated_time")
         depth = 1
 
     @transaction.atomic
@@ -110,3 +122,8 @@ class PolicySetSerializer(serializers.ModelSerializer):
                     execute_date=execute_date
                 )
         return policyset
+
+    class Meta:
+        model = PolicySet
+        fields = ('policys', 'name', 'memo', 'creator', 'created_time',
+                  'updated_time', 'is_used')

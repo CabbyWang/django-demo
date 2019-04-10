@@ -29,6 +29,7 @@ class Alert(BaseModel):
     """
     告警
     """
+    # TODO 告警事件（event）是否需要变为可选类型
     ALERT_LEVEL = ((1, '正常'), (2, '故障'), (3, '脱网'))
     OBJECT_TYPE = (('hub', '集控'), ('lamp', '灯控'))
 
@@ -42,8 +43,6 @@ class Alert(BaseModel):
     is_solved = models.BooleanField(default=False, help_text='是否解决')
     solver = models.ForeignKey(User, related_name='solved_alert', null=True, blank=True, help_text='处理人员')
     solved_time = models.DateTimeField(auto_now=True, null=True, blank=True, help_text='处理时间')
-    # audio = models.ForeignKey(AlertAudio, related_name='audio_alert', help_text='告警语音')
-    # times = models.IntegerField(default=0, help_text='告警被听次数')
 
     class Meta:
         verbose_name = '告警'
@@ -66,6 +65,5 @@ class AlertAudio(BaseModel):
     class Meta:
         verbose_name = '告警语音'
         verbose_name_plural = verbose_name
-        # unique_together = ('alert_id', 'audio')
         ordering = ('-id', )
         db_table = "alert_audio"
