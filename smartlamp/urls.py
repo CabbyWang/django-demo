@@ -20,6 +20,9 @@ from django.views.static import serve
 from rest_framework import routers
 from rest_framework.documentation import include_docs_urls
 
+from report.views import DailyTotalConsumptionViewSet, \
+    MonthPowerConsumptionViewSet, DeviceConsumptionViewSet, \
+    HubMonthPowerConsumptionViewSet
 from user.auth import CustomObtainJSONWebToken
 from user.views import UserGroupViewSet, UserViewSet
 from hub.views import HubViewSet, UnitViewSet
@@ -111,6 +114,18 @@ router.register('inspection-images', InspectionImageViewSet, base_name='inspecti
 
 # 巡检项
 router.register('inspection-items', InspectionItemViewSet, base_name='inspection-items')
+
+# 日能耗
+router.register('daily-consumptions', DailyTotalConsumptionViewSet, base_name='daily-consumptions')
+
+# 月能耗
+router.register('month-consumptions', MonthPowerConsumptionViewSet, base_name='month-consumptions')
+
+# 集控月能耗
+router.register('hub-month-consumptions', HubMonthPowerConsumptionViewSet, base_name='hub-month-consumptions')
+
+# 设备能耗
+router.register('device-consumptions', DeviceConsumptionViewSet, base_name='device-consumptions')
 
 
 urlpatterns = [

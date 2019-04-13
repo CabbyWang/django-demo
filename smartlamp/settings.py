@@ -206,3 +206,15 @@ LANGUAGES = (
 )
 
 LOGGING = {}
+
+CRONJOBS = [
+
+    # ('*/5 * * * *', 'myapp.cron.my_scheduled_job'),
+    #
+    # # format 1
+    # ('0   0 1 * *', 'myapp.cron.my_scheduled_job', '>> /tmp/scheduled_job.log'),
+    #
+    # # format 2
+    # ('0   0 1 * *', 'myapp.cron.other_scheduled_job', ['myapp']),
+    # ('0   0 * * 0', 'django.core.management.call_command', ['dumpdata', 'auth'], {'indent': 4}, '> /home/john/backups/last_sunday_auth_backup.json'),
+]

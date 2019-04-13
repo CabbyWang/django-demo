@@ -12,149 +12,116 @@ from twisted.python import log
 from twisted.internet import reactor, task
 from twisted.internet.protocol import Factory, Protocol
 
-from network_service.api import SLMS
+from .api import SLMS
 
-from network_service import __version__
+from .config import LISTEN_PORT, HEART_CYCLE
+
+from . import __version__
 
 
 log.startLogging(sys.stdout)
 
+# twisted clients pool
 clients = {}
 
 
 class Server(Protocol):
 
-    def __init__(self, clients):
-        self.clients = clients
+    def __init__(self):
         self.user = None
         self._data_buffer = bytes()
         self.last_heartbeat_time = int(time.time())
-        self.command_func_map = {
-            1: self.handle_verify,
-            2: self.handle_single_message,
-            3: self.handle_group_message,
-            4: self.handle_broadcast_message,
-            5: self.handle_heartbeat
+        self.promise = {
+            1: self.register,
+            2: self.single_message,
+            3: self.group_message,
+            4: self.broadcast_message,
+            5: self.heartbeat
         }
+        self.cmd_actions = (
+            "load_inventory", "lighten", "get_lamp_status",
+            "get_hub_status", "send_down_policyset",
+            "gather_policyset", "cancel_policyset",
+            "send_down_group_config", "cancel_group_config",
+            "gather_group_config"
+        )
+        self.cmd_ack_actions = ['{}_ack'.format(i) for i in self.cmd_actions]
+        self.time_actions = ("report_status", "report_alarms")
 
     def connectionMade(self):
         log.msg("New connection established.")
-        log.msg("The info of new connection is:", self.transport.getPeer())
+        log.msg("The host of new connection is:", self.transport.getPeer().host)
+
+    def is_hub(self):
+        if not self.user:
+            return False
+        if self.user.startswith('cmd'):
+            # 管控指令
+            return False
+        return True
 
     def connectionLost(self, reason):
-        if self.user and not self.user.startswith('cmd'):
+        if self.is_hub():
             log.msg("Connection break!")
-        if self.user in self.clients:
+            SLMS.record_offline_hub(self.user)  # 记录脱网后的集控
+        if self.user in clients:
             log.msg("Remove <{}> from server!".format(self.user))
-            if not self.user.startswith(("cmd", "illuminance")):
-                SLMS.record_offline_hub(self.user)  # 记录脱网后的集控
-            del self.clients[self.user]
+            clients.pop(self.user, None)
 
-        log.msg("Online hubs now:", self.clients)
+        log.msg("Online clients now:", clients)
 
     def dataReceived(self, data):
         """
         接受到数据以后的操作
+        from smarlamp:
+            1. cmd
+        from hub:
+            1. heartbeat
+            2. register
+            3. ack
         """
+        # TODO 过滤干扰字符(无效command_id，长度不够等)
         log.msg('receive: {}, {}'.format(data, type(data)))
         self._data_buffer += data
         if len(self._data_buffer) < 12:
             return
 
-        while True:
-            length, _, command_id = struct.unpack("!3I", self._data_buffer[:12])
-            if length > len(self._data_buffer):
-                break
+        length, _, command_id = struct.unpack("!3I", self._data_buffer[:12])
+        if length > len(self._data_buffer):
+            # 长度不够， 未接收完
+            return
 
-            content = self._data_buffer[12:length]
+        content = self._data_buffer[12:length]
 
-            if command_id not in [1, 2, 3, 4, 5]:
-                log.msg("Invalid command_id.")
-                return
+        if command_id not in (1, 2, 3, 4, 5):
+            log.msg("Invalid command_id.")
+            return
 
-            # self.command_func_map.get(command_id)(content)
-            self.handle_data(command_id, content)
+        # 不同的command_id执行不同操作
+        log.msg("command_id = {}, content = {}".format(command_id, content))
+        self.promise[command_id](content=content)
 
-            self._data_buffer = self._data_buffer[length:]
+        # 重置buffer
+        self._data_buffer = self._data_buffer[length:]
 
-            if len(self._data_buffer) < 12:
-                break
+        if len(self._data_buffer) < 12:
+            return
 
-    def handle_verify(self, content):
+    def register(self, content):
         """
-        验证函数
+        注册
+        1. 管控客户端
+        2. 集控客户端
         """
         content = json.loads(content)
-        user = content.get("sender")
-        if user in self.clients:
-            log.msg("Hub <%s> is already existed." % user.encode("utf-8"))
-            self.clients[user].connectionLost("")
-
-        if user.startswith(("cmd", "illuminance")):
-            code = 0
+        if self.is_hub():
+            # 集控客户端
+            self._register_hub(content)
         else:
-            body = json.loads(content.get('body'))
-            inventory = body.get("inventory")
-            default_group = body.get('default_group')
-            try:
-            	ret_msg = SLMS.register(inventory=inventory, default_group=default_group)
-            except:
-                from time import sleep
-                sleep(3)
-                ret_msg = SLMS.register(inventory=inventory, default_group=default_group)
+            # 管控客户端
+            self._register_cmd(content)
 
-            # SLMS.record_test_register(content)     # 用于通信调测
-            code = ret_msg.get("code")
-            message = ret_msg.get("message")
-            reason = ret_msg.get("reason")
-
-        if code == 0:
-            self.user = user
-            self.clients[user] = self
-            if not user.startswith(("cmd", "illuminance")):
-                SLMS.record_reconnect_hub(self.user)     # 如果一个集控重新连接上来，自动清除之前该集控脱网的告警
-
-            if user.startswith('cmd'):
-                # 管控与ns建立的连接
-                log.msg("New client <%s> has registered!" % user.encode('utf-8'))
-            elif user.startswith('illuminance'):
-                # TODO illuminance情况下log输出什么?
-                pass
-            else:
-                log.msg("New hub <%s> has registered!" % user.encode('utf-8'))
-            log.msg("Online hubs now:", self.clients)
-
-            send_content = json.dumps({
-                "action": "register_server_ack",
-                "type": "ack",
-                "code": code,
-                "message": u"向服务器注册成功",
-                "reason": None
-            })
-            self.send_content(send_content, 101, [user])
-            # 注册成功后立马采集默认分组
-            send_content = json.dumps(
-                {"body": "{\"action\": \"gather_group_config\", \"type\": \"cmd\"}",
-                 "sender": "server"}
-            )
-            self.send_content(send_content, 102, [user])
-        else:
-            send_content = json.dumps({
-                "action": "register_server_ack",
-                "type": "ack",
-                "code": code,
-                "message": u"向服务器注册失败",
-                "reason": reason
-            })
-            self.send_content(send_content, 101, [user])
-
-    def handle_data(self, command_id, content):
-        """
-        根据command_id来分配函数
-        """
-        self.command_func_map[command_id](content)
-
-    def handle_single_message(self, content):
+    def single_message(self, content):
         """
         单播
         """
@@ -162,80 +129,41 @@ class Server(Protocol):
         sender = content.get("sender")
         receiver = content.get("receiver")
         body = content.get("body")
-        action = json.loads(body).get('action')
-        if action == 'report_status':
-            # 记录上报的全量数据
-            result = SLMS.record_all_status(json.loads(body))
-            # SLMS.record_test_all_status(content)       # 用于通信测试
-            if result.get('code') == 0:
-                send_content = json.dumps({
-                    "action": "report_status_ack",
-                    "type": "ack",
-                    "code": 0,
-                    "message": u"上报数据成功",
-                    "reason": None
-                })
-                self.send_content(send_content, 102, users=[sender], sender='server')
-            else:
-                send_content = json.dumps({
-                    "action": "report_status_ack",
-                    "type": "ack",
-                    "code": 1,
-                    "message": u"上报数据失败",
-                    "reason": result.get('reason')
-                })
-                self.send_content(send_content, 102, users=[sender], sender='server')
+        action = body.get('action')
 
-        elif action == 'report_alarms':
-            # 记录上报的故障告警
-            result = SLMS.record_alarms(body=json.loads(body), hub_sn=sender)
-            # SLMS.record_test_all_status(content)       # 用于通信测试
-            if result.get('code') == 0:
-                send_content = json.dumps({
-                    "action": "report_emergency_ack",
-                    "type": "ack",
-                    "code": 0,
-                    "message": u"成功，已记录告警",
-                    "reason": None
-                })
-                self.send_content(send_content, 102, users=[sender], sender='server')
-            else:
-                send_content = json.dumps({
-                    "action": "report_emergency_ack",
-                    "type": "ack",
-                    "code": 1,
-                    "message": u"失败，请重新上报该告警",
-                    "reason": result.get('reason')
-                })
-                self.send_content(send_content, 102, users=[sender], sender='server')
+        if action in self.cmd_actions:
+            # 管控下发指令, 往集控下发
+            # sender=cmd-xxx, receiver=hub
+            hub = receiver
+            cmd = sender
+            self._send_to_hub(content=content, hub=hub, sender=cmd)
+        elif action in self.cmd_ack_actions:
+            # 集控反馈指令, 往管控平台发送
+            # sender=hub, receiver=cmd-xxx
+            hub = sender
+            cmd = receiver
+            self._send_to_cmd(content=content, cmd=cmd, sender=hub)
+        elif action in self.time_actions:
+            # 集控定时上报指令, 内部处理完, 往集控发送ack
+            # 这里需要注意: SLMS中的上报指令处理函数名必须和action同名
+            ret = getattr(SLMS, action)(content=content)
+            code = ret.get('code', 1)
+            message = code == 0 and "上报成功" or "上报失败"
+            reason = ret.get("reason")
 
-        elif action == 'gather_group_config_ack':
-            # 集控方没有主动上报默认分组的接口，只能在注册后由服务端主动采集。该分支是为了采集默认分组的特殊存在。
-            # 因为有可能是云端下发采集分组的指令，也有可能是注册后采集默认分组，所以还需要进行判断。
-            if receiver.startswith('cmd'):
-                send_content = json.dumps(dict(sender=sender, body=body))
-                self.send_content(send_content, 102, [receiver], sender)
-            else:
-                default_group_config = json.loads(body).get('local_group_config')
-                SLMS.record_default_groupconfig(default_group_config, hub_sn=sender)
+            send_content = dict(
+                action="{}_ack".format(action),
+                type="ack",
+                code=code,
+                message=message,
+                reason=reason
+            )
+            self.write(102, json.dumps(send_content))
 
-        elif action == 'measure_illuminance':
-            log.msg('record_illuminance')
-
-        elif action == 'send_down_policyset':
-            """下发策略集"""
-            cmd_name = content.get("sender")
-            hub_sn = content.get("receiver")
-            send_content = json.dumps(dict(sender=sender, body=body))
-            self.send_content(send_content, 102, [hub_sn], cmd_name)
-
-        else:
-            send_content = json.dumps(dict(sender=sender, body=body))
-            self.send_content(send_content, 102, [receiver], sender)
-
-    def handle_group_message(self, content):
+    def group_message(self, content):
         """
         组播
+        暂时没有用到， 不知道以后会不会有需求， 暂时不删
         """
         content = json.loads(content)
         sender = content.get("sender")
@@ -246,84 +174,160 @@ class Server(Protocol):
         users = receiver
         self.send_content(send_content, 103, users, sender)
 
-    def handle_broadcast_message(self, content):
+    def broadcast_message(self, content):
         """
         广播
+        暂时没有用到， 不知道以后会不会有需求， 暂时不删
         """
         content = json.loads(content)
         sender = content.get("sender")
         message = content.get("message")
         send_content = json.dumps(dict(sender=sender, message=message))
 
-        users = self.clients.keys()
+        users = clients.keys()
         self.send_content(send_content, 104, users)
 
-    def handle_heartbeat(self, content):
+    def heartbeat(self, **kwargs):
         """
         处理心跳包
         """
-        # log.msg("收到", self.user, "的心跳")
+        log.msg("receive heartbeat from {}".format(self.user))
         self.last_heartbeat_time = int(time.time())
 
-    def send_content(self, send_content, command_id, users, sender="NS"):
+    def _register_cmd(self, content):
+        """管控客户端注册"""
+        assert isinstance(content, dict)
+        user = content.get("sender")
+        self.user = user
+        clients[user] = self
+        log.msg("New client <{}> has registered!".format(user))
+        log.msg("Online clients now: {}".format(clients))
+        success_content = dict(
+            action="register_server_ack",
+            type="ack",
+            code=0,
+            message="向服务器注册成功"
+        )
+        self.write(101, json.dumps(success_content))
+
+    def _register_hub(self, content):
+        """集控客户端注册"""
+        assert isinstance(content, dict)
+        user = content.get("sender")
+        self.user = user
+        # 已存在, 断开之前连接，重新注册
+        if user in clients and clients[user].is_hub():
+            log.msg("Hub <{}> is already existed.".format(user))
+            clients[user].abort_connection()
+        body = content.get('body')
+        inventory = body.get("inventory")
+        default_group = body.get('default_group')
+        ret_msg = SLMS.register(inventory=inventory,
+                                default_group=default_group)
+        code = ret_msg.get("code")
+        if code != 0:
+            # 注册失败
+            failure_content = dict(
+                action="register_server_ack",
+                type="ack",
+                code=code,
+                message="向服务器注册失败",
+                reason=ret_msg.get('reason')
+            )
+            self.write(101, json.dumps(failure_content))
+            self.abort_connection()
+            return
+
+        clients[user] = self
+        SLMS.record_connect_hub(self.user)
+        log.msg("New hub <{}> has registered!".format(user))
+        log.msg("Online hubs now: {}".format(clients))
+        success_content = dict(
+            action="register_server_ack",
+            type="ack",
+            code=0,
+            message="向服务器注册成功"
+        )
+        self.write(101, json.dumps(success_content))
+
+    def write(self, command_id, content):
+        """通过transport发送(接收者为self.user)
+        like self.transport.write()
+        :param command_id: 指令id
+        :param content: 包数据
         """
-        发送函数
-        """
-        length = 12 + len(send_content)
-        header = [length, __version__, command_id]
+        header = self.pack_header(12 + len(content), __version__, command_id)
+        log.msg("[{}] send_content to [{}]: {}".format('NS', self.user, content))
+        self.transport.write(header + content.encode('utf-8'))
+
+    def abort_connection(self):
+        """中断连接"""
+        self.transport.abortConnection()
+
+    def _send_to_hub(self, content, hub, sender='NS'):
+        # 给集控发送指令(cmd)
+        header = self.pack_header(12 + len(content), __version__, 102)
+        if hub in clients:
+            # 集控在线， 正常发送
+            log.msg("[{}] send_content to [{}]: {}".format(sender, hub, content))
+            clients[hub].transport.write(header + content)
+        else:
+            # 集控脱网
+            # 当前用户是cmd, 发送不在线反馈给管控(self.user)
+            log.msg("Hub <{}> is offline. Can not be communicated with it.".format(hub))
+            body = dict(action='ns_ack', code=101,
+                        message="集控[{}]脱网, 无法通信".format(hub))
+            content = dict(
+                sender=sender,
+                receiver=self.user,
+                body=body
+            )
+            self.write(header + json.dumps(content))
+
+    @staticmethod
+    def pack_header(length, version, command_id):
+        """generate header"""
+        header = [length, version, command_id]
         header_pack = struct.pack("!3I", *header)
-        for user in users:
-            if user in self.clients.keys():
-                log.msg("[%s] send_content to [%s]: %s" % (sender, user, send_content))
-                self.clients[user].transport.write(header_pack + send_content.encode("utf-8"))
-            else:
-                log.msg("Hub <%s> is offline. Can not be communicated with it." % user.encode('utf-8'))
-                if not self.user in self.clients.keys():
-                    continue
-                send_content = json.dumps({
-                    "sender": "server",
-                    "receiver": self.user,
-                    "body": {
-                        "action": "server_ack",
-                        "code": 101,
-                        "message": "集控 %s 脱网, 无法通信" % user.encode('utf-8')
-                    }
-                })
-                length = 12 + len(send_content)
-                header = [length, __version__, command_id]
-                header_pack = struct.pack("!3I", *header)
-                self.clients[self.user].transport.write(header_pack + send_content.encode('utf-8'))
+        return header_pack
+
+    def _send_to_cmd(self, content, cmd, sender='NS'):
+        # 给管控发送(ack)
+        header = self.pack_header(12 + len(content), __version__, 102)
+        if cmd not in clients:
+            # 管控指令超时, 断开连接, 不在线, 和集控(self.user)断开连接
+            self.abort_connection()
+            return
+        # 管控指令在线， 正常发送
+        log.msg("[{}] send_content to [{}]: {}".format(sender, cmd, content))
+        clients[cmd].transport.write(header + content)
 
 
 class ServerFactory(Factory):
 
-    def __init__(self):
-        self.clients = {}
-
     def buildProtocol(self, addr):
-        return Server(self.clients)
+        return Server()
 
-    def check_users_online(self):
-        for hub, server in self.clients.items():
-            # if server.last_heartbeat_time == 0:
-            #     continue
-            if int(time.time()) - server.last_heartbeat_time <= 300:
+    @staticmethod
+    def check_users_online():
+        log.msg("Check whether hubs are online.")
+        for hub, server in clients.items():
+            if not server.is_hub():
                 continue
-            log.msg("There is no heartbeat of <%s>. Break it." % hub.encode(
-                'utf-8'))
-            server.transport.abortConnection()  # 如果没有心跳，丢弃连接
-            offline_hub = hub
-            if not offline_hub.startswith(("cmd", "illuminance")):
-                SLMS.record_offline_hub(offline_hub)
+            now = int(time.time())
+            # 大于5个心跳周期没有心跳， 则断开
+            if now - server.last_heartbeat_time <= HEART_CYCLE * 5:
+                continue
+            log.msg("There is no heartbeat of <{}>. Break it.".format(hub))
+            server.abort_connection()
+            # SLMS.record_offline_hub(hub)
+
 
 def start_reactor():
     sf = ServerFactory()
 
-    task1 = task.LoopingCall(sf.check_users_online)     # 加入一个循环任务，循环检测心跳
-    task1.start(61, now=False)                          # 每隔61秒检查一次心跳
+    task1 = task.LoopingCall(sf.check_users_online)  # 加入一个循环任务，循环检测心跳
+    task1.start(61, now=False)                       # 每隔61秒检查一次心跳
 
-    reactor.listenTCP(9999, sf)
+    reactor.listenTCP(LISTEN_PORT, sf)
     reactor.run()
-
-
-# start_reactor()

@@ -5,34 +5,93 @@ Create by 王思勇 on 2019/2/21
 """
 import xadmin
 
-from report.models import TotalPowerConsumption, Consumption
+from report.models import (
+    DailyTotalConsumption, HubDailyTotalConsumption, MonthTotalConsumption,
+    HubMonthTotalConsumption, DeviceConsumption, LampCtrlConsumption
+)
 
 
-class TotalPowerConsumptionAdmin(object):
+class DailyTotalConsumptionAdmin(object):
 
     list_display = [
-        "power_consumption", "date"
+        "consumption", "date"
     ]
     list_filter = [
-        "power_consumption"
+        "consumption"
     ]
     search_fields = [
-        "power_consumption", "date"
+        "consumption", "date"
     ]
 
 
-class ConsumptionAdmin(object):
+class HubDailyTotalConsumptionAdmin(object):
 
     list_display = [
-        "hub", "consumption", "date"
+        "consumption", "date"
+    ]
+    list_filter = [
+        "consumption"
+    ]
+    search_fields = [
+        "consumption", "date"
+    ]
+
+
+class MonthTotalConsumptionAdmin(object):
+
+    list_display = [
+        "consumption", "month"
+    ]
+    list_filter = [
+        "consumption"
+    ]
+    search_fields = [
+        "consumption", "month"
+    ]
+
+
+class HubMonthTotalConsumptionAdmin(object):
+
+    list_display = [
+        "hub", "consumption", "month"
     ]
     list_filter = [
         "hub", "consumption"
     ]
     search_fields = [
-        "hub", "consumption", "date"
+        "hub", "consumption", "month"
     ]
 
 
-xadmin.site.register(TotalPowerConsumption, TotalPowerConsumptionAdmin)
-xadmin.site.register(Consumption, ConsumptionAdmin)
+class DeviceConsumptionAdmin(object):
+
+    list_display = [
+        "hub", "hub_consumption", "lamps_consumption", "loss_consumption"
+    ]
+    list_filter = [
+        "hub", "hub_consumption", "lamps_consumption", "loss_consumption"
+    ]
+    search_fields = [
+        "hub", "hub_consumption", "lamps_consumption", "loss_consumption"
+    ]
+
+
+class LampCtrlConsumptionAdmin(object):
+
+    list_display = [
+        "lampctrl", "consumption"
+    ]
+    list_filter = [
+        "lampctrl", "consumption"
+    ]
+    search_fields = [
+        "lampctrl", "consumption"
+    ]
+
+
+xadmin.site.register(DailyTotalConsumption, DailyTotalConsumptionAdmin)
+xadmin.site.register(HubDailyTotalConsumption, HubDailyTotalConsumptionAdmin)
+xadmin.site.register(MonthTotalConsumption, MonthTotalConsumptionAdmin)
+xadmin.site.register(HubMonthTotalConsumption, HubMonthTotalConsumptionAdmin)
+xadmin.site.register(DeviceConsumption, DeviceConsumptionAdmin)
+xadmin.site.register(LampCtrlConsumption, LampCtrlConsumptionAdmin)
