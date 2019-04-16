@@ -223,3 +223,5 @@ CRONJOBS = [
     # ('0   0 1 * *', 'myapp.cron.other_scheduled_job', ['myapp']),
     # ('0   0 * * 0', 'django.core.management.call_command', ['dumpdata', 'auth'], {'indent': 4}, '> /home/john/backups/last_sunday_auth_backup.json'),
 ]
+
+ENABLE_ALERT_SMS = False

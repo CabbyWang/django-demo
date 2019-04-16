@@ -6,16 +6,19 @@ Create by 王思勇 on 2019/4/12
 import copy
 import datetime
 
+import requests
 from django.conf import settings
 
 from notify.models import Alert
 from hub.models import Hub
 from lamp.models import LampCtrl
+from setting.models import Setting
 from user.models import Permission, User
 from workorder.models import WorkOrder
 # from utils.sms import SMS
 
 from .tts import AlertTTS, WorkorderTTS
+from .sms import send_alert_sms
 
 
 def record_hub_alarm(value=0):
@@ -61,21 +64,11 @@ def record_alarm(event, object_type, alert_source, object, level, status):
         )
         tts.generate_audio(body)
 
-        # alert = models.OneToOneField(Alert, related_name='alert_workorder',
-        #                              null=True, blank=True, help_text='告警编号')
-        # type = models.IntegerField(choices=TYPES, help_text='工单类型')
-        # obj_sn = models.CharField(max_length=32, null=True, blank=True,
-        #                           help_text='对象编号')
-        # lampctrl = models.ForeignKey(LampCtrl,
-        #                              related_name='lampctrl_workorder',
-        #                              null=True, blank=True)
-        # sequence = models.IntegerField(null=True,
-        #                                blank=True)  # 维修历史根据逻辑号查，因为sn号可能会改变
-        # user = models.ForeignKey(User, related_name='user_workorder',
-        #                          null=True, blank=True)
-        # message = models.CharField(max_length=255)
-
         # 生成工单
-        message = '{}，由告警自动生成'.format(event)
+        WorkOrder.objects.create(
+            alert=alert, type=2, obj_sn=object,
+            message='{}，由告警自动生成'.format(event)
+        )
 
-        WorkOrder.objects.create(alert=alert, type=2, obj_sn=object, lampctrl)
+        # 发送告警短信
+        send_alert_sms(**body)
