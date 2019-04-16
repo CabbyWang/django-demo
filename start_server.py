@@ -4,7 +4,6 @@
 Create by 王思勇 on 
 """
 import os
-# import sys
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "smartlamp.settings")
 
 import django

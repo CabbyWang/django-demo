@@ -146,7 +146,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/1.11/topics/i18n/
 
-LANGUAGE_CODE = 'zh_hans'  # 中文支持，django1.8以后支持；1.8以前是zh-cn
+LANGUAGE_CODE = 'zh_hans'
 
 TIME_ZONE = 'Asia/Shanghai'
 
@@ -188,15 +188,6 @@ JWT_AUTH = {
     'JWT_RESPONSE_PAYLOAD_HANDLER': 'user.jwt.jwt_response_payload_handler'
 }
 
-# 手机号码正则表达式
-REGEX_MOBILE = '^1[3|5|8|4|7][0-9]{9}$'
-
-# 提示修改密码时间间隔
-MODIFY_PSW_INTERVAL = datetime.timedelta(days=0.01)
-
-# 默认密码
-DEFAULT_PASSWORD = '12345678'
-
 # 翻译路径
 LOCALE_PATHS = [
     os.path.join(BASE_DIR, 'locale')
@@ -224,4 +215,17 @@ CRONJOBS = [
     # ('0   0 * * 0', 'django.core.management.call_command', ['dumpdata', 'auth'], {'indent': 4}, '> /home/john/backups/last_sunday_auth_backup.json'),
 ]
 
+# 是否启用告警短信功能
 ENABLE_ALERT_SMS = False
+
+# 手机号码正则表达式
+REGEX_MOBILE = '^1[3|5|8|4|7][0-9]{9}$'
+
+# 提示修改密码时间间隔
+MODIFY_PSW_INTERVAL = datetime.timedelta(days=30)
+
+# 默认密码
+DEFAULT_PASSWORD = '12345678'
+
+# Network Service Address
+NS_ADDR = ('127.0.0.1', 9994)

@@ -13,13 +13,18 @@ class UnitSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Unit
-        fields = ("name", )
+        fields = ("id", "name", )
 
 
 class HubDetailSerializer(serializers.ModelSerializer):
 
     unit = UnitSerializer()
     lamps_num = serializers.SerializerMethodField()
+
+    created_time = serializers.DateTimeField(read_only=True,
+                                             format='%Y-%m-%d %H:%M')
+    updated_time = serializers.DateTimeField(read_only=True,
+                                             format='%Y-%m-%d %H:%M')
 
     @staticmethod
     def get_lamps_num(obj):
@@ -43,3 +48,18 @@ class HubPartialUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Hub
         fields = "__all__"
+
+
+class LoadInventorySerializer(serializers.Serializer):
+
+    hub = serializers.ListField(required=True, min_length=1)
+
+    @staticmethod
+    def validate_hub(hubs):
+        not_exists_hub = []
+        for hub_sn in hubs:
+            if not Hub.objects.filter_by(sn=hub_sn).exists():
+                not_exists_hub.append(hub_sn)
+        if not_exists_hub:
+            raise serializers.ValidationError('hub [{}] are not exist.'.format(', '.join(not_exists_hub)))
+        return hubs

@@ -1,8 +1,11 @@
+import uuid
 from math import sqrt
 
+from django.conf import settings
 from django.db import transaction
 from django.utils.translation import ugettext_lazy as _
 
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets, mixins, status
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.decorators import action
@@ -10,16 +13,19 @@ from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from hub.filters import HubFilter
 from hub.models import Hub, Unit
 from hub.permissions import IsOwnHubOrSuperUser
 from hub.serializers import (
-    HubPartialUpdateSerializer, HubDetailSerializer, UnitSerializer
-)
+    HubPartialUpdateSerializer, HubDetailSerializer, UnitSerializer,
+    LoadInventorySerializer)
 from lamp.models import LampCtrl
+from utils.alert import record_alarm
+from utils.msg_socket import MessageSocket
 from utils.paginator import CustomPagination
 from utils.mixins import ListModelMixin
 from utils.permissions import IsAdminUser
-from utils.exceptions import DeleteOnlineHubError
+from utils.exceptions import DeleteOnlineHubError, ConnectHubTimeOut, HubError
 
 
 class UnitViewSet(ListModelMixin,
@@ -55,9 +61,13 @@ class HubViewSet(ListModelMixin,
         取消集控下路灯的布放
     get_layout_lamps:
         获取路灯布放的情况
+    load_inventory:
+        采集集控配置
     """
     pagination_class = CustomPagination
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
+    filter_backends = (DjangoFilterBackend, )
+    filter_class = HubFilter
 
     def get_queryset(self):
         # 管理员拥有所有集控的权限
@@ -71,6 +81,8 @@ class HubViewSet(ListModelMixin,
             return HubDetailSerializer
         if self.action == 'partial_update':
             return HubPartialUpdateSerializer
+        if self.action == 'load_inventory':
+            return LoadInventorySerializer
         return HubDetailSerializer
 
     def get_permissions(self):
@@ -132,7 +144,8 @@ class HubViewSet(ListModelMixin,
         for i, point in enumerate(ret_points):
             longitude, latitude = point
             sequence_num = sequence[i]
-            LampCtrl.objects.filter(hub_sn=hub_sn,
+            hub = Hub.objects.get(sn=hub_sn)
+            LampCtrl.objects.filter(hub=hub,
                                     sequence=sequence_num).update(
                 on_map=True,
                 longitude=longitude,
@@ -140,13 +153,13 @@ class HubViewSet(ListModelMixin,
             )
 
         return Response(status=status.HTTP_200_OK,
-                        data={'code': 0, 'message': '路灯布放成功'})
+                        data={'detail': '路灯布放成功'})
 
-    @action(methods=['POST'], detail=True, url_path='drop_layout')
+    @action(methods=['POST'], detail=True, url_path='drop-layout')
     def drop_layout(self, request, *args, **kwargs):
         """
         取消指定集控下路灯的布放
-        POST /hubs/{sn}/drop_layout/
+        POST /hubs/{sn}/drop-layout/
         """
         hub_sn = kwargs.get('pk')
         hub = Hub.objects.get(sn=hub_sn)
@@ -155,89 +168,87 @@ class HubViewSet(ListModelMixin,
         lamps_on_map = LampCtrl.objects.filter(hub=hub, on_map=True)
 
         for lamp in lamps_on_map:
-            lamp.objects.update(on_map=False, longitude=lon, latitude=lat)
+            LampCtrl.objects.filter_by(sn=lamp).update(
+                on_map=False, longitude=lon, latitude=lat)
 
-        return Response(data={'code': 0, 'message': '布放撤销成功'})
+        return Response(data={'detail': '布放撤销成功'})
 
-    @action(methods=['GET'], detail=True, url_path='layout_lamps')
+    @action(methods=['GET'], detail=True, url_path='layout-lamps')
     def get_layout_lamps(self, request, *args, **kwargs):
         """
         获取路灯布放的情况
-        GET /hubs/{sn}/layout_lamps/
+        GET /hubs/{sn}/layout-lamps/
         """
         hub_sn = kwargs.get('pk')
         hub = Hub.objects.get(sn=hub_sn)
-        lamps_on_map = LampCtrl.objects.filter(hub_sn=hub_sn, on_map=True)
-        lamps_not_on_map = LampCtrl.objects.filter(hub_sn=hub_sn, on_map=False)
-        sequence_on_map = [lamp.sequence for lamp in lamps_on_map]
-        sequence_not_on_map = [lamp.sequence for lamp in lamps_not_on_map]
-        LampCtrl.objects.values_list()
+        hub.hub_lampctrl.filter_by()
         result = {
-            "on_map": sequence_on_map,
-            "not_on_map": sequence_not_on_map
+            "on_map": hub.hub_lampctrl.filter_by(hub=hub, on_map=True).values_list('sequence', flat=True),
+            "not_on_map": hub.hub_lampctrl.filter_by(hub=hub, on_map=False).values_list('sequence', flat=True)
         }
-
         return Response(data=result)
 
-    @action(methods=['POST'], detail=False, url_path='load_inventory')
+    @action(methods=['POST'], detail=False, url_path='load-inventory')
     def load_inventory(self, request, *args, **kwargs):
         """采集集控配置, 同步数据库(支持采集多个集控)
         POST /hubs/load_inventory/
         {
-            "targets": [hub1, hub2, ...]
+            "hub": [hub1, hub2, ...]
         }
         """
         # TODO 采集集控配置
         # _logger.info("load inventory")
-        hubs = request.data.get('targets')
-        if not hubs:
-            return Response(status=status.HTTP_406_NOT_ACCEPTABLE,
-                            data={'code': 1, 'message': '勾选至少一个集控'})
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        hubs = serializer.data.get('hub')
 
         error_hubs = []
         for hub_sn in hubs:
-            data = THHub.get_hub_config(hub_sn)
-            code = data.get('code')
-            ret_data = data.get('ret_data')
-            if code == 101:
-                # 集控脱网 告警
-                record_alarm(event='集控脱网', level=3, object=hub_sn,
-                             object_type='hub',
-                             alert_source=hub_sn, value=1, status=3)
-            if code != 0:  # if code in (1, 101, 2, 3):
-                # error
-                error_hubs.append(hub_sn)
-            else:
-                # code=0 (sync database)
+            sender = 'cmd-{}'.format(uuid.uuid1())
+            with MessageSocket(settings.NS_ADDR, sender=sender) as msg_socket:
+                body = {
+                    "action": "load_inventory",
+                    "type": "cmd"
+                }
+                msg_socket.send_single_message(receiver=hub_sn, body=body,
+                                               sender=sender)
+                recv = msg_socket.receive_data()
+                code = recv.get('code')
+                if code == 101:
+                    # 集控脱网, 告警
+                    record_alarm(
+                        event="集控脱网", object_type='hub', alert_source=hub_sn,
+                        object=hub_sn, level=3, status=3
+                    )
+                    raise ConnectHubTimeOut()
+                if code != 0:
+                    raise HubError
+                inventory = recv.get('inventory')
+                hub_inventory = inventory.get('hub', {}) or {}
+                lamp_inventory = inventory.get('lamps', {}) or {}
+                # TODO 容错处理？ 非model中的字段需要过滤掉
                 try:
                     with transaction.atomic():
-                        inventory = ret_data.get('inventory')
-                        # 创建或更新hub表
-                        hub_inventory = inventory.get('hub')
-                        hub_sn = hub_inventory.get('sn')
-                        # 创建或更新lamp表
-                        lamp_invertorys = inventory.get('lamps')
-                        for lamp_sn, lamp_invertory in lamp_invertorys.items():
-                            defaults = {'hub_sn': hub_sn}
-                            defaults.update(lamp_invertory)
-                            # 将不是model中字段的key过滤掉
-                            defaults = dict(filter(
-                                lambda x: x[0] in LampCtrl.model_fields(),
-                                defaults.items()))
-                            LampCtrl.objects.update_or_create(sn=lamp_sn,
-                                                              hub_sn=hub_sn,
-                                                              defaults=defaults)
+                        # 更新hub表
+                        Hub.objects.update(**hub_inventory)
+                        # 更新lamp表
+                        for lamp_sn, item in lamp_inventory.items():
+                            lamp = LampCtrl.objects.filter_by(sn=lamp_sn).first()
+                            if lamp and lamp.on_map:
+                                item.pop('longitude', None)
+                                item.pop('latitude', None)
+                            LampCtrl.objects.filter(sn=lamp_sn).update(**item)
+                            # 删除数据库中存在 实际不存在的灯控
+                            LampCtrl.objects.exclude(sn__in=list(lamp_inventory.keys())).delete()
                 except Exception as ex:
-                    _logger.error(str(ex))
+                    # _logger.error(str(ex))
                     error_hubs.append(hub_sn)
 
         if error_hubs:
             return Response(status=status.HTTP_408_REQUEST_TIMEOUT,
-                            data={'code': 2, 'message': '部分集控采集失败',
-                                  'error_hubs': error_hubs})
-        # success
-        return Response(status=status.HTTP_200_OK,
-                        data={'code': 0, 'message': '采集配置成功'})
+                            data={'detail': '集控[{}]采集失败'.format(','.join(error_hubs))})
+
+        return Response(data={'detail': '采集配置成功'})
 
     @action(methods=['GET'], detail=True, url_path='status')
     def get_status(self, request, *args, **kwargs):
@@ -257,7 +268,7 @@ class HubViewSet(ListModelMixin,
         if code != 0:  # if code in (1, 101, 2, 3):
             # error
             return Response(status=status.HTTP_408_REQUEST_TIMEOUT,
-                            data={'code': 2, 'message': data.get('message')})
+                            data={'detail': data.get('message')})
 
         # success
         ret_data = data.get('ret_data')
@@ -309,17 +320,16 @@ class HubViewSet(ListModelMixin,
                     if recv_code == 101:
                         # 集控脱网
                         error_data = {
-                            hub_sn: {'code': 101, 'message': '连接该集控超时'}}
+                            hub_sn: {'detail': '连接该集控超时'}}
                     elif recv_code != 0:
-                        error_data = {hub_sn: {'code': recv_code,
-                                               'message': recv.get('message')}}
+                        error_data = {hub_sn: {'detail': recv.get('message')}}
                 if error_data:
                     raise SocketException(error_code=2, error_data=error_data)
         except SocketException as ex:
             error_code, error_message, error_data = ex.error_code, ex.error_message, ex.error_data
             if error_code in (0, 1):
                 return Response(status=status.HTTP_408_REQUEST_TIMEOUT,
-                                data={'code': 2, 'message': error_message})
+                                data={'detail': error_message})
             elif error_code == 2:
                 # 集控脱网
                 for hub_sn, v in error_data.items():
@@ -330,7 +340,7 @@ class HubViewSet(ListModelMixin,
                                  object_type='hub',
                                  alert_source=hub_sn, value=1, status=3)
                 return Response(status=status.HTTP_408_REQUEST_TIMEOUT,
-                                data={'code': 2, 'message': '有部分集控连接失败',
+                                data={'detail': '有部分集控连接失败',
                                       'data': error_data})
         else:
             return Response(status=status.HTTP_200_OK)

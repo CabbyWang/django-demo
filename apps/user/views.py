@@ -78,8 +78,8 @@ class UserGroupViewSet(ListModelMixin,
         instance = self.get_object()
         # 用户组中有用户，不允许删除
         if instance.users.filter(is_deleted=False).exists():
-            return Response(status=status.HTTP_406_NOT_ACCEPTABLE,
-                            data={'code': 1, 'message': '用户组不为空，不允许删除'})
+            return Response(status=status.HTTP_400_BAD_REQUEST,
+                            data={'detail': '用户组不为空，不允许删除'})
         self.perform_destroy(instance)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -106,7 +106,7 @@ class UserGroupViewSet(ListModelMixin,
                     for hub in hubs:
                         Permission.objects.create(user=user, hub=hub)
         except Exception as ex:
-            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR, data={'message': str(ex)})
+            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR, data={'detail': str(ex)})
         return Response()
 
 
@@ -216,12 +216,12 @@ class UserViewSet(ListModelMixin,
             if user.username == request.user.username:
                 return Response(
                     status=status.HTTP_400_BAD_REQUEST,
-                    data={'message': '不能删除自己'}
+                    data={'detail': '不能删除自己'}
                 )
             if user.is_superuser and request.user.username != 'admin':
                 return Response(
                     status=status.HTTP_400_BAD_REQUEST,
-                    data={'message': '不能删除管理员用户'}
+                    data={'detail': '不能删除管理员用户'}
                 )
             user.is_deleted = True
             user.save()
@@ -332,7 +332,8 @@ class UserViewSet(ListModelMixin,
         user = request.user
         psw_modified_time = user.password_modified_time
         if psw_modified_time + settings.MODIFY_PSW_INTERVAL < datetime.datetime.now():
-            return Response(data={'code': 2, 'message': '已经一个月未修改密码，请及时修改'})
+            return Response(status=status.HTTP_400_BAD_REQUEST,
+                            data={'detail': '已经一个月未修改密码，请及时修改'})
         return Response()
 
     @action(methods=['PUT'], detail=True, url_path='reset-password')
@@ -368,5 +369,5 @@ class UserViewSet(ListModelMixin,
                     Permission.objects.create(user=instance, hub=hub)
         except Exception as ex:
             return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                            data={'message': str(ex)})
+                            data={'detail': str(ex)})
         return Response()

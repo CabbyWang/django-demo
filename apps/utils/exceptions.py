@@ -25,3 +25,15 @@ class AuthenticateNSError(APIException):
     status_code = status.HTTP_408_REQUEST_TIMEOUT
     default_detail = _("authenticate failed when connect network service")
     default_code = 'authentication error'
+
+
+class ConnectHubTimeOut(APIException):
+    status_code = status.HTTP_408_REQUEST_TIMEOUT
+    default_detail = _("connect hub timeout")
+    default_code = 'connect error'
+
+
+class HubError(APIException):
+    status_code = status.HTTP_408_REQUEST_TIMEOUT
+    default_detail = _("hub unknown error")
+    default_code = 'hub error'

@@ -53,8 +53,8 @@ class Server(Protocol):
         log.msg("The host of new connection is:", self.transport.getPeer().host)
 
     def is_hub(self):
-        if not self.user:
-            return False
+        # if not self.user:
+        #     return False
         if self.user.startswith('cmd'):
             # 管控指令
             return False
@@ -114,12 +114,13 @@ class Server(Protocol):
         2. 集控客户端
         """
         content = json.loads(content)
-        if self.is_hub():
-            # 集控客户端
-            self._register_hub(content)
-        else:
+        sender = content.get('sender', '')
+        if sender.startswith('cmd'):
             # 管控客户端
             self._register_cmd(content)
+        else:
+            # 集控客户端
+            self._register_hub(content)
 
     def single_message(self, content):
         """
@@ -221,7 +222,7 @@ class Server(Protocol):
             clients[user].abort_connection()
         body = content.get('body')
         inventory = body.get("inventory")
-        default_group = body.get('default_group')
+        default_group = body.get('defalut_group')
         ret_msg = SLMS.register(inventory=inventory,
                                 default_group=default_group)
         code = ret_msg.get("code")

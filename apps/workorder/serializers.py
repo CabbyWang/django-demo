@@ -236,6 +236,11 @@ class InspectionSerializer(serializers.ModelSerializer):
     hub = serializers.PrimaryKeyRelatedField(queryset=Hub.objects.filter_by())
     memo = serializers.CharField(required=False, allow_blank=True, max_length=1023)
 
+    created_time = serializers.DateTimeField(read_only=True,
+                                             format='%Y-%m-%d %H:%M')
+    updated_time = serializers.DateTimeField(read_only=True,
+                                             format='%Y-%m-%d %H:%M')
+
     class Meta:
         model = Inspection
         fields = "__all__"

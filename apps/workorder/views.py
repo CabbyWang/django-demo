@@ -1,12 +1,14 @@
 import enum
 import os
 
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets, mixins
 from rest_framework.decorators import action
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.response import Response
 from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 
+from workorder.filters import WorkOrderFilter, InspectionFilter
 from .models import (
     WorkOrder, WorkorderImage, WorkOrderAudio,
     Inspection, InspectionImage, InspectionItem
@@ -59,6 +61,8 @@ class WorkOrderViewSet(ListModelMixin,
     """
 
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
+    filter_backends = (DjangoFilterBackend, )
+    filter_class = WorkOrderFilter
 
     def get_queryset(self):
         """
@@ -205,6 +209,8 @@ class InspectionViewSet(ListModelMixin,
 
     queryset = Inspection.objects.filter_by()
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
+    filter_backends = (DjangoFilterBackend,)
+    filter_class = InspectionFilter
 
     # TODO 删除巡检报告，使用逻辑删除？ 相关联表如何处理, 手动操作还是研究delete实现?
 

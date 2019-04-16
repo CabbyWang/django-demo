@@ -1,8 +1,10 @@
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import mixins, status, viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import SessionAuthentication
 from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 
+from lamp.filters import LampCtrlFilter, LampCtrlStatusFilter
 from lamp.models import LampCtrl, LampCtrlStatus
 from lamp.serializers import (
     LampCtrlStatusSerializer, LampCtrlSerializer,
@@ -32,6 +34,8 @@ class LampCtrlViewSet(ListModelMixin,
     """
     permission_classes = [IsAuthenticated, IsOwnHubOrSuperUser]
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
+    filter_backends = (DjangoFilterBackend, )
+    filter_class = LampCtrlFilter
 
     def get_queryset(self):
         if self.request.user.is_superuser:
@@ -44,10 +48,11 @@ class LampCtrlViewSet(ListModelMixin,
     def get_serializer_class(self):
         if self.action == 'partial_update':
             return LampCtrlPartialUpdateSerializer
-        return LampCtrlStatusSerializer
+        return LampCtrlSerializer
 
 
-class LampCtrlStatusViewSet(mixins.CreateModelMixin,
+class LampCtrlStatusViewSet(ListModelMixin,
+                            mixins.CreateModelMixin,
                             viewsets.GenericViewSet):
     """
     灯控状态
@@ -55,4 +60,5 @@ class LampCtrlStatusViewSet(mixins.CreateModelMixin,
     queryset = LampCtrlStatus.objects.all()
     serializer_class = LampCtrlStatusSerializer
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
-
+    filter_backends = (DjangoFilterBackend,)
+    filter_class = LampCtrlStatusFilter
