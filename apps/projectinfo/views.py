@@ -6,6 +6,8 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.generics import get_object_or_404
+from rest_framework.authentication import SessionAuthentication
+from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 
 from projectinfo.models import ProjectInfo
 from projectinfo.serializers import ProjectInfoSerializer
@@ -24,6 +26,7 @@ class ProjectInfoViewSet(ListModelMixin,
     """
 
     serializer_class = ProjectInfoSerializer
+    authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
 
     def get_queryset(self):
         if self.action == 'get_position':
