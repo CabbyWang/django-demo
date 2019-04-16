@@ -14,16 +14,16 @@ from workorder.models import (
 class WorkOrderAdmin(object):
 
     list_display = [
-        "alert", "type", "obj_sn", "lampctrl", "sequence", "user",
-        "message", "status", "created_time", "finished_time", "memo"
+        "alert", "type", "obj_sn", "user", "message",
+        "status", "created_time", "finished_time", "description"
     ]
     list_filter = [
-        "alert", "type", "obj_sn", "lampctrl", "sequence", "user",
-        "message", "status", "memo"
+        "alert", "type", "obj_sn", "user",
+        "message", "status", "description"
     ]
     search_fields = [
-        "alert", "type", "obj_sn", "lampctrl", "sequence", "user",
-    "message", "status", "created_time", "finished_time", "memo"
+        "alert", "type", "obj_sn", "user", "message",
+        "status", "created_time", "finished_time", "description"
     ]
 
 
