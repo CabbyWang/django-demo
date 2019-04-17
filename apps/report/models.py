@@ -10,7 +10,7 @@ class DailyTotalConsumption(BaseModel):
     日总能耗(对应总能耗曲线)
     """
     consumption = models.DecimalField(max_digits=32, decimal_places=1, help_text='日能耗')
-    date = models.DateField(auto_now_add=True, help_text='日期')
+    date = models.DateField(help_text='日期')
 
     class Meta:
         verbose_name = '日总能耗'
@@ -26,7 +26,7 @@ class HubDailyTotalConsumption(BaseModel):
     hub = models.ForeignKey(Hub, related_name="hub_daily_total_consumption",
                             help_text="集控")
     consumption = models.DecimalField(max_digits=32, decimal_places=1, help_text='日能耗')
-    date = models.DateField(auto_now_add=True, help_text='日期')
+    date = models.DateField(help_text='日期')
 
     class Meta:
         verbose_name = '集控日总能耗'
@@ -41,6 +41,7 @@ class MonthTotalConsumption(BaseModel):
     """
     consumption = models.DecimalField(max_digits=32, decimal_places=1, help_text='月能耗')
     month = models.CharField(max_length=8, help_text='月(2018-06)')  # "2018-06"
+    # month = models.DateField()
 
     class Meta:
         verbose_name = '月总能耗'

@@ -21,10 +21,15 @@ class HubDailyTotalConsumptionSerializer(serializers.ModelSerializer):
 
 class DailyTotalConsumptionSerializer(serializers.ModelSerializer):
     """所有集控日能耗"""
+    expected_consumption = serializers.SerializerMethodField()
+
+    @staticmethod
+    def get_expected_consumption(instance):
+        return instance.consumption * 2
 
     class Meta:
         model = DailyTotalConsumption
-        fields = ("consumption", "date")
+        fields = ("consumption", "expected_consumption", "date")
 
 
 class HubMonthTotalConsumptionSerializer(serializers.ModelSerializer):

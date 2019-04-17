@@ -27,13 +27,13 @@ class DailyTotalConsumptionAdmin(object):
 class HubDailyTotalConsumptionAdmin(object):
 
     list_display = [
-        "consumption", "date"
+        "hub", "consumption", "date"
     ]
     list_filter = [
-        "consumption"
+        "hub", "consumption"
     ]
     search_fields = [
-        "consumption", "date"
+        "hub", "consumption", "date"
     ]
 
 
