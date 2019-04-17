@@ -11,9 +11,9 @@ class Log(BaseModel):
     日志
     """
     user = models.ForeignKey(User, related_name='user_log', help_text='操作人员用户名')
-    event = models.CharField(max_length=64, help_text='操作事件')
-    object = models.CharField(max_length=64, help_text='操作对象')
-    memo = models.CharField(max_length=255, null=True, help_text='详情')
+    event = models.CharField(max_length=1024, help_text='操作事件')
+    object = models.CharField(max_length=255, help_text='操作对象')
+    memo = models.CharField(max_length=1024, null=True, help_text='详情')
 
     class Meta:
         verbose_name = '日志'
@@ -30,7 +30,7 @@ class Alert(BaseModel):
     告警
     """
     # TODO 告警事件（event）是否需要变为可选类型
-    ALERT_LEVEL = ((1, '正常'), (2, '故障'), (3, '脱网'))
+    ALERT_LEVEL = ((1, '告警'), (2, '故障'), (3, '严重故障'))
     OBJECT_TYPE = (('hub', '集控'), ('lamp', '灯控'))
 
     event = models.CharField(max_length=64, help_text='告警事件')

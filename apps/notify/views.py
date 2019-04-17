@@ -1,11 +1,13 @@
 import os
 
 from django.conf import settings
+from django_filters.rest_framework import DjangoFilterBackend
 
 from rest_framework import viewsets, mixins
 from rest_framework.authentication import SessionAuthentication
 from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 
+from notify.filters import LogFilter, AlertFilter
 from .models import Log, Alert, AlertAudio
 from .serializers import LogSerializer, AlertSerializer, \
     AlertAudioSerializer, AlertUpdateSerializer
@@ -25,6 +27,18 @@ class LogViewSet(ListModelMixin,
     queryset = Log.objects.all()
     serializer_class = LogSerializer
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
+    filter_backends = (DjangoFilterBackend, )
+    filter_class = LogFilter
+
+    def get_queryset(self):
+        # 只有admin可以看到admin日志
+        if self.request.user.username == 'admin':
+            return Log.objects.filter_by()
+        elif self.request.user.is_superuser:
+            return Log.objects.filter_by().exclude(user__username='admin')
+        else:
+            return Log.objects.filter_by(user=self.request.user)
+        return self.queryset
 
 
 class AlertViewSet(ListModelMixin,
@@ -44,11 +58,11 @@ class AlertViewSet(ListModelMixin,
         解除告警/撤销解除
     """
     queryset = Alert.objects.filter_by()
-    # serializer_class = AlertSerializers
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
+    filter_backends = (DjangoFilterBackend, )
+    filter_class = AlertFilter
 
     def get_serializer_class(self):
-        # return AlertSerializers
         if self.action in ('partial_update', 'update'):
             return AlertUpdateSerializer
         else:

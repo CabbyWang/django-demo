@@ -25,7 +25,7 @@ class AlertAdmin(object):
 
     list_display = [
         "event", "level", "alert_source", "object_type", "object",
-        "occurred_time", "memo", "is_solved", "solver", "solved_time"
+        "created_time", "memo", "is_solved", "solver", "solved_time"
     ]
     list_filter = [
         "event", "level", "alert_source", "object_type", "object",
@@ -33,7 +33,7 @@ class AlertAdmin(object):
     ]
     search_fields = [
         "event", "level", "alert_source", "object_type", "object",
-        "occurred_time", "memo", "is_solved", "solver", "solved_time",
+        "created_time", "memo", "is_solved", "solver", "solved_time",
     ]
 
 
