@@ -11,7 +11,7 @@ from asset.models import Pole, Lamp, CBox, Cable
 class PoleAdmin(object):
     list_display = [
         "sn", "vendor", "model", "height", "date", "longitude",
-        "latitude", "created_at", "address", "memo", "is_used",
+        "latitude", "created_time", "address", "memo", "is_used",
         "image"
     ]
     list_filter = [
@@ -20,7 +20,7 @@ class PoleAdmin(object):
     ]
     search_fields = [
         "sn", "vendor", "model", "height", "date", "longitude",
-        "latitude", "created_at", "address", "memo", "is_used",
+        "latitude", "created_time", "address", "memo", "is_used",
         "image"
     ]
 
@@ -28,7 +28,7 @@ class PoleAdmin(object):
 class LampAdmin(object):
     list_display = [
         "sn", "vendor", "model", "bearer", "controller", "date",
-        "created_at", "address", "memo", "is_used", "image"
+        "created_time", "address", "memo", "is_used", "image"
     ]
     list_filter = [
         "sn", "vendor", "model", "bearer", "controller", "address",
@@ -36,14 +36,14 @@ class LampAdmin(object):
     ]
     search_fields = [
         "sn", "vendor", "model", "bearer", "controller", "date",
-        "created_at", "address", "memo", "is_used", "image"
+        "created_time", "address", "memo", "is_used", "image"
     ]
 
 
 class CboxAdmin(object):
 
     list_display = [
-        "sn", "vendor", "model", "date", "created_at", "longitude",
+        "sn", "vendor", "model", "date", "created_time", "longitude",
         "latitude", "address", "memo", "is_used", "image"
     ]
     list_filter = [
@@ -51,7 +51,7 @@ class CboxAdmin(object):
         "memo", "is_used", "image"
     ]
     search_fields = [
-        "sn", "vendor", "model", "date", "created_at", "longitude",
+        "sn", "vendor", "model", "date", "created_time", "longitude",
         "latitude", "address", "memo", "is_used", "image"
     ]
 
@@ -59,14 +59,14 @@ class CboxAdmin(object):
 class CableAdmin(object):
 
     list_display = [
-        "sn", "vendor", "model", "length", "date", "created_at",
+        "sn", "vendor", "model", "length", "date", "created_time",
         "address", "memo"
     ]
     list_filter = [
         "sn", "vendor", "model", "length", "address", "memo"
     ]
     search_fields = [
-        "sn", "vendor", "model", "length", "date", "created_at",
+        "sn", "vendor", "model", "length", "date", "created_time",
         "address", "memo"
     ]
 

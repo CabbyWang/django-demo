@@ -6,7 +6,7 @@ from base.models import BaseModel
 
 class PoleImage(BaseModel):
     """灯杆图片"""
-    image = models.ImageField(upload_to='asset/pole/', verbose_name='灯杆图片')
+    file = models.ImageField(upload_to='asset/pole/', verbose_name='灯杆图片')
 
     class Meta:
         verbose_name = '灯杆图片'
@@ -44,7 +44,7 @@ class Pole(BaseModel):
 
 class LampImage(BaseModel):
     """灯具图片"""
-    image = models.ImageField(upload_to='asset/lamp/', verbose_name='灯具图片')
+    file = models.ImageField(upload_to='asset/lamp/', verbose_name='灯具图片')
 
     class Meta:
         verbose_name = '灯具图片'
@@ -81,7 +81,7 @@ class Lamp(BaseModel):
 
 class CBoxImage(BaseModel):
     """控制箱图片"""
-    image = models.ImageField(upload_to='asset/cbox/', verbose_name='控制箱图片')
+    file = models.ImageField(upload_to='asset/cbox/', verbose_name='控制箱图片')
 
     class Meta:
         verbose_name = '控制箱图片'
