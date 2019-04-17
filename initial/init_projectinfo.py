@@ -22,13 +22,13 @@ _logging = logging.getLogger('smartlamp')
 
 
 setting_types = [
-    {'id': 1,  'name': 'yuyin'},    # 语音
-    {'id': 2,  'name': 'duanxin'},  # 短信
-    {'id': 3,  'name': 'ui'},       # 界面
-    {'id': 4,  'name': 'tongxun'},  # 通讯
-    {'id': 5,  'name': 'gaojing'},  # 告警
-    {'id': 6,  'name': 'baobiao'},  # 报表
-    {'id': 99, 'name': 'others'},   # 其它
+    {'id': 1,  'name': 'voice'},          # 语音
+    {'id': 2,  'name': 'message'},        # 短信
+    {'id': 3,  'name': 'interface'},      # 界面
+    {'id': 4,  'name': 'communication'},  # 通讯
+    {'id': 5,  'name': 'alert'},          # 告警
+    {'id': 6,  'name': 'report'},         # 报表
+    {'id': 99, 'name': 'others'},         # 其它
 ]
 
 # tts 语音合成账号密码
@@ -72,102 +72,119 @@ settings = [
     {
         'id': 1,
         'option': 'tts_APPID',
+        'name': '语音合成APP_ID',
         'value': TTS_APPID,
         'type_id': 1
      },  # 语音合成APP_ID
     {
         'id': 2,
         'option': 'tts_APIKEY',
+        'name': '语音合成API_KEY',
         'value': TTS_APIKEY,
         'type_id': 1
     },  # 语音合成API_KEY
     {
         'id': 3,
         'option': 'tts_Secret_Key',
+        'name': '语音合成Secret_Key',
         'value': TTS_SECRET_KEY,
         'type_id': 1
     },  # 语音合成Secret_Key
     {
         'id': 4,
         'option': 'request_timeout',
+        'name': '超时时间(秒)',
         'value': REQUEST_TIMEOUT,
         'type_id': 4
     },  # 超时时间(秒)
     {
         'id': 5,
         'option': 'daily_consumption',
+        'name': '每日能耗（千瓦·时）',
         'value': DAILY_CONSUMPTION,
         'type_id': 6
     },  # 每日能耗（千瓦·时）
     {
         'id': 6,
         'option': 'sms_type',
+        'name': '短信网关',
         'value': SMS_TYPE,
         'type_id': 2
     },  # 短信网关
     {
         'id': 7,
         'option': 'llt_sms_account',
+        'name': '账号',
         'value': LLT_SMS_ACCOUNT,
         'type_id': 2
     },  # 账号
     {
         'id': 8,
         'option': 'llt_sms_pswd',
+        'name': '密码',
         'value': LLT_SMS_PWD,
         'type_id': 2
     },  # 密码
     {
         'id': 9,
         'option': 'pagination',
+        'name': '分页（行数/页）',
         'value': PAGINATION,
         'type_id': 3
     },  # 分页（行数/页）
     {
         'id': 10,
         'option': 'lost_ignore_time',
+        'name': '"节点通讯丢失"告警忽略时间段',
         'value': LOST_IGNORE_TIME,
         'type_id': 5
     },  # 节点通讯丢失"告警忽略时间段
     {
         'id': 11,
         'option': 'hub_status_count_threshold',
+        'name': '集控上报状态次数阈值',
         'value': HUB_STATUS_COUNT_THRESHOLD,
         'type_id': 5
     },  # 集控上报状态次数阈值
     {
         'id': 12,
         'option': 'lamp_status_count_threshold',
+        'name': '终端上报状态次数阈值',
         'value': LAMP_STATUS_COUNT_THRESHOLD,
         'type_id': 5
     },  # 终端上报状态次数阈值
     {
         'id': 13,
         'option': 'min_current',
+        'name': '单灯电流告警阈值(安)',
         'value': LAMP_MIN_CURRENT,
         'type_id': 5
     },  # 单灯电流告警阈值(安)
     {
         'id': 14,
         'option': 'cycle_time',
+        'name': '集控采集周期(秒)',
         'value': HUB_REPORT_CYCLE_TIME,
         'type_id': 4
     },  # 集控采集周期(秒)
     {
         'id': 15,
         'option': 'hy_sms_account',
+        'name': '账号',
         'value': HY_SMS_ACCOUNT,
         'type_id': 2
     },  # 账号
     {
         'id': 16,
         'option': 'hy_sms_pswd',
+        'name': '密码',
         'value': HY_SMS_PWD,
         'type_id': 2
     },  # 密码
     {
         'id': 17,
         'option': 'power_consumption_threshold',
+        'name': '用电告警误差',
         'value': POWER_CONSUMPTION_THRESHOLD,
         'type_id': 5
     },  # 用电告警误差
