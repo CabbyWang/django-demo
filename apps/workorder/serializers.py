@@ -16,11 +16,12 @@ from .models import WorkOrder, WorkorderImage, WorkOrderAudio, Inspection, Inspe
 
 class WorkOrderImageSerializer(serializers.ModelSerializer):
     created_time = serializers.DateTimeField(read_only=True,
-                                             format='%Y-%m-%d %H:%M')
+                                             format='%Y-%m-%d %H:%M:%S')
     updated_time = serializers.DateTimeField(read_only=True,
-                                             format='%Y-%m-%d %H:%M')
+                                             format='%Y-%m-%d %H:%M:%S')
 
-    order = serializers.PrimaryKeyRelatedField(write_only=True, queryset=WorkOrder.objects.filter_by())
+    order = serializers.PrimaryKeyRelatedField(write_only=True,
+                                               queryset=WorkOrder.objects.filter_by())
 
     class Meta:
         model = WorkorderImage
@@ -30,9 +31,9 @@ class WorkOrderImageSerializer(serializers.ModelSerializer):
 class WorkOrderDetailSerializer(serializers.ModelSerializer):
     workorder_image = WorkOrderImageSerializer(many=True)
     created_time = serializers.DateTimeField(read_only=True,
-                                             format='%Y-%m-%d %H:%M')
+                                             format='%Y-%m-%d %H:%M:%S')
     updated_time = serializers.DateTimeField(read_only=True,
-                                             format='%Y-%m-%d %H:%M')
+                                             format='%Y-%m-%d %H:%M:%S')
 
     audio = serializers.SerializerMethodField()
 
@@ -60,16 +61,27 @@ class WorkOrderSerializer(serializers.ModelSerializer):
     )
     STATUS = (('todo', '未处理'), ('doing', '处理中'), ('finished', '已处理'))
 
-    alert = serializers.PrimaryKeyRelatedField(required=False, queryset=Alert.objects.filter_by(), allow_null=True, help_text='告警编号')
+    alert = serializers.PrimaryKeyRelatedField(required=False,
+                                               queryset=Alert.objects.filter_by(),
+                                               allow_null=True,
+                                               help_text='告警编号')
     type = serializers.ChoiceField(choices=TYPES, help_text='工单类型')
-    obj_sn = serializers.CharField(required=False, max_length=32, allow_blank=True, help_text='')
-    lampctrl = serializers.PrimaryKeyRelatedField(required=False, queryset=LampCtrl.objects.filter_by(), allow_null=True)
-    sequence = serializers.IntegerField(required=False, allow_null=True)  # 维修历史根据逻辑号查，因为sn号可能会改变
-    user = serializers.PrimaryKeyRelatedField(required=False, queryset=User.objects.all(), allow_null=True)
+    obj_sn = serializers.CharField(required=False, max_length=32,
+                                   allow_blank=True, help_text='')
+    lampctrl = serializers.PrimaryKeyRelatedField(required=False,
+                                                  queryset=LampCtrl.objects.filter_by(),
+                                                  allow_null=True)
+    sequence = serializers.IntegerField(required=False,
+                                        allow_null=True)
+    user = serializers.PrimaryKeyRelatedField(required=False,
+                                              queryset=User.objects.all(),
+                                              allow_null=True)
     message = serializers.CharField(max_length=255)
-    status = serializers.ChoiceField(choices=STATUS, default='todo')  # to-do/doing/finished
+    status = serializers.ChoiceField(choices=STATUS,
+                                     default='todo')  # to-do/doing/finished
     finished_time = serializers.DateTimeField(required=False, allow_null=True)
-    memo = serializers.CharField(required=False, max_length=255, allow_blank=True)
+    memo = serializers.CharField(required=False, max_length=255,
+                                 allow_blank=True)
 
     @staticmethod
     def validate_alert(alert):
@@ -200,9 +212,9 @@ class WorkOrderAudioSerializer(serializers.ModelSerializer):
 
 class InspectionImageSerializer(serializers.ModelSerializer):
     created_time = serializers.DateTimeField(read_only=True,
-                                             format='%Y-%m-%d %H:%M')
+                                             format='%Y-%m-%d %H:%M:%S')
     updated_time = serializers.DateTimeField(read_only=True,
-                                             format='%Y-%m-%d %H:%M')
+                                             format='%Y-%m-%d %H:%M:%S')
 
     class Meta:
         model = InspectionImage
@@ -213,15 +225,30 @@ class InspectionItemSerializer(serializers.ModelSerializer):
     STATUS_CHOICE = ((1, '正常'), (2, '故障'))
 
     created_time = serializers.DateTimeField(read_only=True,
-                                             format='%Y-%m-%d %H:%M')
+                                             format='%Y-%m-%d %H:%M:%S')
     updated_time = serializers.DateTimeField(read_only=True,
-                                             format='%Y-%m-%d %H:%M')
+                                             format='%Y-%m-%d %H:%M:%S')
 
     inspection = serializers.PrimaryKeyRelatedField(queryset=Inspection.objects.filter_by())
     hub = serializers.PrimaryKeyRelatedField(queryset=Hub.objects.filter_by())
     lampctrl = serializers.PrimaryKeyRelatedField(queryset=LampCtrl.objects.filter_by())
     status = serializers.ChoiceField(choices=STATUS_CHOICE)
     memo = serializers.CharField(required=True, max_length=1023, allow_blank=True)
+
+    sequence = serializers.SerializerMethodField()
+    real_address = serializers.SerializerMethodField()
+
+    @staticmethod
+    def get_sequence(instance):
+        return instance.lampctrl.sequence
+
+    @staticmethod
+    def get_real_address(instance):
+        lampctrl = instance.lampctrl
+        address = lampctrl.address
+        new_address = lampctrl.new_address or ''
+        new_address = new_address.strip()
+        return new_address or address
 
     class Meta:
         model = InspectionItem
@@ -232,14 +259,37 @@ class InspectionSerializer(serializers.ModelSerializer):
     inspection_image = InspectionImageSerializer(read_only=True, many=True)
     inspection_item = InspectionItemSerializer(read_only=True, many=True)
 
-    user = serializers.PrimaryKeyRelatedField(queryset=User.objects.filter_by())
+    user = serializers.PrimaryKeyRelatedField(queryset=User.objects.filter_by(),
+                                              write_only=True)
     hub = serializers.PrimaryKeyRelatedField(queryset=Hub.objects.filter_by())
     memo = serializers.CharField(required=False, allow_blank=True, max_length=1023)
 
     created_time = serializers.DateTimeField(read_only=True,
-                                             format='%Y-%m-%d %H:%M')
+                                             format='%Y-%m-%d %H:%M:%S')
     updated_time = serializers.DateTimeField(read_only=True,
-                                             format='%Y-%m-%d %H:%M')
+                                             format='%Y-%m-%d %H:%M:%S')
+
+    class Meta:
+        model = Inspection
+        fields = "__all__"
+
+
+class UserSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = User
+        fields = ('id', 'username')
+
+
+class InspectionDetailSerializer(serializers.ModelSerializer):
+    inspection_image = InspectionImageSerializer(read_only=True, many=True)
+    inspection_item = InspectionItemSerializer(read_only=True, many=True)
+    user = UserSerializer()
+
+    created_time = serializers.DateTimeField(read_only=True,
+                                             format='%Y-%m-%d %H:%M:%S')
+    updated_time = serializers.DateTimeField(read_only=True,
+                                             format='%Y-%m-%d %H:%M:%S')
 
     class Meta:
         model = Inspection

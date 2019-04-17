@@ -28,8 +28,6 @@ class WorkOrder(BaseModel):
     alert = models.OneToOneField(Alert, related_name='alert_workorder', null=True, blank=True, help_text='告警编号')
     type = models.IntegerField(choices=TYPES, help_text='工单类型')
     obj_sn = models.CharField(max_length=32, null=True, blank=True, help_text='对象编号')
-    # lampctrl = models.ForeignKey(LampCtrl, related_name='lampctrl_workorder', null=True, blank=True)
-    # sequence = models.IntegerField(null=True, blank=True)  # 维修历史根据逻辑号查，因为sn号可能会改变
     user = models.ForeignKey(User, related_name='user_workorder', null=True, blank=True)
     message = models.CharField(max_length=255)
     status = models.CharField(choices=STATUS, default='todo', max_length=16)    # to-do/doing/finished

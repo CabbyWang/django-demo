@@ -35,8 +35,6 @@ class WorkOrderFilter(filters.FilterSet):
 
     @staticmethod
     def filter_end_time(queryset, name, value):
-        # 由于model中的字段类型是datetime， 筛选使用的date类型，
-        # 这里将end_time加上一天以后进行筛选, 为了能够筛选出包含end_time当天的数据
         value = value + datetime.timedelta(days=1)
         return queryset.filter(created_time__lt=value)
 

@@ -18,7 +18,8 @@ from .serializers import (WorkOrderSerializer, WorkOrderImageSerializer,
                           ReassignOrderSerializer, FinishOrderSerializer,
                           ReopenOrderSerializer, WorkOrderAudioSerializer,
                           InspectionSerializer, InspectionItemSerializer,
-                          InspectionImageSerializer)
+                          InspectionImageSerializer,
+                          InspectionDetailSerializer)
 from utils.mixins import ListModelMixin
 
 
@@ -217,6 +218,8 @@ class InspectionViewSet(ListModelMixin,
     def get_serializer_class(self):
         if self.action == 'upload_images':
             return InspectionImageSerializer
+        if self.action in ('list', 'retrieve'):
+            return InspectionDetailSerializer
         return InspectionSerializer
 
     @action(methods=['POST'], detail=False, url_path='images')
