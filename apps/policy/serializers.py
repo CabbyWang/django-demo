@@ -74,9 +74,9 @@ class PolicySetSerializer(serializers.ModelSerializer):
         default=serializers.CurrentUserDefault()
     )
     created_time = serializers.DateTimeField(read_only=True,
-                                             format='%Y-%m-%d %H:%M')
+                                             format='%Y-%m-%d %H:%M:%S')
     updated_time = serializers.DateTimeField(read_only=True,
-                                             format='%Y-%m-%d %H:%M')
+                                             format='%Y-%m-%d %H:%M:%S')
     is_used = serializers.SerializerMethodField()
 
     @staticmethod

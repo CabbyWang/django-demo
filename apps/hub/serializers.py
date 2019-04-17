@@ -22,9 +22,9 @@ class HubDetailSerializer(serializers.ModelSerializer):
     lamps_num = serializers.SerializerMethodField()
 
     created_time = serializers.DateTimeField(read_only=True,
-                                             format='%Y-%m-%d %H:%M')
+                                             format='%Y-%m-%d %H:%M:%S')
     updated_time = serializers.DateTimeField(read_only=True,
-                                             format='%Y-%m-%d %H:%M')
+                                             format='%Y-%m-%d %H:%M:%S')
 
     @staticmethod
     def get_lamps_num(obj):
