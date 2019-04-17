@@ -23,8 +23,8 @@ class Setting(BaseModel):
     """
     系统设置
     """
-    option = models.CharField(max_length=255, unique=True)
-    # option_zhcn = models.CharField(max_length=255)
+    option = models.CharField(max_length=255, unique=True, verbose_name='设置名')
+    name = models.CharField(max_length=255, verbose_name='设置名(显示)')
     value = models.CharField(max_length=255)
     type = models.ForeignKey(SettingType, related_name='settings')
 

@@ -4,8 +4,10 @@ import subprocess
 from django.conf import settings
 
 from rest_framework import mixins, status, viewsets
+from rest_framework.authentication import SessionAuthentication
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 
 from setting.models import Setting, SettingType
 from setting.serializers import (
@@ -26,6 +28,7 @@ class SettingViewSet(ListModelMixin,
     backup_database:
         数据库备份
     """
+    authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
 
     def get_queryset(self):
         if self.action == 'list':

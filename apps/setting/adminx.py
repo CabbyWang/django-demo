@@ -24,13 +24,13 @@ class SettingTypeAdmin(object):
 class SettingAdmin(object):
 
     list_display = [
-        "option", "value", "type"
+        "option", "name", "value", "type"
     ]
     list_filter = [
-        "option", "value", "type"
+        "option", "name", "value", "type"
     ]
     search_fields = [
-        "option", "value", "type"
+        "option", "name", "value", "type"
     ]
 
 

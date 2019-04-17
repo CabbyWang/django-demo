@@ -29,11 +29,11 @@ class SettingUpdateSerializer(serializers.ModelSerializer):
     option = serializers.CharField(required=False, max_length=255, validators=[
         UniqueValidator(queryset=Setting.objects.all())
     ])
-    option_zhcn = serializers.CharField(required=False, max_length=255)
-    value = serializers.FloatField(required=False)
+    value = serializers.FloatField(required=True)
     s_type = serializers.PrimaryKeyRelatedField(required=False, queryset=SettingType.objects.all())
 
     def validate_value(self, value):
+        # TODO 修改设置值验证条件(参考4期)
         name = self.instance.option
         if name in (
             'request_timeout', 'daily_consumption', 'pagination',
