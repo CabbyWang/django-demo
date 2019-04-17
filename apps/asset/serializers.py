@@ -32,6 +32,7 @@ class PoleDetailSerializer(serializers.ModelSerializer):
 
 
 class PoleSerializer(serializers.ModelSerializer):
+
     created_time = serializers.DateTimeField(read_only=True,
                                              format='%Y-%m-%d %H:%M:%S')
     updated_time = serializers.DateTimeField(read_only=True,
@@ -46,8 +47,9 @@ class PoleBatchDeleteSerializer(serializers.ModelSerializer):
     """批量删除灯杆格式检验"""
     sn = serializers.ListField(
         min_length=1,
-        child=serializers.PrimaryKeyRelatedField(
-            queryset=Pole.objects.filter_by()
+        child=serializers.SlugRelatedField(
+            queryset=Pole.objects.filter_by(),
+            slug_field='sn'
         )
     )
 
@@ -94,8 +96,9 @@ class LampBatchDeleteSerializer(serializers.ModelSerializer):
     """批量删除灯具格式检验"""
     sn = serializers.ListField(
         min_length=1,
-        child=serializers.PrimaryKeyRelatedField(
-            queryset=Lamp.objects.filter_by()
+        child=serializers.SlugRelatedField(
+            queryset=Lamp.objects.filter_by(),
+            slug_field='sn'
         )
     )
 
@@ -142,8 +145,9 @@ class CBoxBatchDeleteSerializer(serializers.ModelSerializer):
     """批量删除控制箱格式检验"""
     sn = serializers.ListField(
         min_length=1,
-        child=serializers.PrimaryKeyRelatedField(
-            queryset=CBox.objects.filter_by()
+        child=serializers.SlugRelatedField(
+            queryset=CBox.objects.filter_by(),
+            slug_field='sn'
         )
     )
 
@@ -153,6 +157,8 @@ class CBoxBatchDeleteSerializer(serializers.ModelSerializer):
 
 
 class CableSerializer(serializers.ModelSerializer):
+    sn = serializers.CharField(required=True)
+
     created_time = serializers.DateTimeField(read_only=True,
                                              format='%Y-%m-%d %H:%M:%S')
     updated_time = serializers.DateTimeField(read_only=True,
@@ -167,8 +173,9 @@ class CableBatchDeleteSerializer(serializers.ModelSerializer):
     """批量删除电缆格式检验"""
     sn = serializers.ListField(
         min_length=1,
-        child=serializers.PrimaryKeyRelatedField(
-            queryset=Cable.objects.filter_by()
+        child=serializers.SlugRelatedField(
+            queryset=Cable.objects.filter_by(),
+            slug_field='sn'
         )
     )
 

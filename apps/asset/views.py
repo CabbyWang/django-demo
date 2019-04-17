@@ -1,3 +1,5 @@
+from django.utils.translation import ugettext_lazy as _
+
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets, mixins, status
 from rest_framework.decorators import action
@@ -14,6 +16,7 @@ from .serializers import (
     PoleBatchDeleteSerializer, LampBatchDeleteSerializer,
     CBoxBatchDeleteSerializer, CableBatchDeleteSerializer)
 from utils.mixins import ListModelMixin, UploadModelMixin
+from utils.exceptions import ObjectHasExisted
 
 
 class PoleViewSet(ListModelMixin,
@@ -41,6 +44,7 @@ class PoleViewSet(ListModelMixin,
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
     filter_backends = (DjangoFilterBackend, )
     filter_class = PoleFilter
+    lookup_field = 'sn'
 
     def get_serializer_class(self):
         if self.action == 'list':
@@ -50,6 +54,13 @@ class PoleViewSet(ListModelMixin,
         if self.action == 'batch_delete':
             return PoleBatchDeleteSerializer
         return PoleSerializer
+
+    def perform_create(self, serializer):
+        sn = serializer.data.get('sn')
+        # 判断sn是否存在
+        if Pole.objects.filter_by(sn=sn).exists():
+            raise ObjectHasExisted(detail='pole [{}] has been existed'.format(sn))
+        serializer.save()
 
     @action(methods=['POST'], detail=False, url_path='images')
     def upload_images(self, request, *args, **kwargs):
@@ -65,7 +76,7 @@ class PoleViewSet(ListModelMixin,
         }
         """
         serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        a = serializer.is_valid(raise_exception=False)
         sns = serializer.data.get('sn')
         for pole_sn in sns:
             pole = Pole.objects.filter_by(sn=pole_sn).first()
@@ -101,6 +112,7 @@ class LampViewSet(ListModelMixin,
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
     filter_backends = (DjangoFilterBackend, )
     filter_class = LampFilter
+    lookup_field = 'sn'
 
     def get_serializer_class(self):
         if self.action == 'list':
@@ -110,6 +122,13 @@ class LampViewSet(ListModelMixin,
         if self.action == 'batch_delete':
             return LampBatchDeleteSerializer
         return LampSerializer
+
+    def perform_create(self, serializer):
+        sn = serializer.data.get('sn')
+        # 判断sn是否存在
+        if Lamp.objects.filter_by(sn=sn).exists():
+            raise ObjectHasExisted(detail='lamp [{}] has been existed'.format(sn))
+        serializer.save()
 
     @action(methods=['POST'], detail=False, url_path='images')
     def upload_images(self, request, *args, **kwargs):
@@ -161,6 +180,7 @@ class CBoxViewSet(ListModelMixin,
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
     filter_backends = (DjangoFilterBackend, )
     filter_class = CBoxFilter
+    lookup_field = 'sn'
 
     def get_serializer_class(self):
         if self.action == 'list':
@@ -170,6 +190,13 @@ class CBoxViewSet(ListModelMixin,
         if self.action == 'batch_delete':
             return CBoxBatchDeleteSerializer
         return CBoxSerializer
+
+    def perform_create(self, serializer):
+        sn = serializer.data.get('sn')
+        # 判断sn是否存在
+        if CBox.objects.filter_by(sn=sn).exists():
+            raise ObjectHasExisted(detail='cbox [{}] has been existed'.format(sn))
+        serializer.save()
 
     @action(methods=['POST'], detail=False, url_path='images')
     def upload_images(self, request, *args, **kwargs):
@@ -221,11 +248,19 @@ class CableViewSet(ListModelMixin,
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
     filter_backends = (DjangoFilterBackend,)
     filter_class = CableFilter
+    lookup_field = 'sn'
 
     def get_serializer_class(self):
         if self.action == 'batch_delete':
             return CableBatchDeleteSerializer
         return CableSerializer
+
+    def perform_create(self, serializer):
+        sn = serializer.data.get('sn')
+        # 判断sn是否存在
+        if Cable.objects.filter_by(sn=sn).exists():
+            raise ObjectHasExisted(detail='cable [{}] has been existed'.format(sn))
+        serializer.save()
 
     @action(methods=['DELETE'], detail=False, url_path='batch')
     def batch_delete(self, request, *args, **kwargs):

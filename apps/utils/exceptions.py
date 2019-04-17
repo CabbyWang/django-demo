@@ -37,3 +37,9 @@ class HubError(APIException):
     status_code = status.HTTP_408_REQUEST_TIMEOUT
     default_detail = _("hub unknown error")
     default_code = 'hub error'
+
+
+class ObjectHasExisted(APIException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    default_detail = _("object has been existed")
+    default_code = 'object exist error'

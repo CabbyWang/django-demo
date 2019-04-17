@@ -20,7 +20,7 @@ class PoleImage(BaseModel):
 
 class Pole(BaseModel):
     """ 灯杆 """
-    sn = models.CharField(max_length=32, primary_key=True, help_text='编号')
+    sn = models.CharField(max_length=32, help_text='编号')
     vendor = models.CharField(max_length=32, help_text='厂家名称')
     model = models.CharField(max_length=32, help_text='型号')
     height = models.FloatField(help_text='高度')
@@ -58,7 +58,7 @@ class LampImage(BaseModel):
 
 class Lamp(BaseModel):
     """ 灯具 """
-    sn = models.CharField(max_length=32, primary_key=True, help_text='编号')
+    sn = models.CharField(max_length=32, help_text='编号')
     vendor = models.CharField(max_length=32, help_text='厂家名称')
     model = models.CharField(max_length=32, help_text='型号')
     bearer = models.ForeignKey(Pole, related_name='pole_lamp', help_text='灯杆编号')
@@ -95,7 +95,7 @@ class CBoxImage(BaseModel):
 
 class CBox(BaseModel):
     """ 控制箱 """
-    sn = models.CharField(max_length=32, primary_key=True, help_text='编号')
+    sn = models.CharField(max_length=32, help_text='编号')
     vendor = models.CharField(max_length=32, help_text='厂家名称')
     model = models.CharField(max_length=32, help_text='型号')
     date = models.DateField(help_text='购买时间')
@@ -118,7 +118,7 @@ class CBox(BaseModel):
 
 class Cable(BaseModel):
     """ 电缆 """
-    sn = models.CharField(max_length=32, primary_key=True, help_text='编号')
+    sn = models.CharField(max_length=32, help_text='编号')
     vendor = models.CharField(max_length=32, help_text='厂家名称')
     model = models.CharField(max_length=32, help_text='型号')
     length = models.FloatField(help_text='长度')
