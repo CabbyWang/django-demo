@@ -25,13 +25,18 @@ class WorkOrder(BaseModel):
     )
     STATUS = (('todo', '未处理'), ('doing', '处理中'), ('finished', '已处理'))
 
-    alert = models.OneToOneField(Alert, related_name='alert_workorder', null=True, blank=True, help_text='告警编号')
+    alert = models.OneToOneField(Alert, related_name='alert_workorder',
+                                 null=True, blank=True, help_text='告警编号')
     type = models.IntegerField(choices=TYPES, help_text='工单类型')
-    obj_sn = models.CharField(max_length=32, null=True, blank=True, help_text='对象编号')
-    user = models.ForeignKey(User, related_name='user_workorder', null=True, blank=True)
-    message = models.CharField(max_length=255)
-    status = models.CharField(choices=STATUS, default='todo', max_length=16)    # to-do/doing/finished
-    description = models.CharField(max_length=255, null=True, blank=True, help_text="处理结果描述")
+    obj_sn = models.CharField(max_length=32, null=True, blank=True,
+                              help_text='对象编号')
+    user = models.ForeignKey(User, related_name='user_workorder', null=True,
+                             blank=True, verbose_name='处理人')
+    memo = models.CharField(max_length=255, verbose_name='备注')
+    status = models.CharField(choices=STATUS, default='todo',
+                              max_length=16)  # to-do/doing/finished
+    description = models.CharField(max_length=255, null=True, blank=True,
+                                   help_text="处理结果描述")
     finished_time = models.DateTimeField(null=True, blank=True)
 
     class Meta:
@@ -41,7 +46,7 @@ class WorkOrder(BaseModel):
         db_table = "workorder"
 
     def __str__(self):
-        return "WorkOrder[{}]: {}".format(self.id, self.message)
+        return "WorkOrder[{}]: {}".format(self.id, self.memo)
 
 
 class WorkorderImage(BaseModel):
@@ -51,7 +56,7 @@ class WorkorderImage(BaseModel):
     IMAGE_TYPE = (u'无', u'维修问题描述图片', u'工单处理图片')
 
     order = models.ForeignKey(WorkOrder, related_name='workorder_image')
-    image = models.ImageField(upload_to='workorder')
+    file = models.ImageField(upload_to='workorder')
     image_type = models.IntegerField(choices=enumerate(IMAGE_TYPE), default=0)
 
     class Meta:
@@ -60,7 +65,7 @@ class WorkorderImage(BaseModel):
         db_table = "workorderimage"
 
     def __str__(self):
-        return self.image.path
+        return self.file.path
 
 
 class WorkOrderAudio(BaseModel):
@@ -101,7 +106,7 @@ class InspectionImage(BaseModel):
     巡检报告图片表
     """
     inspection = models.ForeignKey(Inspection, related_name='inspection_image')
-    image = models.ImageField(upload_to='inspection')
+    file = models.ImageField(upload_to='inspection')
 
     class Meta:
         verbose_name = '巡检图片'
@@ -109,7 +114,7 @@ class InspectionImage(BaseModel):
         db_table = "inspectionimage"
 
     def __str__(self):
-        return self.image.path
+        return self.file.path
 
 
 class InspectionItem(BaseModel):
@@ -120,7 +125,8 @@ class InspectionItem(BaseModel):
 
     inspection = models.ForeignKey(Inspection, related_name="inspection_item")
     hub = models.ForeignKey(Hub, related_name='hub_inspection_item')
-    lampctrl = models.ForeignKey(LampCtrl, related_name='lampctrl_inspection_item')
+    lampctrl = models.ForeignKey(LampCtrl,
+                                 related_name='lampctrl_inspection_item')
     status = models.IntegerField(choices=STATUS_CHOICE)
     memo = models.CharField(max_length=1023, null=True, blank=True)
 

@@ -16,11 +16,11 @@ class WorkOrderFilter(filters.FilterSet):
     """
 
     id = filters.NumberFilter(field_name='id', lookup_expr='icontains')
-    alert_id = filters.CharFilter(field_name='alert', lookup_expr='icontains')
+    alert = filters.CharFilter(field_name='alert', method='filter_alert')
     memo = filters.CharFilter(field_name='memo', lookup_expr='icontains')
-    description = filters.CharFilter(field_name='message',
+    description = filters.CharFilter(field_name='description',
                                      lookup_expr='icontains')
-    solver = filters.CharFilter(field_name='username', method='filter_solver')
+    user = filters.CharFilter(field_name='user')
     start_time = filters.DateFilter(field_name='created_time',
                                     lookup_expr='gte')
     end_time = filters.DateFilter(field_name='created_time', lookup_expr='lte',
@@ -29,9 +29,9 @@ class WorkOrderFilter(filters.FilterSet):
     hub_sn = filters.CharFilter(method='filter_lampctrl')
 
     @staticmethod
-    def filter_solver(queryset, name, value):
-        """通过处理人username筛选"""
-        return queryset.filter(user__username=value)
+    def filter_alert(queryset, name, value):
+        """通过告警编号 模糊查询(关系字段不支持icontains)"""
+        return queryset.filter(alert__id__icontains=value)
 
     @staticmethod
     def filter_end_time(queryset, name, value):
@@ -47,7 +47,7 @@ class WorkOrderFilter(filters.FilterSet):
     class Meta:
         model = WorkOrder
         fields = (
-            'id', 'alert_id', 'memo', 'description', 'solver',
+            'id', 'alert', 'memo', 'description', 'user',
             'start_time', 'end_time', 'status'
         )
 

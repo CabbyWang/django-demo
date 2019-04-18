@@ -24,12 +24,13 @@ from utils.mixins import ListModelMixin
 
 
 class OrderType(enum.Enum):
+    others = 0
     hub = 1
-    pole = 2
-    lamp = 3
-    cable = 4
-    cbox = 5
-    others = 6
+    lampctrl = 2
+    pole = 3
+    lamp = 4
+    cable = 5
+    cbox = 6
 
 # TODO 创建工单和重新指派工单后需要生成语音
 
@@ -118,7 +119,7 @@ class WorkOrderViewSet(ListModelMixin,
         重新指派工单
         POST /workorders/{id}/reassign/
         {
-            "user_id": 2
+            "user": 2
         }
         """
         return super(WorkOrderViewSet, self).update(request, *args, **kwargs)
@@ -142,9 +143,12 @@ class WorkOrderViewSet(ListModelMixin,
         """
         return super(WorkOrderViewSet, self).update(request, *args, **kwargs)
 
-    @action(methods=['POST'], detail=False, url_path='images')
+    @action(methods=['POST'], detail=True, url_path='images')
     def upload_images(self, request, *args, **kwargs):
         """上传工单图片"""
+        # TODO 这里直接改动request.data 是否可行？ 是否有其他方式？ 研究一下
+        order_id = kwargs.get('pk')
+        request.data['order'] = order_id
         return super(WorkOrderViewSet, self).create(request, *args, **kwargs)
 
 
@@ -159,8 +163,11 @@ class WorkOrderImageViewSet(mixins.DestroyModelMixin,
     queryset = WorkorderImage.objects.filter_by()
     serializer_class = WorkOrderImageSerializer
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
+    # lookup_field = 'order_id'
 
     # TODO 删除工单图片后， 需要删除图片文件? 可以保留
+    def perform_destroy(self, instance):
+        instance.soft_delete()
 
 
 class WorkOrderAudioViewSet(mixins.DestroyModelMixin,
@@ -178,12 +185,15 @@ class WorkOrderAudioViewSet(mixins.DestroyModelMixin,
     def perform_destroy(self, instance):
         instance.times += 1
         instance.save()
-        audio_file = instance.audio.path
-        try:
-            os.remove(audio_file)
-        except FileNotFoundError:
-            pass
-        instance.soft_delete()
+        # TODO 可以保留语音一段时间， 不急着删除
+        # audio_file = instance.audio.path
+        # try:
+        #     os.remove(audio_file)
+        # except FileNotFoundError:
+        #     pass
+        # 语音听两遍后删除
+        if instance.times == 2:
+            instance.soft_delete()
 
 
 class InspectionViewSet(ListModelMixin,
@@ -225,6 +235,9 @@ class InspectionViewSet(ListModelMixin,
     @action(methods=['POST'], detail=False, url_path='images')
     def upload_images(self, request, *args, **kwargs):
         """上传巡检图片"""
+        # TODO 这里直接改动request.data 是否可行？ 是否有其他方式？ 研究一下
+        order_id = kwargs.get('pk')
+        request.data['order'] = order_id
         return super(InspectionViewSet, self).create(request, *args, **kwargs)
 
 
@@ -238,7 +251,7 @@ class InspectionImageViewSet(mixins.DestroyModelMixin,
     queryset = InspectionImage.objects.filter_by()
     serializer_class = InspectionImageSerializer
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
-    lookup_field = "inspection_id"
+    # lookup_field = "inspection_id"
 
 
 class InspectionItemViewSet(mixins.CreateModelMixin,

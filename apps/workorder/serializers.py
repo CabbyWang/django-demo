@@ -7,43 +7,64 @@ import datetime
 
 from rest_framework import serializers
 
+from asset.models import Pole, Lamp, Cable, CBox
 from hub.models import Hub
 from lamp.models import LampCtrl
 from notify.models import Alert
 from user.views import User
 from .models import WorkOrder, WorkorderImage, WorkOrderAudio, Inspection, InspectionImage, InspectionItem
+from utils.exceptions import InvalidInputError
+
+
+class UserSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = User
+        fields = ('id', 'username')
 
 
 class WorkOrderImageSerializer(serializers.ModelSerializer):
+
     created_time = serializers.DateTimeField(read_only=True,
                                              format='%Y-%m-%d %H:%M:%S')
     updated_time = serializers.DateTimeField(read_only=True,
                                              format='%Y-%m-%d %H:%M:%S')
 
-    order = serializers.PrimaryKeyRelatedField(write_only=True,
-                                               queryset=WorkOrder.objects.filter_by())
+    order = serializers.PrimaryKeyRelatedField(required=True, queryset=WorkOrder.objects.filter_by())
 
     class Meta:
         model = WorkorderImage
-        fields = ("id", "image", "created_time", "updated_time", "order")
+        fields = ("id", "file", "created_time",
+                  "updated_time", "order", "is_deleted")
 
 
 class WorkOrderDetailSerializer(serializers.ModelSerializer):
-    workorder_image = WorkOrderImageSerializer(many=True)
+    user = UserSerializer()
+    # workorder_image = WorkOrderImageSerializer(many=True)
     created_time = serializers.DateTimeField(read_only=True,
                                              format='%Y-%m-%d %H:%M:%S')
     updated_time = serializers.DateTimeField(read_only=True,
                                              format='%Y-%m-%d %H:%M:%S')
 
     audio = serializers.SerializerMethodField()
+    workorder_image = serializers.SerializerMethodField()
+
+    def get_workorder_image(self, instance):
+        queryset = instance.workorder_image.filter(is_deleted=False)
+        return WorkOrderImageSerializer(
+            queryset, many=True, context={'request': self.context['request']}
+        ).data
 
     @staticmethod
     def get_audio(instance):
         # 返回语音文件路径，或None
-        order_audio = instance.workorder_audio
-        if order_audio.is_deleted:
+        try:
+            order_audio = instance.workorder_audio
+            if order_audio.is_deleted:
+                return
+            return order_audio.audio.path
+        except:
             return
-        return order_audio.audio.path
 
     class Meta:
         model = WorkOrder
@@ -52,12 +73,13 @@ class WorkOrderDetailSerializer(serializers.ModelSerializer):
 
 class WorkOrderSerializer(serializers.ModelSerializer):
     TYPES = (
+        (0, "其它"),
         (1, "集控"),
-        (2, "灯杆"),
-        (3, "灯具"),
-        (4, "电缆"),
-        (5, "控制箱"),
-        (6, "其它"),
+        (2, "灯控"),
+        (3, "灯杆"),
+        (4, "灯具"),
+        (5, "电缆"),
+        (6, "控制箱"),
     )
     STATUS = (('todo', '未处理'), ('doing', '处理中'), ('finished', '已处理'))
 
@@ -67,46 +89,63 @@ class WorkOrderSerializer(serializers.ModelSerializer):
                                                help_text='告警编号')
     type = serializers.ChoiceField(choices=TYPES, help_text='工单类型')
     obj_sn = serializers.CharField(required=False, max_length=32,
-                                   allow_blank=True, help_text='')
-    lampctrl = serializers.PrimaryKeyRelatedField(required=False,
-                                                  queryset=LampCtrl.objects.filter_by(),
-                                                  allow_null=True)
-    sequence = serializers.IntegerField(required=False,
-                                        allow_null=True)
+                                   allow_blank=True, help_text='对象编号')
+    # lampctrl = serializers.PrimaryKeyRelatedField(required=False,
+    #                                               queryset=LampCtrl.objects.filter_by(),
+    #                                               allow_null=True)
+    # sequence = serializers.IntegerField(required=False,
+    #                                     allow_null=True)
     user = serializers.PrimaryKeyRelatedField(required=False,
-                                              queryset=User.objects.all(),
-                                              allow_null=True)
-    message = serializers.CharField(max_length=255)
+                                              queryset=User.objects.filter_by(),
+                                              allow_null=True,
+                                              help_text='用户id')
+    memo = serializers.CharField(max_length=255)
     status = serializers.ChoiceField(choices=STATUS,
                                      default='todo')  # to-do/doing/finished
     finished_time = serializers.DateTimeField(required=False, allow_null=True)
-    memo = serializers.CharField(required=False, max_length=255,
-                                 allow_blank=True)
+    description = serializers.CharField(required=False, max_length=255,
+                                        allow_blank=True)
 
     @staticmethod
     def validate_alert(alert):
         if WorkOrder.objects.filter_by(alert=alert).exists():
-            raise serializers.ValidationError("该告警已生成工单")
+            # raise serializers.ValidationError("该告警已生成工单")
+            raise InvalidInputError('the alert [{}] has generated a work order'.format(alert.event))
         return alert
 
     def validate_obj_sn(self, obj_sn):
-        w_type = self.initial_data["type"]
+        w_type = self.initial_data.get("type")
+        # 判断集控是否存在
         if w_type == 1 and obj_sn and not Hub.objects.filter_by(sn=obj_sn).exists():
-            # 判断集控是否存在
-            raise serializers.ValidationError("集控不存在")
+            raise serializers.ValidationError("hub [{}] not exist".format(obj_sn))
+        # 判断灯控是否存在
+        elif w_type == 2 and obj_sn and not LampCtrl.objects.filter_by(sn=obj_sn).exists():
+            raise serializers.ValidationError("lamp control [{}] not exist".format(obj_sn))
+        # 判断灯杆是否存在
+        elif w_type == 3 and obj_sn and not Pole.objects.filter_by(sn=obj_sn).exists():
+            raise serializers.ValidationError("pole [{}] not exist".format(obj_sn))
+        # 判断灯具是否存在
+        elif w_type == 4 and obj_sn and not Lamp.objects.filter_by(sn=obj_sn).exists():
+            raise serializers.ValidationError("lamp [{}] not exist".format(obj_sn))
+        # 判断电缆是否存在
+        elif w_type == 5 and obj_sn and not Cable.objects.filter_by(sn=obj_sn).exists():
+            raise serializers.ValidationError("cable [{}] not exist".format(obj_sn))
+        # 判断控制箱是否存在
+        elif w_type == 6 and obj_sn and not CBox.objects.filter_by(sn=obj_sn).exists():
+            raise serializers.ValidationError("control box [{}] not exist".format(obj_sn))
         return obj_sn
 
-    def validate(self, attrs):
-        w_type = self.initial_data['type']
-        if w_type == 1:
-            # 工单类型为“集控”
-            hub = Hub.objects.get(sn=self.initial_data['obj_sn'])
-            lamp = LampCtrl.objects.filter_by(hub=hub).first()
-            # 灯控编号存在
-            if lamp:
-                # 自动填充sequence
-                attrs['sequence'] = lamp.sequence
-        return attrs
+    # def validate(self, attrs):
+    #     w_type = self.initial_data['type']
+    #     if w_type == 1:
+    #         工单类型为“集控”
+    #         hub = Hub.objects.get(sn=self.initial_data['obj_sn'])
+    #         lamp = LampCtrl.objects.filter_by(hub=hub).first()
+    #         灯控编号存在
+    #         if lamp:
+    #             # 自动填充sequence
+    #             attrs['sequence'] = lamp.sequence
+    #     return attrs
 
     class Meta:
         model = WorkOrder
@@ -115,19 +154,22 @@ class WorkOrderSerializer(serializers.ModelSerializer):
 
 class ConfirmOrderSerializer(serializers.ModelSerializer):
     type = serializers.IntegerField(required=False, read_only=True)
-    message = serializers.CharField(required=False, read_only=True)
+    memo = serializers.CharField(required=False, read_only=True)
 
     def validate(self, attrs):
         request = self.context["request"]
         # 只有被指派人才可以确认工单
         if self.instance.user != request.user:
-            raise serializers.ValidationError("只有被指派人才可以确认工单")
+            # raise serializers.ValidationError("只有被指派人才可以确认工单")
+            raise InvalidInputError("只有被指派人才可以确认工单")
         # 工单处于完成状态， 不能确认工单
         if self.instance.status == 'finished':
-            raise serializers.ValidationError("工单已经处于完成状态")
+            # raise serializers.ValidationError("工单已经处于完成状态")
+            raise InvalidInputError("工单已经处于完成状态")
         # 工单处于处理中状态， 不能再次确认工单
         if self.instance.status == 'doing':
-            raise serializers.ValidationError("工单已经在处理中")
+            # raise serializers.ValidationError("工单已经在处理中")
+            raise InvalidInputError("工单已经在处理中")
         attrs["status"] = 'doing'
         return attrs
 
@@ -138,7 +180,7 @@ class ConfirmOrderSerializer(serializers.ModelSerializer):
 
 class ReassignOrderSerializer(serializers.ModelSerializer):
     type = serializers.IntegerField(required=False, read_only=True)
-    message = serializers.CharField(required=False, read_only=True)
+    memo = serializers.CharField(required=False, read_only=True)
 
     user = serializers.PrimaryKeyRelatedField(
         required=True,
@@ -154,6 +196,7 @@ class ReassignOrderSerializer(serializers.ModelSerializer):
             if k == "user":
                 continue
             attrs[k] = getattr(self.instance, k)
+        attrs["status"] = 'todo'
         return attrs
 
     class Meta:
@@ -163,7 +206,7 @@ class ReassignOrderSerializer(serializers.ModelSerializer):
 
 class FinishOrderSerializer(serializers.ModelSerializer):
     type = serializers.IntegerField(required=False, read_only=True)
-    message = serializers.CharField(required=False, read_only=True)
+    memo = serializers.CharField(required=False, read_only=True)
 
     description = serializers.CharField(max_length=255)
 
@@ -171,10 +214,12 @@ class FinishOrderSerializer(serializers.ModelSerializer):
         request = self.context["request"]
         # 只有管理员可以确认完成工单
         if not request.user.is_superuser:
-            raise serializers.ValidationError("只有管理员可以确认完成工单")
+            # raise serializers.ValidationError("只有管理员可以确认完成工单")
+            raise InvalidInputError('only superuser can finish the work order')
         # 工单处于完成状态， 不需要再次完成工单
         if self.instance.status == 'finished':
-            raise serializers.ValidationError("工单已经处于完成状态")
+            # raise serializers.ValidationError("工单已经处于完成状态")
+            raise InvalidInputError('work order has been finished')
         attrs["finished_time"] = datetime.datetime.now()
         attrs["status"] = 'finished'
         return attrs
@@ -186,12 +231,13 @@ class FinishOrderSerializer(serializers.ModelSerializer):
 
 class ReopenOrderSerializer(serializers.ModelSerializer):
     type = serializers.IntegerField(required=False, read_only=True)
-    message = serializers.CharField(required=False, read_only=True)
+    memo = serializers.CharField(required=False, read_only=True)
 
     def validate(self, attrs):
         # 工单处于开启状态， 不需要重新开启工单
         if self.instance.status != 'finished':
-            raise serializers.ValidationError("工单已经处于开启状态")
+            # raise serializers.ValidationError("工单已经处于开启状态")
+            raise InvalidInputError("work order has been opened")
         # 重新开启工单后， status为doing， finished_time为空
         attrs["finished_time"] = None
         attrs["status"] = 'doing'

@@ -14,15 +14,15 @@ from workorder.models import (
 class WorkOrderAdmin(object):
 
     list_display = [
-        "alert", "type", "obj_sn", "user", "message",
+        "alert", "type", "obj_sn", "user", "memo",
         "status", "created_time", "finished_time", "description"
     ]
     list_filter = [
         "alert", "type", "obj_sn", "user",
-        "message", "status", "description"
+        "memo", "status", "description"
     ]
     search_fields = [
-        "alert", "type", "obj_sn", "user", "message",
+        "alert", "type", "obj_sn", "user", "memo",
         "status", "created_time", "finished_time", "description"
     ]
 
@@ -30,13 +30,13 @@ class WorkOrderAdmin(object):
 class WorkOrderImageAdmin(object):
 
     list_display = [
-        "order", "image", "image_type", "created_time"
+        "order", "file", "image_type", "created_time"
     ]
     list_filter = [
-        "order", "image", "image_type"
+        "order", "file", "image_type"
     ]
     search_fields = [
-        "order", "image", "image_type", "created_time"
+        "order", "file", "image_type", "created_time"
     ]
 
 
@@ -69,13 +69,13 @@ class InspectionAdmin(object):
 class InspectionImageAdmin(object):
 
     list_display = [
-        "inspection", "image", "created_time"
+        "inspection", "file", "created_time"
     ]
     list_filter = [
-        "inspection", "image"
+        "inspection", "file"
     ]
     search_fields = [
-        "inspection", "image", "created_time"
+        "inspection", "file", "created_time"
     ]
 
 
