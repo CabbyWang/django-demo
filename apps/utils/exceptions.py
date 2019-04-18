@@ -43,3 +43,9 @@ class ObjectHasExisted(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
     default_detail = _("object has been existed")
     default_code = 'object exist error'
+
+
+class InvalidInputError(APIException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    default_detail = _('Invalid input.')
+    default_code = 'invalid'
