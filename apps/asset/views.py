@@ -6,6 +6,7 @@ from rest_framework.decorators import action
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.response import Response
 from rest_framework_jwt.authentication import JSONWebTokenAuthentication
+from rest_framework.permissions import IsAuthenticated
 
 from asset.filters import PoleFilter, LampFilter, CBoxFilter, CableFilter
 from .models import Pole, Lamp, CBox, Cable
@@ -15,6 +16,7 @@ from .serializers import (
     PoleDetailSerializer, LampDetailSerializer, CBoxDetailSerializer,
     PoleBatchDeleteSerializer, LampBatchDeleteSerializer,
     CBoxBatchDeleteSerializer, CableBatchDeleteSerializer)
+from .permissions import IsSuperUserOrReadOnly
 from utils.mixins import ListModelMixin, UploadModelMixin
 from utils.exceptions import ObjectHasExisted
 
@@ -42,6 +44,7 @@ class PoleViewSet(ListModelMixin,
 
     queryset = Pole.objects.filter_by()
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
+    permission_classes = (IsAuthenticated, IsSuperUserOrReadOnly)
     filter_backends = (DjangoFilterBackend, )
     filter_class = PoleFilter
     lookup_field = 'sn'
@@ -56,10 +59,19 @@ class PoleViewSet(ListModelMixin,
         return PoleSerializer
 
     def perform_create(self, serializer):
-        sn = serializer.data.get('sn')
+        sn = serializer.validated_data.get('sn')
         # 判断sn是否存在
         if Pole.objects.filter_by(sn=sn).exists():
             raise ObjectHasExisted(detail='pole [{}] has been existed'.format(sn))
+        serializer.save()
+
+    def perform_update(self, serializer):
+        sn = serializer.validated_data.get('sn')
+        # 判断sn是否存在
+        instance = serializer.instance
+        if Pole.objects.filter_by(sn=sn).exclude(id=instance.id).exists():
+            raise ObjectHasExisted(
+                detail='pole [{}] has been existed'.format(sn))
         serializer.save()
 
     @action(methods=['POST'], detail=False, url_path='images')
@@ -110,6 +122,7 @@ class LampViewSet(ListModelMixin,
     queryset = Lamp.objects.filter_by()
     serializer_class = LampSerializer
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
+    permission_classes = (IsSuperUserOrReadOnly, )
     filter_backends = (DjangoFilterBackend, )
     filter_class = LampFilter
     lookup_field = 'sn'
@@ -124,9 +137,17 @@ class LampViewSet(ListModelMixin,
         return LampSerializer
 
     def perform_create(self, serializer):
-        sn = serializer.data.get('sn')
+        sn = serializer.validated_data.get('sn')
         # 判断sn是否存在
         if Lamp.objects.filter_by(sn=sn).exists():
+            raise ObjectHasExisted(detail='lamp [{}] has been existed'.format(sn))
+        serializer.save()
+
+    def perform_update(self, serializer):
+        sn = serializer.validated_data.get('sn')
+        # 判断sn是否存在
+        instance = serializer.instance
+        if Lamp.objects.filter_by(sn=sn).exclude(id=instance.id).exists():
             raise ObjectHasExisted(detail='lamp [{}] has been existed'.format(sn))
         serializer.save()
 
@@ -178,6 +199,7 @@ class CBoxViewSet(ListModelMixin,
     queryset = CBox.objects.filter_by()
     serializer_class = CBoxSerializer
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
+    permission_classes = (IsSuperUserOrReadOnly, )
     filter_backends = (DjangoFilterBackend, )
     filter_class = CBoxFilter
     lookup_field = 'sn'
@@ -192,9 +214,17 @@ class CBoxViewSet(ListModelMixin,
         return CBoxSerializer
 
     def perform_create(self, serializer):
-        sn = serializer.data.get('sn')
+        sn = serializer.validated_data.get('sn')
         # 判断sn是否存在
         if CBox.objects.filter_by(sn=sn).exists():
+            raise ObjectHasExisted(detail='cbox [{}] has been existed'.format(sn))
+        serializer.save()
+
+    def perform_update(self, serializer):
+        sn = serializer.validated_data.get('sn')
+        # 判断sn是否存在
+        instance = serializer.instance
+        if CBox.objects.filter_by(sn=sn).exclude(id=instance.id).exists():
             raise ObjectHasExisted(detail='cbox [{}] has been existed'.format(sn))
         serializer.save()
 
@@ -246,6 +276,7 @@ class CableViewSet(ListModelMixin,
     queryset = Cable.objects.filter_by()
     serializer_class = CableSerializer
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
+    permission_classes = (IsSuperUserOrReadOnly, )
     filter_backends = (DjangoFilterBackend,)
     filter_class = CableFilter
     lookup_field = 'sn'
@@ -256,9 +287,17 @@ class CableViewSet(ListModelMixin,
         return CableSerializer
 
     def perform_create(self, serializer):
-        sn = serializer.data.get('sn')
+        sn = serializer.validated_data.get('sn')
         # 判断sn是否存在
         if Cable.objects.filter_by(sn=sn).exists():
+            raise ObjectHasExisted(detail='cable [{}] has been existed'.format(sn))
+        serializer.save()
+
+    def perform_update(self, serializer):
+        sn = serializer.validated_data.get('sn')
+        # 判断sn是否存在
+        instance = serializer.instance
+        if Cable.objects.filter_by(sn=sn).exclude(id=instance.id).exists():
             raise ObjectHasExisted(detail='cable [{}] has been existed'.format(sn))
         serializer.save()
 

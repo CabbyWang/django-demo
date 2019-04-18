@@ -27,8 +27,8 @@ class Pole(BaseModel):
     date = models.DateField(help_text='购买时间')
     longitude = models.FloatField(help_text='经度')
     latitude = models.FloatField(help_text='纬度')
-    address = models.CharField(max_length=32, null=True, blank=True, help_text='安装地址')
-    memo = models.CharField(max_length=64, null=True, blank=True, help_text='备注')
+    address = models.CharField(max_length=255, null=True, blank=True, help_text='安装地址')
+    memo = models.CharField(max_length=255, null=True, blank=True, help_text='备注')
     is_used = models.BooleanField(default=False, help_text='是否已用')
     image = models.ForeignKey(PoleImage, null=True, blank=True)
 
@@ -64,8 +64,8 @@ class Lamp(BaseModel):
     bearer = models.ForeignKey(Pole, related_name='pole_lamp', help_text='灯杆编号')
     controller = models.ForeignKey(LampCtrl, related_name='lampctrl_lamp', help_text='灯控编号')
     date = models.DateField(help_text='购买时间')
-    address = models.CharField(max_length=32, null=True, blank=True, help_text='安装地址')
-    memo = models.CharField(max_length=64, null=True, blank=True, help_text='备注')
+    address = models.CharField(max_length=255, null=True, blank=True, help_text='安装地址')
+    memo = models.CharField(max_length=255, null=True, blank=True, help_text='备注')
     is_used = models.BooleanField(default=False, help_text='是否已用')
     image = models.ForeignKey(LampImage, null=True, blank=True)
 
@@ -101,8 +101,8 @@ class CBox(BaseModel):
     date = models.DateField(help_text='购买时间')
     longitude = models.FloatField(help_text='经度')
     latitude = models.FloatField(help_text='纬度')
-    address = models.CharField(max_length=32, null=True, blank=True, help_text='安装地址')
-    memo = models.CharField(max_length=64, null=True, blank=True, help_text='备注')
+    address = models.CharField(max_length=255, null=True, blank=True, help_text='安装地址')
+    memo = models.CharField(max_length=255, null=True, blank=True, help_text='备注')
     is_used = models.BooleanField(default=False, help_text='是否已用')
     image = models.ForeignKey(CBoxImage, null=True, blank=True)
 
@@ -123,8 +123,8 @@ class Cable(BaseModel):
     model = models.CharField(max_length=32, help_text='型号')
     length = models.FloatField(help_text='长度')
     date = models.DateField(help_text='购买时间')
-    address = models.CharField(max_length=32, null=True, blank=True, help_text='安装地址')
-    memo = models.CharField(max_length=64, null=True, blank=True, help_text='备注')
+    address = models.CharField(max_length=255, null=True, blank=True, help_text='安装地址')
+    memo = models.CharField(max_length=255, null=True, blank=True, help_text='备注')
 
     def __str__(self):
         return str(self.sn)

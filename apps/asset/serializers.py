@@ -69,6 +69,10 @@ class LampImageSerializer(serializers.ModelSerializer):
 
 class LampDetailSerializer(serializers.ModelSerializer):
     image = LampImageSerializer(read_only=True)
+    bearer = serializers.SlugRelatedField(
+        queryset=Pole.objects.filter_by(),
+        slug_field='sn'
+    )
     created_time = serializers.DateTimeField(read_only=True,
                                              format='%Y-%m-%d %H:%M:%S')
     updated_time = serializers.DateTimeField(read_only=True,
@@ -82,10 +86,18 @@ class LampDetailSerializer(serializers.ModelSerializer):
 
 
 class LampSerializer(serializers.ModelSerializer):
+    bearer = serializers.SlugRelatedField(
+        queryset=Pole.objects.filter_by(),
+        slug_field='sn'
+    )
+
     created_time = serializers.DateTimeField(read_only=True,
                                              format='%Y-%m-%d %H:%M:%S')
     updated_time = serializers.DateTimeField(read_only=True,
                                              format='%Y-%m-%d %H:%M:%S')
+
+    def validate(self, attrs):
+        return attrs
 
     class Meta:
         model = Lamp
