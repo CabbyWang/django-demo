@@ -20,7 +20,7 @@ User = get_user_model()
 
 # TODO 使用django中的createsuperuser创建用户， 密码会二次加密(待解决)
 def create_superuser(username='admin', password='smartlamp'):
-    if User.objects.filter(username=username).exists():
+    if User.objects.filter_by(username=username).exists():
         # 用户名存在
         user = User.objects.get(username=username)
         user.is_superuser = True

@@ -17,9 +17,8 @@ from user.filters import UserGroupFilter, UserFilter
 from user.models import UserGroup, Permission
 from user.serializers import (
     UserSerializer, AssignPermissionSerializer, PermissionSerializer,
-    UserGroupCreateSerializer, UserGroupDetailSerializer, UpdateGroupSerializer,
-    ChangePswSerializer
-)
+    UserGroupDetailSerializer, UpdateGroupSerializer, ChangePswSerializer,
+    UserGroupSerializer)
 from user.permissions import IsOwnerOrPriority, IsPriority, IsOwner
 from utils.paginator import CustomPagination
 from utils.mixins import ListModelMixin
@@ -62,17 +61,17 @@ class UserGroupViewSet(ListModelMixin,
 
     def get_queryset(self):
         if self.request.user.is_superuser:
-            return UserGroup.objects.all()
+            return UserGroup.objects.filter_by()
         # 非管理员用户只能看到自己的用户组
         user = self.request.user
-        return user.user_group.all()
+        return user.user_group.filter_by()
 
     def get_serializer_class(self):
-        if self.action == 'create':
-            return UserGroupCreateSerializer
+        if self.action in ('list', 'retrieve'):
+            return UserGroupDetailSerializer
         if self.action == 'assign_permission':
             return AssignPermissionSerializer
-        return UserGroupDetailSerializer
+        return UserGroupSerializer
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -82,6 +81,9 @@ class UserGroupViewSet(ListModelMixin,
                             data={'detail': '用户组不为空，不允许删除'})
         self.perform_destroy(instance)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def perform_destroy(self, instance):
+        instance.soft_delete()
 
     @action(methods=['PUT'], detail=True, url_path='permission')
     def assign_permission(self, request, *args, **kwargs):
@@ -98,11 +100,11 @@ class UserGroupViewSet(ListModelMixin,
 
         users = instance.users.all()
         hubs = serializer.validated_data['permission']
-        hubs = Hub.objects.filter(sn__in=hubs)
+        hubs = Hub.objects.filter_by(sn__in=hubs)
         try:
             with transaction.atomic():
                 for user in users:
-                    Permission.objects.filter(user=user).delete()
+                    Permission.objects.filter_by(user=user).delete()
                     for hub in hubs:
                         Permission.objects.create(user=user, hub=hub)
         except Exception as ex:
@@ -154,7 +156,7 @@ class UserViewSet(ListModelMixin,
     """
 
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
-    queryset = User.objects.filter(is_deleted=False)
+    queryset = User.objects.filter_by()
     # serializer_class = UserSerializer
     pagination_class = CustomPagination
     filter_backends = (DjangoFilterBackend,)
@@ -162,12 +164,12 @@ class UserViewSet(ListModelMixin,
 
     def get_queryset(self):
         if self.action == 'list':
-            return User.objects.filter(is_deleted=False).exclude(username='admin')
+            return User.objects.filter_by().exclude(username='admin')
         elif self.action == 'create':
-            return User.objects.all()
+            return User.objects.filter_by()
         elif self.action == 'update':
-            return User.objects.all()
-        return User.objects.filter(is_deleted=False)
+            return User.objects.filter_by()
+        return User.objects.filter_by()
 
     def get_permissions(self):
         if self.action in ('create', 'destory', 'set_superuser', 'update_group',
@@ -223,8 +225,7 @@ class UserViewSet(ListModelMixin,
                     status=status.HTTP_400_BAD_REQUEST,
                     data={'detail': '不能删除管理员用户'}
                 )
-            user.is_deleted = True
-            user.save()
+            user.soft_delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(methods=['PUT'], detail=True, url_path='set-superuser')
@@ -361,10 +362,10 @@ class UserViewSet(ListModelMixin,
         serializer.is_valid(raise_exception=True)
 
         hubs = serializer.validated_data['permission']
-        hubs = Hub.objects.filter(sn__in=hubs)
+        hubs = Hub.objects.filter_by(sn__in=hubs)
         try:
             with transaction.atomic():
-                Permission.objects.filter(user=instance).delete()
+                Permission.objects.filter_by(user=instance).delete()
                 for hub in hubs:
                     Permission.objects.create(user=instance, hub=hub)
         except Exception as ex:

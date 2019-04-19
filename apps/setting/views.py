@@ -22,7 +22,7 @@ class SettingViewSet(ListModelMixin,
     """
     设置
     list:
-        获取所有设置
+        获取所有设置类型
     update:
         修改系统配置
     backup_database:
@@ -41,6 +41,13 @@ class SettingViewSet(ListModelMixin,
         if self.action in ('update', 'partial_update'):
             return SettingUpdateSerializer
         return SettingSerializer
+
+    @action(methods=['GET'], detail=False, url_path='items')
+    def get_items(self, request, *args, **kwargs):
+        """获取所有设置
+        GET /settings/items/?all=true
+        """
+        return super(SettingViewSet, self).list(request, *args, **kwargs)
 
     @action(methods=['POST'], detail=False, url_path='backup_database')
     def backup_database(self, request, *args, **kwargs):

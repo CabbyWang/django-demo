@@ -48,6 +48,8 @@ class SLMS(object):
                     unit=unit,
                     registered_time=hub.get('registered_time') or datetime.date.today()
                 )
+        except:
+            pass
 
 
 
@@ -59,7 +61,7 @@ class SLMS(object):
         """
         print('network_service >> api.py >> record_offline_hub')
         # TODO 集控是否在数据库中， 在则删除
-        Hub.objects.filter(sn=hub_sn).update(status=3)
+        Hub.objects.filter_by(sn=hub_sn).update(status=3)
         # TODO 产生告警， 存在则更新时间， 不存在则新增告警 逻辑是否需要在record_alarm中实现
         hub = Hub.objects.filter_by(sn=hub_sn).first()
         alert, is_created = Alert.objects.update_or_create(

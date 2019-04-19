@@ -72,9 +72,9 @@ class HubViewSet(ListModelMixin,
     def get_queryset(self):
         # 管理员拥有所有集控的权限
         if self.request.user.is_superuser:
-            return Hub.objects.filter(is_deleted=False)
+            return Hub.objects.filter_by()
         user = self.request.user
-        return user.hubs.filter(is_deleted=False)
+        return user.hubs.filter_by()
 
     def get_serializer_class(self):
         if self.action in ('list', 'retrieve'):
@@ -145,8 +145,8 @@ class HubViewSet(ListModelMixin,
             longitude, latitude = point
             sequence_num = sequence[i]
             hub = Hub.objects.get(sn=hub_sn)
-            LampCtrl.objects.filter(hub=hub,
-                                    sequence=sequence_num).update(
+            LampCtrl.objects.filter_by(hub=hub,
+                                       sequence=sequence_num).update(
                 on_map=True,
                 longitude=longitude,
                 latitude=latitude
@@ -165,7 +165,7 @@ class HubViewSet(ListModelMixin,
         hub = Hub.objects.get(sn=hub_sn)
         lon = hub.longitude
         lat = hub.latitude
-        lamps_on_map = LampCtrl.objects.filter(hub=hub, on_map=True)
+        lamps_on_map = LampCtrl.objects.filter_by(hub=hub, on_map=True)
 
         for lamp in lamps_on_map:
             LampCtrl.objects.filter_by(sn=lamp).update(
@@ -237,7 +237,7 @@ class HubViewSet(ListModelMixin,
                             if lamp and lamp.on_map:
                                 item.pop('longitude', None)
                                 item.pop('latitude', None)
-                            LampCtrl.objects.filter(sn=lamp_sn).update(**item)
+                            LampCtrl.objects.filter_by(sn=lamp_sn).update(**item)
                             # 删除数据库中存在 实际不存在的灯控
                             LampCtrl.objects.exclude(sn__in=list(lamp_inventory.keys())).delete()
                 except Exception as ex:

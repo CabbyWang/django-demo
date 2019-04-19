@@ -50,7 +50,7 @@ class WorkOrderDetailSerializer(serializers.ModelSerializer):
     workorder_image = serializers.SerializerMethodField()
 
     def get_workorder_image(self, instance):
-        queryset = instance.workorder_image.filter(is_deleted=False)
+        queryset = instance.workorder_image.filter_by()
         return WorkOrderImageSerializer(
             queryset, many=True, context={'request': self.context['request']}
         ).data
@@ -264,7 +264,7 @@ class InspectionImageSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = InspectionImage
-        fields = ("id", "image", "created_time", "updated_time")
+        fields = ("id", "file", "created_time", "updated_time")
 
 
 class InspectionItemSerializer(serializers.ModelSerializer):

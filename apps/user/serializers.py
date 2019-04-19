@@ -12,13 +12,14 @@ from rest_framework.validators import UniqueValidator
 from hub.models import Hub
 from django.conf import settings
 from user.models import UserGroup, User, Permission
+from utils.exceptions import InvalidInputError
 
 
 class UserSerializer(serializers.ModelSerializer):
-    user_group = serializers.PrimaryKeyRelatedField(required=True, queryset=UserGroup.objects.all())
+    user_group = serializers.PrimaryKeyRelatedField(required=True, queryset=UserGroup.objects.filter_by())
     username = serializers.CharField(
         required=True,
-        validators=[UniqueValidator(queryset=User.objects.filter(is_deleted=False),
+        validators=[UniqueValidator(queryset=User.objects.filter_by(),
                     message="用户名已存在")]
     )
     password = serializers.CharField(
@@ -68,17 +69,24 @@ class UserGroupDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = UserGroup
-        fields = ("name", 'memo', 'users')
+        fields = ("id", "name", 'memo', 'users')
 
 
-class UserGroupCreateSerializer(serializers.ModelSerializer):
-    name = serializers.CharField(
-        required=True,
-        validators=[
-            UniqueValidator(queryset=UserGroup.objects.filter(),
-                            message="用户组名已存在")
-        ]
-    )
+class UserGroupSerializer(serializers.ModelSerializer):
+    # name = serializers.CharField(
+    #     required=True,
+    #     validators=[
+    #         UniqueValidator(queryset=UserGroup.objects.filter_by(),
+    #                         message="用户组名已存在")
+    #     ]
+    # )
+    name = serializers.CharField(required=True)
+
+    @staticmethod
+    def validate_name(name):
+        if UserGroup.objects.filter_by(name=name).exists():
+            raise InvalidInputError('user group name [{}] has been existed'.format(name))
+        return name
 
     class Meta:
         model = UserGroup
@@ -91,7 +99,7 @@ class AssignPermissionSerializer(serializers.Serializer):
     @staticmethod
     def validate_permission(hubs):
         for hub_sn in hubs:
-            if not Hub.objects.filter(sn=hub_sn, is_deleted=False).exists():
+            if not Hub.objects.filter_by(sn=hub_sn).exists():
                 raise serializers.ValidationError("集控[{}]不存在".format(hub_sn))
         return hubs
 
@@ -106,7 +114,7 @@ class PermissionSerializer(serializers.ModelSerializer):
 
 
 class UpdateGroupSerializer(serializers.ModelSerializer):
-    user_group = serializers.PrimaryKeyRelatedField(required=True, queryset=UserGroup.objects.all())
+    user_group = serializers.PrimaryKeyRelatedField(required=True, queryset=UserGroup.objects.filter_by())
 
     class Meta:
         model = UserGroup

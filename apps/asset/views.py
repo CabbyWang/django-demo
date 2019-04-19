@@ -38,6 +38,8 @@ class PoleViewSet(ListModelMixin,
         删除灯杆
     batch_delete:
         批量删除
+    pole_use_status:
+        灯杆使用状态
     upload_images:
         上传灯杆图片
     """
@@ -99,6 +101,23 @@ class PoleViewSet(ListModelMixin,
     def perform_destroy(self, instance):
         instance.soft_delete()
 
+    @action(methods=['GET'], detail=False, url_path='use-status')
+    def pole_use_status(self, request, *args, **kwargs):
+        """灯杆使用状态
+        GET /poles/use-status/
+        """
+        # TODO 是否需要使用serializer
+        is_used = Pole.objects.filter_by(is_used=True).count()
+        not_used = Pole.objects.filter_by(is_used=False).count()
+        total = is_used + not_used
+        return Response(data=dict(
+            used_count=is_used,
+            not_used_count=not_used,
+            total_count=total,
+            use_status='{:.0%}'.format(
+                float(is_used) / total if total else 0)
+        ))
+
 
 class LampViewSet(ListModelMixin,
                   mixins.CreateModelMixin,
@@ -115,6 +134,8 @@ class LampViewSet(ListModelMixin,
         修改灯具信息
     destroy:
         删除灯具
+    lamp_use_status:
+        灯具使用状态
     upload_images:
         上传灯具图片
     """
@@ -176,6 +197,23 @@ class LampViewSet(ListModelMixin,
     def perform_destroy(self, instance):
         instance.soft_delete()
 
+    @action(methods=['GET'], detail=False, url_path='use-status')
+    def lamp_use_status(self, request, *args, **kwargs):
+        """灯具使用状态
+        GET /lamps/use-status/
+        """
+        # TODO 是否需要使用serializer
+        is_used = Lamp.objects.filter_by(is_used=True).count()
+        not_used = Lamp.objects.filter_by(is_used=False).count()
+        total = is_used + not_used
+        return Response(data=dict(
+            used_count=is_used,
+            not_used_count=not_used,
+            total_count=total,
+            use_status='{:.0%}'.format(
+                float(is_used) / total if total else 0)
+        ))
+
 
 class CBoxViewSet(ListModelMixin,
                   mixins.CreateModelMixin,
@@ -192,6 +230,8 @@ class CBoxViewSet(ListModelMixin,
         修改控制箱信息
     destroy:
         删除控制箱
+    cbox_use_status:
+        控制箱使用状态
     upload_images:
         上传控制箱图片
     """
@@ -252,6 +292,23 @@ class CBoxViewSet(ListModelMixin,
 
     def perform_destroy(self, instance):
         instance.soft_delete()
+
+    @action(methods=['GET'], detail=False, url_path='use-status')
+    def cbox_use_status(self, request, *args, **kwargs):
+        """控制箱使用状态
+        GET /cboxs/use-status/
+        """
+        # TODO 是否需要使用serializer
+        is_used = CBox.objects.filter_by(is_used=True).count()
+        not_used = CBox.objects.filter_by(is_used=False).count()
+        total = is_used + not_used
+        return Response(data=dict(
+            used_count=is_used,
+            not_used_count=not_used,
+            total_count=total,
+            use_status='{:.0%}'.format(
+                float(is_used) / total if total else 0)
+        ))
 
 
 class CableViewSet(ListModelMixin,

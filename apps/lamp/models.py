@@ -13,7 +13,7 @@ class LampCtrl(BaseModel):
     灯控
     """
 
-    TYPE_CHOICE = ((1, '单路钠灯'), (2, '单路LED灯'), (3, '双路钠灯'), (4, '双路LED灯'))
+    TYPE_CHOICE = ((1, '单路钠灯'), (2, '单路LED灯'), (3, '双路钠灯'), (4, '双路LED灯'), (5, '线路开关'))
     STATUS_CHOICE = ((1, '正常'), (2, '故障'), (3, '脱网'))
     SWITCH_CHOICE = ((0, '关'), (1, '开'))
     __model_fields = []  # 所有字段的字符列表

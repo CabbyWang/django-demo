@@ -25,10 +25,10 @@ msgstr "测试"
 msgid "can't delete the hub online"
 msgstr "集控在线, 不能删除"
 
-#: .\smartlamp_core\settings.py:212
+#: .\smartlamp\settings.py:212
 msgid "English"
 msgstr "英文"
 
-#: .\smartlamp_core\settings.py:213
+#: .\smartlamp\settings.py:213
 msgid "中文简体"
 msgstr "Simple Chinese"

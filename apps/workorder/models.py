@@ -14,6 +14,8 @@ class WorkOrder(BaseModel):
     2. 手工创建
     TYPES: 工单类型
     """
+    # TODO 灯控合并到灯具类型中
+    # TODO 将types提取出来到setting中
     TYPES = (
         (0, "其它"),
         (1, "集控"),

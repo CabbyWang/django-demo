@@ -96,11 +96,11 @@ class WorkOrderViewSet(ListModelMixin,
         GET /workorders/malfunction_status/
         """
         ret = []
-        for i in range(1, 7):
+        for i in range(0, 7):
             order = OrderType(i)
             d = dict(
                 name=order.name,
-                value=WorkOrder.objects.filter(type=order.value).count()
+                value=WorkOrder.objects.filter_by(type=order.value).count()
             )
             ret.append(d)
         return Response(data=ret)

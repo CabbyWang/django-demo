@@ -25,8 +25,9 @@ class LampCtrlFilter(filters.FilterSet):
     rf_addr = filters.CharFilter(field_name='rf_addr', lookup_expr='icontains')
     address = filters.CharFilter(field_name='address', lookup_expr='icontains')
     lamp_type = filters.NumberFilter(field_name='lamp_type')
-    lamp_status = filters.NumberFilter(field_name='status',
-                                       method='filter_lamp_status')
+    lamp_status = filters.CharFilter(field_name='status',
+                                     method='filter_lamp_status')
+    status = filters.NumberFilter(field_name='status', method='filter_status')
     start_time = filters.DateFilter(field_name='registered_time',
                                     lookup_expr='gte')
     end_time = filters.DateFilter(field_name='registered_time',
@@ -47,28 +48,43 @@ class LampCtrlFilter(filters.FilterSet):
         return queryset.filter(hub__in=hubs)
 
     @staticmethod
+    def filter_status(queryset, name, value):
+        """
+        通过(正常/故障/脱网 1/2/3)三种状态来筛选
+        (支持多个状态筛选 2,3)
+        """
+        return queryset.filter(status__in=value.split(','))
+
+    @staticmethod
     def filter_lamp_status(queryset, name, value):
         """通过(正常开灯/正常熄灯/故障/脱网（正常分为两种状态）1/0/2/3)四种状态
-        来筛选
+        来筛选(支持多个状态筛选 2,3)
         实际通过status和switch_status来筛选
         """
-        if value == 0:
-            status = 1
-            switch_status = 0
-            return queryset.filter(status=status, switch_status=switch_status)
-        elif value == 1:
-            status = 1
-            switch_status = 1
-            return queryset.filter(status=status, switch_status=switch_status)
-        else:
-            status = value
-            return queryset.filter(status=status)
+        # TODO 优化代码
+        statuss = value.split(',')
+        qs = LampCtrl.objects.none()
+        for lamp_status in statuss:
+            lamp_status = int(lamp_status)
+            if lamp_status == 0:
+                status = 1
+                switch_status = 0
+                qs |= queryset.filter(status=status, switch_status=switch_status)
+            elif lamp_status == 1:
+                status = 1
+                switch_status = 1
+                qs |= queryset.filter(status=status, switch_status=switch_status)
+            else:
+                status = lamp_status
+                qs |= queryset.filter(status=status)
+        return qs
 
     class Meta:
         model = LampCtrl
         fields = (
             'sn', 'sequence', 'hub_sn', 'lamp_type', 'rf_band', 'rf_addr',
-            'address', 'lamp_type', 'lamp_status', 'start_time', 'end_time'
+            'address', 'lamp_type', 'lamp_status', 'status', 'switch_status',
+            'start_time', 'end_time'
         )
 
 

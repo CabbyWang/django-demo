@@ -214,7 +214,7 @@ def run():
             for setting in settings:
                 Setting.objects.create(**setting)
             # for key, value in settings_data.items():
-            #     if not Setting.objects.filter(option=key):
+            #     if not Setting.objects.filter_by(option=key):
             #         Setting.objects.create(option=key, value=value)
             # 公司数据
             print('插入公司数据...')

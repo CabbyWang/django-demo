@@ -14,5 +14,5 @@ class IsOwnHubOrSuperUser(permissions.BasePermission):
         if request.user.is_superuser:
             return True
 
-        if Permission.objects.filter(hub=obj, user=request.user).exists:
+        if Permission.objects.filter_by(hub=obj, user=request.user).exists:
             return True

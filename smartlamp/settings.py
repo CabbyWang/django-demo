@@ -229,3 +229,6 @@ DEFAULT_PASSWORD = '12345678'
 
 # Network Service Address
 NS_ADDR = ('127.0.0.1', 9994)
+
+# 备份目录
+BACKUP_ROOT = os.path.join(BASE_DIR, 'backup')

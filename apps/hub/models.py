@@ -2,6 +2,7 @@ import datetime
 
 from django.db import models
 
+# from asset.models import Pole
 from base.models import BaseModel
 
 
@@ -28,6 +29,7 @@ class Hub(BaseModel):
     STATUS_CHOICE = ((1, '正常'), (2, '故障'), (3, '脱网'))
 
     sn = models.CharField(max_length=16, primary_key=True, verbose_name='编号', help_text='编号')
+    # pole = models.ForeignKey(Pole, related_name='pole_hub', verbose_name='灯杆')
     unit = models.ForeignKey(Unit, related_name='unit_hub', null=True, blank=True, verbose_name='管理单元', help_text='管理单元')
     status = models.IntegerField(choices=STATUS_CHOICE, verbose_name='状态', help_text='状态')    # （1：正常，2：故障，3：脱网）
     rf_band = models.IntegerField(verbose_name='信道', help_text='信道')
@@ -50,29 +52,40 @@ class Hub(BaseModel):
 
     def delete(self, using=None, keep_parents=False):
         # 删除集控状态历史纪录
-        self.hub_hubstatus.update(deleted_time=datetime.datetime.now(), is_deleted=True)
+        self.hub_hubstatus.update(deleted_time=datetime.datetime.now(),
+                                  is_deleted=True)
         # 删除灯控
-        self.hub_lampctrl.update(deleted_time=datetime.datetime.now(), is_deleted=True)
+        self.hub_lampctrl.update(deleted_time=datetime.datetime.now(),
+                                 is_deleted=True)
         # 删除灯控分组
-        self.hub_group.update(deleted_time=datetime.datetime.now(), is_deleted=True)
+        self.hub_group.update(deleted_time=datetime.datetime.now(),
+                              is_deleted=True)
         # 删除告警
-        self.hub_alert.update(deleted_time=datetime.datetime.now(), is_deleted=True)
+        self.hub_alert.update(deleted_time=datetime.datetime.now(),
+                              is_deleted=True)
         # 删除策略下发表
-        self.hub_send_down_policysets.update(deleted_time=datetime.datetime.now(), is_deleted=True)
+        self.hub_send_down_policysets.update(
+            deleted_time=datetime.datetime.now(), is_deleted=True)
         # 删除集控当天能耗表
-        self.hub_consumption.update(deleted_time=datetime.datetime.now(), is_deleted=True)
+        self.hub_consumption.update(deleted_time=datetime.datetime.now(),
+                                    is_deleted=True)
         # 删除用户权限
-        self.hub_permision.update(deleted_time=datetime.datetime.now(), is_deleted=True)
+        self.hub_permision.update(deleted_time=datetime.datetime.now(),
+                                  is_deleted=True)
         # 删除巡检报告
-        self.hub_inspetion.update(deleted_time=datetime.datetime.now(), is_deleted=True)
+        self.hub_inspetion.update(deleted_time=datetime.datetime.now(),
+                                  is_deleted=True)
         # TODO 删除工单？
+        # type=1 obj_sn=self.sn
         # self.hub_lampctrl.update(deleted_time=datetime.datetime.now(), is_deleted=True)
         # 删除巡检报告具体项表
-        self.hub_inspection_item.update(deleted_time=datetime.datetime.now(), is_deleted=True)
+        self.hub_inspection_item.update(deleted_time=datetime.datetime.now(),
+                                        is_deleted=True)
         # 删除集控
-        self.deleted_time = datetime.datetime.now()
-        self.is_deleted = True
-        self.save()
+        # self.deleted_time = datetime.datetime.now()
+        # self.is_deleted = True
+        # self.save()
+        self.soft_delete()
 
 
 class HubStatus(BaseModel):
