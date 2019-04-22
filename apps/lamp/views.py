@@ -55,7 +55,7 @@ class LampCtrlViewSet(ListModelMixin,
         return LampCtrlSerializer
 
     @action(methods=['GET'], detail=False, url_path='putin-rate')
-    def get_light_rate(self, request, *args, **kwargs):
+    def get_putin_rate(self, request, *args, **kwargs):
         """灯控投运率（灯控 正常/故障/脱网 占比）
         GET /lampctrls/putin-rate/
         :return:
