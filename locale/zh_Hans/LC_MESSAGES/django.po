@@ -8,27 +8,64 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-03-08 17:18+0800\n"
+"POT-Creation-Date: 2019-04-23 17:30+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
-#: .\apps\hub\views.py:84
-msgid "test"
-msgstr "测试"
+#: .\apps\user\serializers.py:36
+msgid "User account is disabled."
+msgstr "该用户未激活"
+
+#: .\apps\user\serializers.py:47
+msgid "Unable to log in with provided credentials."
+msgstr "用户名或密码错误"
+
+#: .\apps\user\serializers.py:51
+#, python-brace-format
+msgid "Must include \"{username_field}\" and \"password\"."
+msgstr "必须包含\"{username_field}\"和\"password\"."
 
 #: .\apps\utils\exceptions.py:14
 msgid "can't delete the hub online"
 msgstr "集控在线, 不能删除"
 
-#: .\smartlamp\settings.py:212
+#: .\apps\utils\exceptions.py:20
+msgid "can't connect network service"
+msgstr "网络服务连接失败"
+
+#: .\apps\utils\exceptions.py:26
+msgid "authenticate failed when connect network service"
+msgstr "网络服务验证失败"
+
+#: .\apps\utils\exceptions.py:32
+msgid "connect hub timeout"
+msgstr "连接集控超时"
+
+#: .\apps\utils\exceptions.py:38
+msgid "hub unknown error"
+msgstr "集控未知错误"
+
+#: .\apps\utils\exceptions.py:44
+msgid "object has been existed"
+msgstr "对象已经存在"
+
+#: .\apps\utils\exceptions.py:50
+msgid "Invalid input."
+msgstr "数据格式错误"
+
+#: .\smartlamp\settings.py:197
 msgid "English"
 msgstr "英文"
 
-#: .\smartlamp\settings.py:213
+#: .\smartlamp\settings.py:198
 msgid "中文简体"
 msgstr "Simple Chinese"
+
+#~ msgid "test"
+#~ msgstr "测试"

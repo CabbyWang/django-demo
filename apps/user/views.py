@@ -18,11 +18,12 @@ from user.models import UserGroup, Permission
 from user.serializers import (
     UserSerializer, AssignPermissionSerializer, PermissionSerializer,
     UserGroupDetailSerializer, UpdateGroupSerializer, ChangePswSerializer,
-    UserGroupSerializer)
+    UserGroupSerializer, UserDetailSerializer, SetReadonlySerializer,
+    SetReceiveAlarmSerializer, SetActiveSerializer, ChangeProfileSerializer)
 from user.permissions import IsOwnerOrPriority, IsPriority, IsOwner
 from utils.paginator import CustomPagination
 from utils.mixins import ListModelMixin
-from utils.permissions import IsSuperUser
+from utils.permissions import IsSuperUser, IsAdminUser
 
 
 User = get_user_model()
@@ -115,6 +116,7 @@ class UserGroupViewSet(ListModelMixin,
 class UserViewSet(ListModelMixin,
                   mixins.RetrieveModelMixin,
                   mixins.CreateModelMixin,
+                  mixins.UpdateModelMixin,
                   mixins.DestroyModelMixin,
                   viewsets.GenericViewSet):
     """
@@ -125,26 +127,22 @@ class UserViewSet(ListModelMixin,
         获取用户详细信息(个人信息) 获取用户的所有权限()
     create:
         创建用户
-    destory:
-        删除用户
+    destroy:
+        删除用户(IsPriority)
     set_superuser:
         设置管理员(IsSuperUser)
     cancel_superuser:
         取消管理员(IsPriority)
-    set_readonly:
-        设置只读用户(IsPriority)
-    cancel_readonly:
-        取消只读用户(IsPriority)
-    set_alert:
-        设置接收告警(IsPriority)
-    cancel_alert:
-        取消接收告警(IsPriority)
+    set_read_only:
+        设置是否为只读用户(IsPriority)
+    set_receive_alarm:
+        设置是否接收告警短信(IsPriority)
+    set_active:
+        设置是否激活用户(IsPriority)
+    change_profile:
+        修改个人信息(IsOwn)
     update_group:
         修改用户所属用户组
-    enable:
-        启用用户(IsPriority)
-    disable:
-        禁用用户(IsPriority)
     change_password:
         修改用户密码（IsOwn）
     check_password_interval:
@@ -159,7 +157,7 @@ class UserViewSet(ListModelMixin,
     queryset = User.objects.filter_by()
     # serializer_class = UserSerializer
     pagination_class = CustomPagination
-    filter_backends = (DjangoFilterBackend,)
+    filter_backends = (DjangoFilterBackend, )
     filter_class = UserFilter
 
     def get_queryset(self):
@@ -172,30 +170,44 @@ class UserViewSet(ListModelMixin,
         return User.objects.filter_by()
 
     def get_permissions(self):
-        if self.action in ('create', 'destory', 'set_superuser', 'update_group',
+        if self.action in ('update', ):
+            return [IsAuthenticated(), IsAdminUser()]
+        if self.action in ('create', 'set_superuser', 'update_group',
                            'assign_permission'):
             return [IsAuthenticated(), IsSuperUser()]
-        if self.action in ('cancel_superuser', 'set_readonly',
-                           'cancel_readonly', 'set_alert', 'cancel_alert',
-                           'enable', 'disable'
+        if self.action in ('cancel_superuser', 'set_read_only',
+                           'set_receive_alarm', 'set_active', 'destroy'
                            ):
             return [IsAuthenticated(), IsPriority()]
-        if self.action == 'change_password':
+        if self.action in ('change_profile', 'change_password'):
             return [IsAuthenticated(), IsOwner()]
         if self.action == 'reset_password':
             return [IsAuthenticated(), IsOwnerOrPriority()]
         return [IsAuthenticated()]
 
     def get_serializer_class(self):
-        if self.action in ('list', 'retrieve', 'create', 'destory'):
-            return UserSerializer
+        if self.action in ('list', 'retrieve'):
+            return UserDetailSerializer
         if self.action == 'update_group':
             return UpdateGroupSerializer
         if self.action == 'change_password':
             return ChangePswSerializer
+        if self.action == 'change_profile':
+            return ChangeProfileSerializer
         if self.action == 'assign_permission':
             return AssignPermissionSerializer
+        if self.action == 'set_read_only':
+            return SetReadonlySerializer
+        if self.action == 'set_receive_alarm':
+            return SetReceiveAlarmSerializer
+        if self.action == 'set_active':
+            return SetActiveSerializer
         return UserSerializer
+
+    def get_object(self):
+        if self.action == 'change_profile':
+            return self.request.user
+        return super(UserViewSet, self).get_object()
 
     def perform_create(self, serializer):
         """已删除用户中有相同用户名"""
@@ -228,6 +240,20 @@ class UserViewSet(ListModelMixin,
             user.soft_delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+    @action(methods=['PUT'], detail=True, url_path='hf')
+    def xxx(self, request, *args, **kwargs):
+        """恢复已删除用户
+        PUT /users/{id}/group/
+        {
+            "is_deleted": 1
+        }
+        """
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
     @action(methods=['PUT'], detail=True, url_path='set-superuser')
     def set_superuser(self, request, *args, **kwargs):
         """设置管理员"""
@@ -244,37 +270,48 @@ class UserViewSet(ListModelMixin,
         instance.save()
         return Response()
 
-    @action(methods=['PUT'], detail=True, url_path='set-readonly')
-    def set_readonly(self, request, *args, **kwargs):
-        """设置为只读用户"""
-        instance = self.get_object()
-        instance.read_only_user = True
-        instance.save()
-        return Response()
+    @action(methods=['PUT'], detail=True, url_path='read-only')
+    def set_read_only(self, request, *args, **kwargs):
+        """设置是否为只读用户
+        PUT /users/{id}/read-only/
+        {
+            "is_read_only": true
+        }
+        """
+        return super(UserViewSet, self).update(request, *args, **kwargs)
 
-    @action(methods=['PUT'], detail=True, url_path='cancel-readonly')
-    def cancel_readonly(self, request, *args, **kwargs):
-        """取消只读"""
-        instance = self.get_object()
-        instance.read_only_user = False
-        instance.save()
-        return Response()
+    @action(methods=['PUT'], detail=True, url_path='receive-alarm')
+    def set_receive_alarm(self, request, *args, **kwargs):
+        """设置是否接收告警短信
+        PUT /users/{id}/receive-alarm/
+        {
+            "is_receive_alarm": true
+        }
+        """
+        return super(UserViewSet, self).update(request, *args, **kwargs)
 
-    @action(methods=['PUT'], detail=True, url_path='set-alert')
-    def set_alert(self, request, *args, **kwargs):
-        """设置接收告警"""
-        instance = self.get_object()
-        instance.receive_alarm = True
-        instance.save()
-        return Response()
+    @action(methods=['PUT'], detail=True, url_path='active')
+    def set_active(self, request, *args, **kwargs):
+        """设置是否激活用户
+        PUT /users/{id}/active/
+        {
+            "is_active": true
+        }
+        """
+        return super(UserViewSet, self).update(request, *args, **kwargs)
 
-    @action(methods=['PUT'], detail=True, url_path='cancel-alert')
-    def cancel_alert(self, request, *args, **kwargs):
-        """取消接收告警"""
-        instance = self.get_object()
-        instance.receive_alarm = False
-        instance.save()
-        return Response()
+    @action(methods=['PUT'], detail=False, url_path='profile')
+    def change_profile(self, request, *args, **kwargs):
+        """
+        修改个人信息(IsOwn)
+        PUT /users/profile/
+        {
+            "mobile": "",
+            "email" "",
+            "organization": ""
+        }
+        """
+        return super(UserViewSet, self).update(request, *args, **kwargs)
 
     @action(methods=['PUT'], detail=True, url_path='group')
     def update_group(self, request, *args, **kwargs):
@@ -290,26 +327,6 @@ class UserViewSet(ListModelMixin,
         serializer.save()
         return Response(serializer.data)
 
-    @action(methods=['PUT'], detail=True, url_path='enable')
-    def enable(self, request, *args, **kwargs):
-        """启用用户
-        PUT /users/{id}/enable/
-        """
-        instance = self.get_object()
-        instance.is_active = True
-        instance.save()
-        return Response()
-
-    @action(methods=['PUT'], detail=True, url_path='disable')
-    def disable(self, request, *args, **kwargs):
-        """禁用用户
-        PUT /users/{id}/disable/
-        """
-        instance = self.get_object()
-        instance.is_active = False
-        instance.save()
-        return Response()
-
     @action(methods=['PUT'], detail=True, url_path='password')
     def change_password(self, request, *args, **kwargs):
         """修改用户密码
@@ -319,11 +336,7 @@ class UserViewSet(ListModelMixin,
             "new_password": ""
         }
         """
-        instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data)
+        return super(UserViewSet, self).update(request, *args, **kwargs)
 
     @action(methods=['GET'], detail=True, url_path='password-interval')
     def check_password_interval(self, request, *args, **kwargs):

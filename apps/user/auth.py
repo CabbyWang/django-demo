@@ -13,6 +13,7 @@ from rest_framework.response import Response
 from rest_framework_jwt import views
 
 from user.models import User
+from user.serializers import LoginSerializer
 
 
 class CustomBackend(ModelBackend):
@@ -21,7 +22,8 @@ class CustomBackend(ModelBackend):
     """
     def authenticate(self, username=None, password=None, **kwargs):
         try:
-            user = User.objects.get(username=username, is_deleted=False)
+            user = User.objects.filter_by(username=username).first()
+            a = user.check_password(password)
             if user.check_password(password):
                 return user
         except Exception as e:
@@ -32,6 +34,7 @@ class CustomObtainJSONWebToken(views.ObtainJSONWebToken):
     """
     用户登陆
     """
+    serializer_class = LoginSerializer
 
     def post(self, request, *args, **kwargs):
         error = self.wechat_auth(request.data)

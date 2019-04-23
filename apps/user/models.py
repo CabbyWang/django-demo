@@ -29,11 +29,12 @@ class User(MyAbstractUser):
     用户
     """
     # TODO 用户名username需要重写， unique改为False 逻辑删除后 允许添加被删除的同名用户
+    # username = models.CharField(max_length=150)
     hubs = models.ManyToManyField(Hub, related_name='users', through='Permission')
     mobile = models.CharField(max_length=11, verbose_name="电话")
     # email = models.EmailField(max_length=100, verbose_name="邮箱")
-    read_only_user = models.BooleanField(default=False, verbose_name="只读用户")
-    receive_alarm = models.BooleanField(default=False, verbose_name="接收告警")
+    is_read_only = models.BooleanField(default=False, verbose_name="只读用户")
+    is_receive_alarm = models.BooleanField(default=False, verbose_name="接收告警")
     password_modified_time = models.DateTimeField(auto_now=True, null=True, blank=True, verbose_name="密码修改时间")
     user_group = models.ForeignKey(UserGroup, related_name='users', null=True, blank=True, verbose_name="用户组")
     updated_user = models.ForeignKey("self", null=True, blank=True, verbose_name="修改者")

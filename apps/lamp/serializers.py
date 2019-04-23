@@ -3,9 +3,11 @@
 """
 Create by 王思勇 on 2019/3/6
 """
-from lamp.models import LampCtrl, LampCtrlGroup, LampCtrlStatus
-
 from rest_framework import serializers
+
+from hub.models import Hub
+from lamp.models import LampCtrl, LampCtrlGroup, LampCtrlStatus
+from utils.exceptions import InvalidInputError
 
 
 class LampCtrlSerializer(serializers.ModelSerializer):
@@ -84,3 +86,54 @@ class LampCtrlStatusSerializer(serializers.ModelSerializer):
     class Meta:
         model = LampCtrlStatus
         fields = "__all__"
+
+
+class GatherLampCtrlSerializer(serializers.Serializer):
+
+    lampctrl = serializers.ListField(required=True, min_length=1)
+
+    @staticmethod
+    def validate_lampctrl(lampctrls):
+        """
+        检验灯控是否存在
+        :param lampctrls: 灯控列表
+        :return:
+        {
+            "hub1": ["lamp1", "lamp2"],
+            "hub2": ["lamp3", "lamp4"]
+        }
+        """
+        # 验证灯控是否存在
+        not_exists_lampctrl = []
+        for sn in lampctrls:
+            if not LampCtrl.objects.filter_by(sn=sn).exists():
+                not_exists_lampctrl.append(sn)
+        if not_exists_lampctrl:
+            raise serializers.ValidationError(
+                'Lamp controls [{}] are not exist.'.format(
+                    ', '.join(not_exists_lampctrl))
+            )
+
+        ret = {}
+        hub_sns = LampCtrl.objects.filter(
+            sn__in=lampctrls).values_list('hub', flat=True)
+        for hub_sn in hub_sns:
+            hub = Hub.objects.get_or_404(sn=hub_sn)
+            lampctrls = LampCtrl.objects.filter(hub=hub).values_list('sn', flat=True)
+            ret[hub_sn] = lampctrls
+        return ret
+
+
+class ControlLampSerializer(GatherLampCtrlSerializer):
+    action = serializers.CharField(required=True)
+
+    @staticmethod
+    def validate_action(action):
+        actions = action.split(',')
+        if len(actions) != 2:
+            raise InvalidInputError('the format of action must like "0,80"')
+        route1, route2 = actions
+        if route1 < 0 or route1 > 255 or route2 < 0 or route2 > 255:
+            raise InvalidInputError(
+                'the brightness value must between 0 and 255')
+        return action

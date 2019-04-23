@@ -3,8 +3,14 @@ import datetime
 from django.db import models
 from django.db.models.manager import Manager
 from django.contrib.auth.models import UserManager, AbstractUser
+from django.http import Http404
 
-# Create your models here.
+
+# class MyQuerySet(models.query.QuerySet):
+#
+#     def soft_delete(self):
+#         a = 1
+#         pass
 
 
 class MyManager(Manager):
@@ -17,6 +23,19 @@ class MyManager(Manager):
         """
         kwargs['is_deleted'] = False
         return super(MyManager, self).filter(*args, **kwargs)
+
+    def get_or_404(self, *args, **kwargs):
+        """
+        Get an object or http404
+        """
+        try:
+            return super(MyManager, self).get(*args, **kwargs)
+        except:
+            raise Http404
+
+
+    # def get_query_set(self):
+    #     return MyQuerySet(self.model, using=self._db)
 
 
 class MyUserManage(UserManager):
@@ -77,6 +96,11 @@ class MyAbstractUser(AbstractUser):
     )
 
     objects = MyUserManage()
+
+    def soft_delete(self):
+        self.is_deleted = True
+        self.deleted_time = datetime.datetime.now()
+        self.save()
 
     class Meta:
         abstract = True
