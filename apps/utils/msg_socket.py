@@ -116,17 +116,17 @@ class MessageSocket(object):
         用来接收、处理消息，返回处理好的消息
         """
         # 数据可能不能一次性接收完整
-        pack_data = []
+        pack_data = bytes()
         recv_len = 0
         buf_data = self.socket.recv(buffer_size)
         recv_len += len(buf_data)
         length, _, _ = struct.unpack('!3I', buf_data[:12])
-        pack_data.append(buf_data)
+        pack_data += buf_data
         while recv_len < length:
             buf_data = self.socket.recv(buffer_size)
             recv_len += len(buf_data)
-            pack_data.append(buf_data)
-        pack_data = ''.join(pack_data)
+            pack_data += buf_data
+        # pack_data = ''.join(pack_data)
 
         length, version, command_id = struct.unpack('!3I', pack_data[:12])
         content = pack_data[12:length]
@@ -147,7 +147,7 @@ class MessageSocket(object):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.socket.close()
-        return True
+        # return True
 
 
 if __name__ == '__main__':

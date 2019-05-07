@@ -23,6 +23,7 @@ log.startLogging(sys.stdout)
 
 # twisted clients pool
 clients = {}
+# TODO 是否可以将日志按集控来分文件，方便问题追踪
 
 
 class Server(Protocol):
@@ -233,7 +234,7 @@ class Server(Protocol):
                 type="ack",
                 code=code,
                 message="向服务器注册失败",
-                reason=ret_msg.get('reason')
+                reason=ret_msg.get('message')
             )
             self.write(101, json.dumps(failure_content))
             self.abort_connection()
@@ -267,11 +268,11 @@ class Server(Protocol):
 
     def _send_to_hub(self, content, hub, sender='NS'):
         # 给集控发送指令(cmd)
-        header = self.pack_header(12 + len(content), __version__, 102)
         if hub in clients:
             # 集控在线， 正常发送
             log.msg("[{}] send_content to [{}]: {}".format(sender, hub, content))
-            clients[hub].transport.write(header + content)
+            header = self.pack_header(12 + len(content), __version__, 102)
+            clients[hub].transport.write(header + content.encode('utf-8'))
         else:
             # 集控脱网
             # 当前用户是cmd, 发送不在线反馈给管控(self.user)
@@ -279,11 +280,14 @@ class Server(Protocol):
             body = dict(action='ns_ack', code=101,
                         message="集控[{}]脱网, 无法通信".format(hub))
             content = dict(
-                sender=sender,
+                sender='NS',
                 receiver=self.user,
                 body=body
             )
-            self.write(header + json.dumps(content))
+            content = json.dumps(content)
+            log.msg("[{}] send_content to [{}]: {}".format('NS', self.user, content))
+            header = self.pack_header(12 + len(content), __version__, 102)
+            self.transport.write(header + content.encode('utf-8'))
 
     @staticmethod
     def pack_header(length, version, command_id):
@@ -301,7 +305,7 @@ class Server(Protocol):
             return
         # 管控指令在线， 正常发送
         log.msg("[{}] send_content to [{}]: {}".format(sender, cmd, content))
-        clients[cmd].transport.write(header + content)
+        clients[cmd].transport.write(header + content.encode('utf-8'))
 
 
 class ServerFactory(Factory):

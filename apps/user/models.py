@@ -29,7 +29,7 @@ class User(MyAbstractUser):
     用户
     """
     # TODO 用户名username需要重写， unique改为False 逻辑删除后 允许添加被删除的同名用户
-    # username = models.CharField(max_length=150)
+    username = models.CharField(max_length=32)
     hubs = models.ManyToManyField(Hub, related_name='users', through='Permission')
     mobile = models.CharField(max_length=11, verbose_name="电话")
     # email = models.EmailField(max_length=100, verbose_name="邮箱")

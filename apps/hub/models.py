@@ -35,11 +35,12 @@ class Hub(BaseModel):
     rf_band = models.IntegerField(verbose_name='信道', help_text='信道')
     rf_addr = models.IntegerField(verbose_name='通讯模块逻辑地址', help_text='通讯模块逻辑地址')
     address = models.CharField(max_length=60, verbose_name='地址', help_text='地址')
+    new_address = models.CharField(max_length=255, null=True, blank=True, help_text='管控修改过的地址')
     longitude = models.FloatField(max_length=8, verbose_name='经度', help_text='经度')
     latitude = models.FloatField(max_length=8, verbose_name='纬度', help_text='纬度')
     memo = models.CharField(max_length=255, blank=True, null=True, verbose_name='备注', help_text='备注')
     registered_time = models.DateField(verbose_name='注册时间', help_text='注册时间')
-    is_redirect = models.BooleanField(default=False, verbose_name='是否重定位', help_text='是否为中继')
+    is_redirect = models.BooleanField(default=False, verbose_name='是否重定位', help_text='是否重定位')
 
     class Meta:
         verbose_name = '集控'

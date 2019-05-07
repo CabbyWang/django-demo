@@ -13,6 +13,7 @@ django.setup()
 import logging
 
 from django.db import transaction
+from django.utils.translation import ugettext_lazy as _
 
 from setting.models import Setting, SettingType
 from projectinfo.models import ProjectInfo
@@ -22,13 +23,41 @@ _logging = logging.getLogger('smartlamp')
 
 
 setting_types = [
-    {'id': 1,  'name': 'voice'},          # 语音
-    {'id': 2,  'name': 'message'},        # 短信
-    {'id': 3,  'name': 'interface'},      # 界面
-    {'id': 4,  'name': 'communication'},  # 通讯
-    {'id': 5,  'name': 'alert'},          # 告警
-    {'id': 6,  'name': 'report'},         # 报表
-    {'id': 99, 'name': 'others'},         # 其它
+    {
+        'id': 1,
+        'option': 'voice',
+        'name': _('voice')
+    },  # 语音
+    {
+        'id': 2,
+        'option': 'message',
+        'name': _('message')
+    },  # 短信
+    {
+        'id': 3,
+        'option': 'interface',
+        'name': _('interface')
+    },  # 界面
+    {
+        'id': 4,
+        'option': 'communication',
+        'name': _('communication')
+    },  # 通讯
+    {
+        'id': 5,
+        'option': 'alert',
+        'name': _('alert')
+    },  # 告警
+    {
+        'id': 6,
+        'option': 'report',
+        'name': _('report')
+    },  # 报表
+    {
+        'id': 99,
+        'option': 'others',
+        'name': _('others')
+    },  # 其它
 ]
 
 # tts 语音合成账号密码

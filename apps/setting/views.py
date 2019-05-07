@@ -29,11 +29,12 @@ class SettingViewSet(ListModelMixin,
         数据库备份
     """
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
+    lookup_field = 'option'
 
     def get_queryset(self):
         if self.action == 'list':
-            return SettingType.objects.all()
-        return Setting.objects.all()
+            return SettingType.objects.filter_by()
+        return Setting.objects.filter_by()
 
     def get_serializer_class(self):
         if self.action == 'list':

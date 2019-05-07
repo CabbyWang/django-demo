@@ -26,7 +26,7 @@ class WorkOrderFilter(filters.FilterSet):
     end_time = filters.DateFilter(field_name='created_time', lookup_expr='lte',
                                   method='filter_end_time')
     status = filters.CharFilter(field_name='status')
-    hub_sn = filters.CharFilter(method='filter_lampctrl')
+    lampctrl = filters.CharFilter(method='filter_lampctrl')
 
     @staticmethod
     def filter_alert(queryset, name, value):
@@ -42,7 +42,7 @@ class WorkOrderFilter(filters.FilterSet):
     def filter_lampctrl(queryset, name, value):
         """通过灯控筛选工单(设备维修历史)"""
         # TODO type待确定
-        return queryset.filter(type=1, obj_sn=value)
+        return queryset.filter(type=2, obj_sn=value)
 
     class Meta:
         model = WorkOrder
@@ -58,7 +58,7 @@ class InspectionFilter(filters.FilterSet):
     """
 
     id = filters.NumberFilter(field_name='id', lookup_expr='icontains')
-    hub_sn = filters.CharFilter(field_name='hub')
+    hub = filters.CharFilter(field_name='hub')
     start_time = filters.DateFilter(field_name='created_time',
                                     lookup_expr='gte')
     end_time = filters.DateFilter(field_name='created_time', lookup_expr='lte',
@@ -66,7 +66,7 @@ class InspectionFilter(filters.FilterSet):
 
     class Meta:
         model = Inspection
-        fields = ('id', 'hub_sn', 'start_time', 'end_time')
+        fields = ('id', 'hub', 'start_time', 'end_time')
 
     @staticmethod
     def filter_end_time(queryset, name, value):

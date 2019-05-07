@@ -10,12 +10,14 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from hub.models import Hub
-from lamp.filters import LampCtrlFilter, LampCtrlStatusFilter
-from lamp.models import LampCtrl, LampCtrlStatus
+from lamp.filters import LampCtrlFilter, LampCtrlStatusFilter, \
+    LampCtrlGroupFilter
+from lamp.models import LampCtrl, LampCtrlStatus, LampCtrlGroup
 from lamp.serializers import (
     LampCtrlStatusSerializer, LampCtrlSerializer,
     LampCtrlPartialUpdateSerializer,
-    GatherLampCtrlSerializer, ControlLampSerializer)
+    GatherLampCtrlSerializer, ControlLampSerializer, LampCtrlGroupSerializer,
+    GetLampCtrlserializer, GetGroupserializer)
 from lamp.permissions import IsOwnHubOrSuperUser
 from utils.alert import record_alarm
 from utils.exceptions import ConnectHubTimeOut, HubError
@@ -109,7 +111,7 @@ class LampCtrlViewSet(ListModelMixin,
         # TODO 灯控根据集控分类
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        lampctrls = serializer.data.get('lampctrl')
+        lampctrls = serializer.validated_data['lampctrl']
 
         ret_data = []
 
@@ -195,11 +197,71 @@ class LampCtrlViewSet(ListModelMixin,
         return Response(data={'detail': 'control lamps success'})
 
 
+class LampCtrlGroupViewSet(ListModelMixin,
+                           viewsets.GenericViewSet):
+
+    """灯控分组
+    list:
+        获取所有灯控分组
+    """
+
+    queryset = LampCtrlGroup.objects.filter_by()
+    serializer_class = LampCtrlGroupSerializer
+    authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
+    filter_backends = (DjangoFilterBackend,)
+    filter_class = LampCtrlGroupFilter
+
+    def get_serializer_class(self):
+        if self.action == 'get_group_lamps':
+            return GetLampCtrlserializer
+        # if self.action == 'get_lampctrls_from_group':
+        #     return GetLampCtrlserializer
+        # if self.action == 'get_groups':
+        #     return GetGroupserializer
+        return LampCtrlGroupSerializer
+
+    @action(methods=['GET'], detail=False, url_path='group-lamps')
+    def get_group_lamps(self, request, *args, **kwargs):
+        """获取某个分组内的灯具列表(未分组灯控归入0分组范畴)
+        GET /lampctrlgroups/group-lamps/?hub=&group=&is_default=
+        """
+        serializer = self.get_serializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+        hub = serializer.validated_data['hub']
+        is_default = serializer.validated_data['is_default']
+        group_num = serializer.validated_data['group_num']
+
+        if not is_default and group_num == 0:
+            # 获取自定义分组下未分组的灯具
+            in_groups = LampCtrlGroup.objects.filter_by(hub=hub, is_default=False).values_list('lampctrl', flat=True)
+            lampctrls = LampCtrl.objects.filter_by(hub=hub).exclude(sn__in=in_groups)
+        else:
+            in_groups = LampCtrlGroup.objects.filter_by(hub=hub, group_num=group_num, is_default=is_default).values_list('lampctrl', flat=True)
+            lampctrls = LampCtrl.objects.filter_by(sn__in=in_groups)
+        serializers = LampCtrlSerializer(lampctrls, many=True)
+        return Response(serializers.data)
+
+    # @action(methods=['GET'], detail=False, url_path='groups')
+    # def get_groups(self, request, *args, **kwargs):
+    #     """获取集控下的分组
+    #     GET /lampctrlgroups/groups/?hub=&is_default=
+    #     """
+    #     serializer = self.get_serializer(data=request.query_params)
+    #     serializer.is_valid(raise_exception=True)
+    #     hub = serializer.validated_data['hub']
+    #     is_default = serializer.validated_data['is_default']
+    #     queryset = LampCtrlGroup.objects.filter_by(hub=hub, is_default=is_default)
+    #     serializer = self.get_serializer(queryset, many=True)
+    #     return Response(serializer.data)
+
+
 class LampCtrlStatusViewSet(ListModelMixin,
                             mixins.CreateModelMixin,
                             viewsets.GenericViewSet):
     """
     灯控状态
+    list:
+        获取单灯历史状态
     """
     queryset = LampCtrlStatus.objects.all()
     serializer_class = LampCtrlStatusSerializer

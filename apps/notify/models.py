@@ -35,7 +35,7 @@ class Alert(BaseModel):
 
     event = models.CharField(max_length=64, help_text='告警事件')
     level = models.SmallIntegerField(choices=ALERT_LEVEL, help_text='故障级别')
-    alert_source = models.ForeignKey(Hub, related_name='hub_alert', help_text='告警源(集控)')
+    alert_source = models.ForeignKey(Hub, db_column='alert_source', related_name='hub_alert', help_text='告警源(集控)')
     object_type = models.CharField(max_length=16, choices=OBJECT_TYPE, help_text='告警设备类型')
     object = models.CharField(max_length=64, help_text='产生告警的设备(集控/灯控)')
     memo = models.CharField(max_length=255, null=True, blank=True, help_text='备注')

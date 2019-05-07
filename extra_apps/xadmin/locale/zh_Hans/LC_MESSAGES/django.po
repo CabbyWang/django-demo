@@ -9,15 +9,15 @@ msgid ""
 msgstr ""
 "Project-Id-Version: xadmin-core\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-03-08 17:18+0800\n"
+"POT-Creation-Date: 2019-04-25 17:59+0800\n"
 "PO-Revision-Date: 2013-11-20 10:21+0000\n"
 "Last-Translator: sshwsfc <sshwsfc@gmail.com>\n"
 "Language-Team: Chinese (China) (http://www.transifex.com/projects/p/xadmin/"
 "language/zh_CN/)\n"
+"Language: zh_CN\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Language: zh_CN\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
 #: .\extra_apps\xadmin\adminx.py:20
@@ -34,13 +34,11 @@ msgstr "管理"
 msgid "All"
 msgstr "全部"
 
-#: .\extra_apps\xadmin\filters.py:170
-#: .\extra_apps\xadmin\plugins\export.py:167
+#: .\extra_apps\xadmin\filters.py:170 .\extra_apps\xadmin\plugins\export.py:167
 msgid "Yes"
 msgstr "是"
 
-#: .\extra_apps\xadmin\filters.py:171
-#: .\extra_apps\xadmin\plugins\export.py:167
+#: .\extra_apps\xadmin\filters.py:171 .\extra_apps\xadmin\plugins\export.py:167
 msgid "No"
 msgstr "否"
 
@@ -914,8 +912,8 @@ msgid "Save Order"
 msgstr "保存排序"
 
 #: .\extra_apps\xadmin\templates\xadmin\edit_inline\blank.html:5
-#: .\extra_apps\xadmin\views\detail.py:25
-#: .\extra_apps\xadmin\views\edit.py:104 .\extra_apps\xadmin\views\list.py:31
+#: .\extra_apps\xadmin\views\detail.py:25 .\extra_apps\xadmin\views\edit.py:104
+#: .\extra_apps\xadmin\views\list.py:31
 msgid "Null"
 msgstr "空"
 

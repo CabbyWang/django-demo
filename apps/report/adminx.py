@@ -5,10 +5,7 @@ Create by 王思勇 on 2019/2/21
 """
 import xadmin
 
-from report.models import (
-    DailyTotalConsumption, HubDailyTotalConsumption, MonthTotalConsumption,
-    HubMonthTotalConsumption, DeviceConsumption, LampCtrlConsumption
-)
+from report.models import LampCtrlConsumption
 
 
 class DailyTotalConsumptionAdmin(object):
@@ -79,19 +76,19 @@ class DeviceConsumptionAdmin(object):
 class LampCtrlConsumptionAdmin(object):
 
     list_display = [
-        "lampctrl", "consumption"
+        "lampctrl", "hub", "consumption", "date"
     ]
     list_filter = [
-        "lampctrl", "consumption"
+        "lampctrl", "hub", "consumption"
     ]
     search_fields = [
-        "lampctrl", "consumption"
+        "lampctrl", "hub", "consumption", "date"
     ]
 
 
-xadmin.site.register(DailyTotalConsumption, DailyTotalConsumptionAdmin)
-xadmin.site.register(HubDailyTotalConsumption, HubDailyTotalConsumptionAdmin)
-xadmin.site.register(MonthTotalConsumption, MonthTotalConsumptionAdmin)
-xadmin.site.register(HubMonthTotalConsumption, HubMonthTotalConsumptionAdmin)
-xadmin.site.register(DeviceConsumption, DeviceConsumptionAdmin)
+# xadmin.site.register(DailyTotalConsumption, DailyTotalConsumptionAdmin)
+# xadmin.site.register(HubDailyTotalConsumption, HubDailyTotalConsumptionAdmin)
+# xadmin.site.register(MonthTotalConsumption, MonthTotalConsumptionAdmin)
+# xadmin.site.register(HubMonthTotalConsumption, HubMonthTotalConsumptionAdmin)
+# xadmin.site.register(DeviceConsumption, DeviceConsumptionAdmin)
 xadmin.site.register(LampCtrlConsumption, LampCtrlConsumptionAdmin)

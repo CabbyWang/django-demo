@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-04-23 17:30+0800\n"
+"POT-Creation-Date: 2019-04-25 17:59+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -58,6 +58,34 @@ msgstr "对象已经存在"
 #: .\apps\utils\exceptions.py:50
 msgid "Invalid input."
 msgstr "数据格式错误"
+
+#: .\initial\init_projectinfo.py:29
+msgid "voice"
+msgstr "语音"
+
+#: .\initial\init_projectinfo.py:34
+msgid "message"
+msgstr "短信"
+
+#: .\initial\init_projectinfo.py:39
+msgid "interface"
+msgstr "界面"
+
+#: .\initial\init_projectinfo.py:44
+msgid "communication"
+msgstr "通讯"
+
+#: .\initial\init_projectinfo.py:49
+msgid "alert"
+msgstr "告警"
+
+#: .\initial\init_projectinfo.py:54
+msgid "report"
+msgstr "报表"
+
+#: .\initial\init_projectinfo.py:59
+msgid "others"
+msgstr "其他"
 
 #: .\smartlamp\settings.py:197
 msgid "English"

@@ -45,6 +45,8 @@ class WorkOrderDetailSerializer(serializers.ModelSerializer):
                                              format='%Y-%m-%d %H:%M:%S')
     updated_time = serializers.DateTimeField(read_only=True,
                                              format='%Y-%m-%d %H:%M:%S')
+    finished_time = serializers.DateTimeField(read_only=True,
+                                              format='%Y-%m-%d %H:%M:%S')
 
     audio = serializers.SerializerMethodField()
     workorder_image = serializers.SerializerMethodField()

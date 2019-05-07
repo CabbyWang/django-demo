@@ -13,7 +13,7 @@ class LampCtrlAdmin(object):
     list_display = [
         "sn", "hub", "sequence", "status", "switch_status", "lamp_type",
         "is_repeated", "rf_band", "rf_addr", "address", "new_address",
-        "longitude", "latitude", "on_map", "memo", "failure_date",
+        "longitude", "latitude", "on_map", "memo",
         "registered_time", "is_deleted", "created_time", "updated_time",
         "deleted_time"
     ]
@@ -25,7 +25,7 @@ class LampCtrlAdmin(object):
     search_fields = [
         "sn", "hub", "sequence", "status", "switch_status", "lamp_type",
         "is_repeated", "rf_band", "rf_addr", "address", "new_address",
-        "longitude", "latitude", "on_map", "memo", "failure_date",
+        "longitude", "latitude", "on_map", "memo",
         "registered_time", "is_deleted", "created_time", "updated_time",
         "deleted_time"
     ]

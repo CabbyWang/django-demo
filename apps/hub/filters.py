@@ -13,7 +13,7 @@ class HubFilter(filters.FilterSet):
     Filter of hubs.
     """
 
-    hub_sn = filters.CharFilter(field_name='sn', method='filter_hub_sn')
+    sn = filters.CharFilter(field_name='sn', method='filter_sn')
     rf_band = filters.NumberFilter(field_name='rf_band', lookup_expr='icontains')
     rf_addr = filters.NumberFilter(field_name='rf_addr', lookup_expr='icontains')
     status = filters.NumberFilter(field_name='status')
@@ -25,12 +25,12 @@ class HubFilter(filters.FilterSet):
     class Meta:
         model = Hub
         fields = (
-            'hub_sn', 'rf_band', 'rf_addr', 'status', 'address',
+            'sn', 'rf_band', 'rf_addr', 'status', 'address',
             'start_time', 'end_time', 'unit'
         )
 
     @staticmethod
-    def filter_hub_sn(queryset, name, value):
+    def filter_sn(queryset, name, value):
         """支持筛选多个集控编号
         2018,2019
         """

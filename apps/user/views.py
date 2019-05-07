@@ -205,7 +205,7 @@ class UserViewSet(ListModelMixin,
         return UserSerializer
 
     def get_object(self):
-        if self.action == 'change_profile':
+        if self.action in ('change_profile', 'change_password'):
             return self.request.user
         return super(UserViewSet, self).get_object()
 
@@ -300,19 +300,6 @@ class UserViewSet(ListModelMixin,
         """
         return super(UserViewSet, self).update(request, *args, **kwargs)
 
-    @action(methods=['PUT'], detail=False, url_path='profile')
-    def change_profile(self, request, *args, **kwargs):
-        """
-        修改个人信息(IsOwn)
-        PUT /users/profile/
-        {
-            "mobile": "",
-            "email" "",
-            "organization": ""
-        }
-        """
-        return super(UserViewSet, self).update(request, *args, **kwargs)
-
     @action(methods=['PUT'], detail=True, url_path='group')
     def update_group(self, request, *args, **kwargs):
         """修改用户所属用户组
@@ -327,10 +314,23 @@ class UserViewSet(ListModelMixin,
         serializer.save()
         return Response(serializer.data)
 
-    @action(methods=['PUT'], detail=True, url_path='password')
+    @action(methods=['PUT'], detail=False, url_path='profile')
+    def change_profile(self, request, *args, **kwargs):
+        """
+        修改个人信息(IsOwn)
+        PUT /users/profile/
+        {
+            "mobile": "",
+            "email" "",
+            "organization": ""
+        }
+        """
+        return super(UserViewSet, self).update(request, *args, **kwargs)
+
+    @action(methods=['PUT'], detail=False, url_path='password')
     def change_password(self, request, *args, **kwargs):
         """修改用户密码
-        PUT /users/{id}/password/
+        PUT /users/password/
         {
             "old_password": "",
             "new_password": ""

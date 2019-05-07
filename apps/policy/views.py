@@ -1,14 +1,23 @@
-from rest_framework.viewsets import ModelViewSet
+from django.utils.translation import ugettext_lazy as _
+
+from rest_framework import mixins, viewsets
 from rest_framework.authentication import SessionAuthentication
 from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 
-from .models import Policy, PolicySet, PolicySetSendDown, PolicySetRelation
+from .models import Policy, PolicySet
 from .serializers import (
     PolicySerializer, PolicySetSerializer
 )
+from utils.mixins import ListModelMixin
+from utils.exceptions import InvalidInputError
 
 
-class PolicyViewSet(ModelViewSet):
+class PolicyViewSet(ListModelMixin,
+                    mixins.CreateModelMixin,
+                    mixins.RetrieveModelMixin,
+                    mixins.UpdateModelMixin,
+                    mixins.DestroyModelMixin,
+                    viewsets.GenericViewSet):
 
     """
     策略
@@ -24,12 +33,22 @@ class PolicyViewSet(ModelViewSet):
         修改策略
     """
 
-    queryset = Policy.objects.all()
+    queryset = Policy.objects.filter_by()
     serializer_class = PolicySerializer
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
 
+    def perform_destroy(self, instance):
+        if instance.policy_relations.exists:
+            raise InvalidInputError('the policy is using, can not be deleted')
+        instance.soft_delete()
 
-class PolicySetViewSet(ModelViewSet):
+
+class PolicySetViewSet(ListModelMixin,
+                       mixins.CreateModelMixin,
+                       mixins.RetrieveModelMixin,
+                       mixins.UpdateModelMixin,
+                       mixins.DestroyModelMixin,
+                       viewsets.GenericViewSet):
 
     """
     策略
@@ -43,11 +62,15 @@ class PolicySetViewSet(ModelViewSet):
         删除策略集
     update:
         修改策略集
-        下发策略集
-        采集策略方案
-        回收策略方案（自定义方案）
     """
 
-    queryset = PolicySet.objects.all()
+    queryset = PolicySet.objects.filter_by()
     serializer_class = PolicySetSerializer
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
+
+    def perform_destroy(self, instance):
+        if instance.policyset_send_down_policysets.exists():
+            msg = _('the policyset is using, can not be deleted')
+            raise InvalidInputError(msg)
+        instance.policyset_relations.update(is_deleted=True)
+        instance.soft_delete()

@@ -42,6 +42,8 @@ class ProjectInfoViewSet(ListModelMixin,
 
     @action(detail=False, methods=['GET'], url_path='version')
     def get_version(self, request, *args, **kwargs):
+        project = ProjectInfo.objects.first()
+        name = project.name if project else ""
         if platform.system() == 'Linux':
             process = subprocess.Popen('rpm -q smartlamp_core', shell=True,
                                        stdout=subprocess.PIPE)
@@ -50,5 +52,7 @@ class ProjectInfoViewSet(ListModelMixin,
                 match_str = re.match('smartlamp_core-(.*?)debug.noarch', ret)
                 version = match_str.group(1)
             return Response(status=status.HTTP_200_OK,
-                            data={'version': version})
-        return Response(status=status.HTTP_200_OK, data={'version': '5.0'})
+                            data={'version': version,
+                                  'name': name})
+        return Response(status=status.HTTP_200_OK, data={'version': '5.0',
+                                                         'name': name})

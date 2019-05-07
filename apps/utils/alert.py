@@ -45,10 +45,9 @@ def record_alarm(event, object_type, alert_source, object, level, status):
         LampCtrl.objects.filter_by(sn=object).update(status=status)
 
     # 告警不存在， 新增告警 / 告警存在， 更新时间
-    alert, is_created = Alert.object.update_or_create(
+    alert, is_created = Alert.objects.filter_by().update_or_create(
         event=event, object_type=object_type, alert_source=alert_source,
-        object=object, level=level,
-        defaults=dict(status=status)
+        object=object, level=level
     )
 
     if is_created:

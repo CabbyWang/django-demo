@@ -182,13 +182,6 @@ class UpdateGroupSerializer(serializers.ModelSerializer):
         fields = ("user_group", )
 
 
-class ChangeProfileSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = User
-        fields = "__all__"
-
-
 class MyBaseSerializer(serializers.ModelSerializer):
     """
     单独设置权限序列化类(基类)
@@ -218,7 +211,7 @@ class ChangePswSerializer(MyBaseSerializer):
         request = self.context['request']
         user = request.user
         if not user.check_password(password):
-            raise InvalidInputError("原密码错误")
+            raise InvalidInputError("旧密码错误")
         return password
 
     def validate_new_password(self, password):

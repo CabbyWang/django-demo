@@ -4,6 +4,7 @@ from django.db import models
 
 from hub.models import Hub
 from base.models import BaseModel
+from lamp.models import LampCtrlGroup
 
 
 class ListField(models.TextField):
@@ -36,7 +37,6 @@ class Policy(BaseModel):
     item = ListField(default=[])
     memo = models.CharField(max_length=255, null=True, blank=True, verbose_name='备注')
     creator = models.CharField(max_length=16, blank=True, null=True)
-    type = models.IntegerField(choices=enumerate(POLICY_TYPE), verbose_name='策略类型')
 
     class Meta:
         verbose_name = "策略"
@@ -57,6 +57,9 @@ class PolicySet(BaseModel):
     memo = models.CharField(max_length=255, null=True, blank=True)
     creator = models.CharField(max_length=16, blank=True, null=True)
 
+    def get_policys(self, obj):
+        return obj.policyset_relations.filter(is_deleted=False)
+
     class Meta:
         verbose_name = '策略集'
         verbose_name_plural = verbose_name
@@ -72,7 +75,9 @@ class PolicySetRelation(BaseModel):
     策略集映射
     """
     policy = models.ForeignKey(Policy, related_name='policy_relations')
-    policyset = models.ForeignKey(PolicySet, related_name='policyset_relations')
+    policyset = models.ForeignKey(
+        PolicySet, related_name='policyset_relations'
+    )
     execute_date = models.DateField()
 
     class Meta:
@@ -86,9 +91,12 @@ class PolicySetSendDown(BaseModel):
     """
     策略下发
     """
-    policyset = models.ForeignKey(PolicySet, related_name='policyset_send_down_policysets')
+    policyset = models.ForeignKey(
+        PolicySet,
+        related_name='policyset_send_down_policysets'
+    )
     hub = models.ForeignKey(Hub, related_name='hub_send_down_policysets')
-    group_id = models.CharField(max_length=16)
+    group_num = models.IntegerField(help_text='分组编号')
 
     class Meta:
         verbose_name = '策略集下发'

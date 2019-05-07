@@ -3,6 +3,9 @@
 """
 Create by 王思勇 on 2019/2/12
 """
+from collections import defaultdict
+
+from django.utils.translation import ugettext_lazy as _
 
 from rest_framework import serializers
 
@@ -21,7 +24,7 @@ class UnitSerializer(serializers.ModelSerializer):
 class HubDetailSerializer(serializers.ModelSerializer):
 
     unit = UnitSerializer()
-    lamps_num = serializers.SerializerMethodField()
+    lampctrls_num = serializers.SerializerMethodField()
 
     created_time = serializers.DateTimeField(read_only=True,
                                              format='%Y-%m-%d %H:%M:%S')
@@ -29,7 +32,7 @@ class HubDetailSerializer(serializers.ModelSerializer):
                                              format='%Y-%m-%d %H:%M:%S')
 
     @staticmethod
-    def get_lamps_num(obj):
+    def get_lampctrls_num(obj):
         return obj.hub_lampctrl.count()
 
     class Meta:
@@ -69,19 +72,26 @@ class LoadInventorySerializer(serializers.Serializer):
 
 class ControlAllSerializer(serializers.Serializer):
 
+    hub = serializers.ListField(
+        child=serializers.PrimaryKeyRelatedField(
+            queryset=Hub.objects.filter_by()
+        )
+    )
     action = serializers.ChoiceField(choices=['open', 'close'])
 
-    def validate_action(self, action):
+    @staticmethod
+    def validate_action(action):
         if action == 'open':
             return '255,255'
         return '0,0'
 
 
 class PatternGroupSerializer(serializers.Serializer):
+    """下发(模式)分组"""
 
-    group = serializers.IntegerField(required=True, max_value=99, min_value=1)
+    group_num = serializers.IntegerField(required=True, max_value=99, min_value=1)
     memo = serializers.CharField(required=False, allow_blank=True)
-    group_rest = serializers.IntegerField(required=True, max_value=99, min_value=1)
+    group_num_rest = serializers.IntegerField(required=True, max_value=99, min_value=1)
     memo_rest = serializers.CharField(required=False, allow_blank=True)
     segmentation = serializers.IntegerField(required=True, max_value=6, min_value=1)
     select = serializers.IntegerField(required=True, max_value=5, min_value=1)
@@ -93,37 +103,40 @@ class PatternGroupSerializer(serializers.Serializer):
         if LampCtrlGroup.objects.filter_by(hub=hub, is_default=False).exists():
             raise InvalidInputError('custom group has been existed')
         # 两个分组id不能相同
-        if attrs["group"] == attrs["group_rest"]:
+        if attrs["group_num"] == attrs["group_num_rest"]:
             raise InvalidInputError('two group id must be different')
         # 分组id不能与默认分组的id相同
         hub_sn = self.context['view'].kwargs.get('pk')
         hub = Hub.objects.get_or_404(sn=hub_sn)
         default_groups = hub.hub_group.filter_by(is_default=True).values_list(
             'group_num', flat=True)
-        if attrs['group'] in default_groups or attrs['group_rest'] in default_groups:
+        if attrs['group_num'] in default_groups or attrs['group_num_rest'] in default_groups:
             raise InvalidInputError(
-                'group id must be different with default groups')
+                'group number must be different with default groups')
         return attrs
 
 
 class CustomGroupingSerializer(serializers.Serializer):
+    """下发(自定义)分组"""
 
     configs = serializers.ListField(required=True)
 
     def validate_configs(self, configs):
         """
-        "configs": [
-            {
-                "lampctrl": ["001", "002"],
-                "group": 1,
-                "memo": ""
-            },
-            {
-                "lampctrl": ["003", "004"],
-                "group": 2,
-                "memo": ""
-            }
-        ]
+        {
+            "configs": [
+                {
+                    "lampctrl": ["001", "002"],
+                    "group_num": 1,
+                    "memo": ""
+                },
+                {
+                    "lampctrl": ["003", "004"],
+                    "group_num": 2,
+                    "memo": ""
+                }
+            ]
+        }
         """
         hub_sn = self.context['view'].kwargs.get('pk')
         hub = Hub.objects.get_or_404(sn=hub_sn)
@@ -131,10 +144,10 @@ class CustomGroupingSerializer(serializers.Serializer):
         if LampCtrlGroup.objects.filter_by(hub=hub, is_default=False).exists():
             raise InvalidInputError('custom group has been existed')
         for item in configs:
-            # 数据项中必须包含"lampctrl", "group", "memo"字段
-            if any(i not in item for i in ("lampctrl", "group", "memo")):
+            # 数据项中必须包含"lampctrl", "group_num", "memo"字段
+            if any(i not in item for i in ("lampctrl", "group_num", "memo")):
                 raise InvalidInputError(
-                    'you should include "lampctrl", "group", "memo" in the list items'
+                    'you should include "lampctrl", "group_num", "memo" in the list items'
                 )
             lampctrl_sns = item.get('lampctrl')
             for lampctrl_sn in lampctrl_sns:
@@ -143,3 +156,97 @@ class CustomGroupingSerializer(serializers.Serializer):
                     raise InvalidInputError(
                         'lamp control [{}] not existed'.format(lampctrl_sn))
         return configs
+
+
+class UpdateGroupSerializer(serializers.Serializer):
+    """修改分组"""
+
+    lampctrl = serializers.ListField(
+        required=True,
+        child=serializers.PrimaryKeyRelatedField(
+            queryset=LampCtrl.objects.filter_by()
+        )
+    )
+    group_num = serializers.IntegerField(required=True)
+
+
+class GatherGroupSerializer(serializers.Serializer):
+
+    # hub = serializers.ListField(
+    #     child=serializers.PrimaryKeyRelatedField(
+    #         queryset=Hub.objects.filter_by()
+    #     )
+    # )
+    hub = serializers.ListField(required=True, min_length=1)
+
+    @staticmethod
+    def validate_hub(data):
+        for hub_sn in data:
+            if not Hub.objects.filter_by(sn=hub_sn).exists():
+                raise InvalidInputError("hub [{}] is not existed".format(hub_sn))
+        return data
+
+
+class SendDownPolicySetSerializer(serializers.Serializer):
+    """下发策略方案表单验证"""
+
+    policys = serializers.ListField(required=True, min_length=1)
+
+    # TODO 嵌套验证 自定义Field？
+    def validate_policys(self, data):
+        """
+        :param data:
+        {
+            "policys": [
+                {
+                    "hub": "hub_sn1"
+                    "group_num": null,
+                    "policyset_id": "1"
+                },
+                {
+                    "hub": "hub_sn2"
+                    "group_num": "1",
+                    "policyset_id": "1"
+                },
+                {
+                    "hub": "hub_sn2"
+                    "group_num": "2",
+                    "policyset_id": "1"
+                }
+            ]
+        }
+        :return
+        {
+            "hub_sn1": [
+                {
+                    "hub": "hub_sn1"
+                    "group_num": null,
+                    "policyset_id": "1"
+                }
+            ],
+            "hub_sn2": [
+                {
+                    "hub": "hub_sn2"
+                    "group_num": "1",
+                    "policyset_id": "1"
+                },
+                {
+                    "hub": "hub_sn2"
+                    "group_num": "2",
+                    "policyset_id": "1"
+                }
+            ]
+        }
+        """
+        ret_data = defaultdict(list)
+        for item in data:
+            if any(i not in item for i in ("hub", "group_num", "policyset_id")):
+                msg = _('"hub","group_num" and "policyset_id" are required')
+                raise InvalidInputError(msg)
+            ret_data[item.get('hub')].append(item)
+        return ret_data
+
+
+class RecyclePolicySetSeriailzer(GatherGroupSerializer):
+
+    pass

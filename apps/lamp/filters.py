@@ -8,7 +8,7 @@ import datetime
 from django_filters import rest_framework as filters
 
 from hub.models import Hub
-from .models import LampCtrl, LampCtrlStatus
+from .models import LampCtrl, LampCtrlStatus, LampCtrlGroup
 
 
 class LampCtrlFilter(filters.FilterSet):
@@ -20,7 +20,7 @@ class LampCtrlFilter(filters.FilterSet):
                             method='filter_sn')
     sequence = filters.CharFilter(field_name='sequence',
                                   lookup_expr='icontains')
-    hub_sn = filters.CharFilter(field_name='hub', method='filter_hub_sn')
+    hub = filters.CharFilter(field_name='hub', method='filter_hub')
     rf_band = filters.CharFilter(field_name='rf_band', lookup_expr='icontains')
     rf_addr = filters.CharFilter(field_name='rf_addr', lookup_expr='icontains')
     address = filters.CharFilter(field_name='address', lookup_expr='icontains')
@@ -42,7 +42,7 @@ class LampCtrlFilter(filters.FilterSet):
         return queryset.filter(sn__in=sns)
 
     @staticmethod
-    def filter_hub_sn(queryset, name, value):
+    def filter_hub(queryset, name, value):
         hub_sns = value.split(',')
         hubs = Hub.objects.filter_by(sn__in=hub_sns)
         return queryset.filter(hub__in=hubs)
@@ -82,10 +82,30 @@ class LampCtrlFilter(filters.FilterSet):
     class Meta:
         model = LampCtrl
         fields = (
-            'sn', 'sequence', 'hub_sn', 'lamp_type', 'rf_band', 'rf_addr',
+            'sn', 'sequence', 'hub', 'lamp_type', 'rf_band', 'rf_addr',
             'address', 'lamp_type', 'lamp_status', 'status', 'switch_status',
             'start_time', 'end_time'
         )
+
+
+class LampCtrlGroupFilter(filters.FilterSet):
+    """
+    Filter of LampCtrlGroup
+    """
+    hub = filters.CharFilter(field_name='hub')
+    is_default = filters.BooleanFilter(field_name='is_default')
+    group_num = filters.NumberFilter(field_name='group_num',
+                                     method='filter_group_num')
+
+    def filter_group_num(self, queryset, name, value):
+        if value == 0:
+            # 0分组  返回未分组所有灯控
+            pass
+        return queryset
+
+    class Meta:
+        model = LampCtrlGroup
+        fields = ('hub', 'is_default', 'group_num')
 
 
 class LampCtrlStatusFilter(filters.FilterSet):

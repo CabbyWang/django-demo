@@ -25,14 +25,14 @@ class SettingSerializer(serializers.ModelSerializer):
 
 class SettingTypeSerializer(serializers.ModelSerializer):
     # settings = SettingSerializer(many=True)
-    setting = serializers.SerializerMethodField()
+    settings = serializers.SerializerMethodField()
 
     created_time = serializers.DateTimeField(read_only=True,
                                              format='%Y-%m-%d %H:%M:%S')
     updated_time = serializers.DateTimeField(read_only=True,
                                              format='%Y-%m-%d %H:%M:%S')
 
-    def get_setting(self, instance):
+    def get_settings(self, instance):
         queryset = instance.settings.filter_by()
         return SettingSerializer(
             queryset, many=True, context={'request': self.context['request']}
@@ -62,7 +62,7 @@ class SettingUpdateSerializer(serializers.ModelSerializer):
                 value = float(value)
                 if value <= 0:
                     raise InvalidInputError(
-                        "the '{}' field must be a number greater than 0".format(
+                        "'{}' field must be a number greater than 0".format(
                             setting.name))
             except ValueError:
                 raise InvalidInputError(

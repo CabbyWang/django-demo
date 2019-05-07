@@ -44,6 +44,7 @@ class AlertFilter(filters.FilterSet):
 
     id = filters.NumberFilter(field_name='id', lookup_expr='icontains')
     alert_source = filters.CharFilter(field_name='alert_source')
+    object = filters.CharFilter(field_name='object', lookup_expr='icontains')
     level = filters.NumberFilter(field_name='level')
     start_time = filters.DateFilter(field_name='created_time',
                                     lookup_expr='gte')
@@ -58,5 +59,5 @@ class AlertFilter(filters.FilterSet):
 
     class Meta:
         model = Alert
-        fields = ('id', 'alert_source', 'level',
+        fields = ('id', 'alert_source', 'level', 'object',
                   'start_time', 'end_time', 'is_solved')

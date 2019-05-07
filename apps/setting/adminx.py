@@ -11,13 +11,13 @@ from setting.models import SettingType, Setting
 class SettingTypeAdmin(object):
 
     list_display = [
-        "name",
+        "option", "name"
     ]
     list_filter = [
-        "name",
+        "option", "name"
     ]
     search_fields = [
-        "name",
+        "option", "name"
     ]
 
 

@@ -21,14 +21,17 @@ from hub.permissions import IsOwnHubOrSuperUser
 from hub.serializers import (
     HubPartialUpdateSerializer, HubDetailSerializer, UnitSerializer,
     LoadInventorySerializer, ControlAllSerializer, PatternGroupSerializer,
-    CustomGroupingSerializer)
+    CustomGroupingSerializer, UpdateGroupSerializer, GatherGroupSerializer,
+    SendDownPolicySetSerializer, RecyclePolicySetSeriailzer)
 from lamp.models import LampCtrl, LampCtrlGroup
+from policy.models import PolicySetSendDown, PolicySet, Policy
 from utils.alert import record_alarm
 from utils.msg_socket import MessageSocket
 from utils.paginator import CustomPagination
 from utils.mixins import ListModelMixin
 from utils.permissions import IsAdminUser
-from utils.exceptions import DeleteOnlineHubError, ConnectHubTimeOut, HubError
+from utils.exceptions import DeleteOnlineHubError, ConnectHubTimeOut, HubError, \
+    InvalidInputError
 
 
 class UnitViewSet(ListModelMixin,
@@ -37,7 +40,7 @@ class UnitViewSet(ListModelMixin,
     list:
         获取所有管理单元
     """
-    queryset = Unit.objects.all()
+    queryset = Unit.objects.filter_by()
     serializer_class = UnitSerializer
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
 
@@ -58,23 +61,40 @@ class HubViewSet(ListModelMixin,
         修改集控信息
     partial_update:
         集控重定位
+    get_putin_rate:
+        集控投运率
     layout:
         对集控下的指定路灯进行划线排布(单边分布/奇偶分布)
     drop_layout:
         取消集控下路灯的布放
     get_layout_lamps:
         获取路灯布放的情况
+    get_custom_groups:
+        获取集控下的自定义分组
+    get_default_groups:
+        获取集控下的默认分组
     load_inventory:
         采集集控配置
     gather_hub_status:
         采集集控状态
-    gather_lamp_ctrl_status:
-        采集灯控状态
+    gather_group:
+        分组采集
+    pattern_grouping:
+        下发分组(按模式分组)
+    custom_grouping:
+        下发分组(自定义分组)
+    recycle_group:
+        回收集控下的所有分组
+    send_down_policyset:
+        下发策略集
+    gather_policyset:
+        策略集采集
+    recycle_policyset:
+        回收策略集
     control_all:
         全开全关（控制集控下所有灯控）
     download_hub_log:
         下载集控日志
-        分组
     """
     pagination_class = CustomPagination
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
@@ -101,6 +121,14 @@ class HubViewSet(ListModelMixin,
             return PatternGroupSerializer
         if self.action == 'custom_grouping':
             return CustomGroupingSerializer
+        if self.action == 'update_group':
+            return UpdateGroupSerializer
+        if self.action == 'gather_policyset':
+            return GatherGroupSerializer
+        if self.action == 'send_down_policyset':
+            return SendDownPolicySetSerializer
+        if self.action == 'recycle_policyset':
+            return RecyclePolicySetSeriailzer
         return HubDetailSerializer
 
     def get_permissions(self):
@@ -113,6 +141,37 @@ class HubViewSet(ListModelMixin,
         if self.action == 'destroy' and obj.status != 3:
             raise DeleteOnlineHubError
         return obj
+
+    @action(methods=['GET'], detail=False, url_path='putin-rate')
+    def get_putin_rate(self, request, *args, **kwargs):
+        """集控投运率（集控 正常/故障/脱网 占比）
+        GET /hubs/putin-rate/
+        :return:
+        {
+            "name": "集控投运率",
+            "total": 2455,
+            "normal": 5,
+            "trouble": 11,
+            "offline": 2439,
+            "putin_rate": 95 %
+        }
+        """
+        # TODO 使用serializer
+        # TODO 是否需要根据集控权限不同来显示不同的投运率
+        total = Hub.objects.filter_by().count()
+        normal = Hub.objects.filter_by(status=1).count()
+        trouble = Hub.objects.filter_by(status=2).count()
+        offline = Hub.objects.filter_by(status=3).count()
+        putin_rate = '{:.0%}'.format(
+            float(normal) / float(total) if total else 0)
+        return Response(dict(
+            name="集控投运率",
+            total=total,
+            normal=normal,
+            trouble=trouble,
+            offline=offline,
+            putin_rate=putin_rate
+        ))
 
     @action(methods=['POST'], detail=True, url_path='layout')
     def layout(self, request, *args, **kwargs):
@@ -206,6 +265,56 @@ class HubViewSet(ListModelMixin,
         }
         return Response(data=result)
 
+    @action(methods=['GET'], detail=True, url_path='custom-groups')
+    def get_custom_groups(self, request, *args, **kwargs):
+        """获取集控下的自定义分组
+        GET /hubs/{sn}/custom-groups/
+        """
+        hub = self.get_object()
+        ret_data = []
+        group_nums = set(hub.hub_group.filter_by(is_default=False).values_list('group_num', flat=True))
+        for group_num in group_nums:
+            ins = PolicySetSendDown.objects.filter_by(hub=hub, group_num=group_num).first()
+            working_policyset = ins.policyset.name if ins else '默认策略'
+            group = LampCtrlGroup.objects.filter_by(hub=hub,
+                                                    group_num=group_num).first()
+            ret_data.append(dict(
+                group_num=group_num,
+                # hub=hub.sn,
+                is_default=False,
+                working_policyset=working_policyset,
+                memo=group and group.memo or ''
+            ))
+        # 未分组的灯控 返回时归到0分组
+        lamp_in_group = hub.hub_group.values_list('lampctrl', flat=True)
+        if LampCtrl.objects.filter_by(hub=hub).exclude(sn__in=lamp_in_group):
+            pass
+        return Response(data=ret_data)
+
+    @action(methods=['GET'], detail=True, url_path='default-groups')
+    def get_default_groups(self, request, *args, **kwargs):
+        """获取集控下的默认分组
+        GET /hubs/{sn}/default-groups/
+        """
+        hub = self.get_object()
+        ret_data = []
+        group_nums = set(
+            hub.hub_group.filter_by(is_default=True).values_list('group_num',
+                                                                 flat=True))
+        for group_num in group_nums:
+            ins = PolicySetSendDown.objects.filter_by(hub=hub,
+                                                      group_num=group_num).first()
+            working_policyset = ins.policyset.name if ins else '默认策略'
+            group = LampCtrlGroup.objects.filter_by(hub=hub, group_num=group_num).first()
+            ret_data.append(dict(
+                group_num=group_num,
+                hub=hub.sn,
+                is_default=True,
+                working_policyset=working_policyset,
+                memo=group and group.memo or ''
+            ))
+        return Response(data=ret_data)
+
     @action(methods=['POST'], detail=False, url_path='load-inventory')
     def load_inventory(self, request, *args, **kwargs):
         """采集集控配置, 同步数据库(支持采集多个集控)
@@ -268,7 +377,7 @@ class HubViewSet(ListModelMixin,
 
         return Response(data={'detail': '采集配置成功'})
 
-    @action(methods=['POST'], detail=True, url_path='get-hub-status')
+    @action(methods=['POST'], detail=True, url_path='get-status')
     def gather_hub_status(self, request, *args, **kwargs):
         """
         采集集控的状态(开关、电压电流功率等)，直接返回给前端，不入库
@@ -297,52 +406,57 @@ class HubViewSet(ListModelMixin,
             if code != 0:
                 raise HubError
             hub_status = recv.get('status')
-            return Response(data=hub_status)
+        return Response(data=hub_status)
 
-    @action(methods=['POST'], detail=True, url_path='control-all')
+    @action(methods=['POST'], detail=False, url_path='control-all')
     def control_all(self, request, *args, **kwargs):
         """
         全开全关（控制集控下所有灯控）
-        POST /hubs/{sn}/control-all/
+        POST /hubs/control-all/
         {
+            "hub": ["1001", "1002", "1003"]
             "action": "open" # open/close 全开/全关
         }
         """
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        action = serializer.data['action']
-        hub = self.get_object()
-        sender = 'cmd-{}'.format(uuid.uuid1())
-        with MessageSocket(*settings.NS_ADDR, sender=sender) as msg_socket:
-            body = {
-                "action": "lighten",
-                "type": "cmd",
-                "detail": {
-                    "hub_sn": hub.sn,
-                    "lamp_sn": [],
-                    "action": action,
-                    "all": True
+        hub_sns = serializer.data['hub']
+        act = serializer.data['action']
+
+        for hub_sn in hub_sns:
+            hub = Hub.objects.get_or_404(sn=hub_sn)
+            sender = 'cmd-{}'.format(uuid.uuid1())
+            with MessageSocket(*settings.NS_ADDR, sender=sender) as msg_socket:
+                body = {
+                    "action": "lighten",
+                    "type": "cmd",
+                    "detail": {
+                        "hub_sn": hub_sn,
+                        "lamp_sn": [],
+                        "action": act,
+                        "all": True
+                    }
                 }
-            }
-            msg_socket.send_single_message(receiver=hub.sn, body=body,
-                                           sender=sender)
-            recv = msg_socket.receive_data()
-            code = recv.get('code')
-            if code == 101:
-                # 集控脱网, 告警
-                record_alarm(
-                    event="集控脱网", object_type='hub', alert_source=hub.sn,
-                    object=hub.sn, level=3, status=3
-                )
-                raise ConnectHubTimeOut('connect hub [{}] time out'.format(hub.sn))
-            if code != 0:
-                raise HubError("hub [{}] unknown error".format(hub.sn))
-            if code == 0:
-                # 控灯成功 更新灯具状态
-                LampCtrl.objects.filter(hub=hub).update(switch_status=1)
+                msg_socket.send_single_message(receiver=hub_sn, body=body,
+                                               sender=sender)
+                recv = msg_socket.receive_data()
+                code = recv.get('code')
+                if code == 101:
+                    # 集控脱网, 告警
+                    record_alarm(
+                        event="集控脱网", object_type='hub', alert_source=hub_sn,
+                        object=hub_sn, level=3, status=3
+                    )
+                    raise ConnectHubTimeOut(
+                        'connect hub [{}] time out'.format(hub_sn))
+                if code != 0:
+                    raise HubError("hub [{}] unknown error".format(hub_sn))
+                if code == 0:
+                    # 控灯成功 更新灯具状态
+                    LampCtrl.objects.filter(hub=hub).update(switch_status=1)
         return Response(data={'detail': 'control lamps success'})
 
-    @action(method=['POST'], detail=True, url_path='download-log')
+    @action(methods=['POST'], detail=True, url_path='download-log')
     def download_hub_log(self, request, *args, **kwargs):
         """
         下载集控日志
@@ -384,18 +498,20 @@ class HubViewSet(ListModelMixin,
         """
         下发分组(自定义分组)
         POST /hubs/{sn}/custom-grouping/
-        "configs": [
-            {
-                "lampctrl": ["001", "002"],
-                "group": 1,
-                "memo": ""
-            },
-            {
-                "lampctrl": ["003", "004"],
-                "group": 2,
-                "memo": ""
-            }
-        ]
+        "{
+            configs": [
+                {
+                    "lampctrl": ["001", "002"],
+                    "group_num": 1,
+                    "memo": ""
+                },
+                {
+                    "lampctrl": ["003", "004"],
+                    "group": 2,
+                    "memo": ""
+                }
+            ]
+        }
         """
         hub = self.get_object()
         serializer = self.get_serializer(data=request.data)
@@ -440,9 +556,9 @@ class HubViewSet(ListModelMixin,
         下发分组(按模式分组)
         POST /hubs/{sn}/pattern-grouping/
         {
-            "group": 1,
+            "group_num": 1,
             "memo": "",
-            "group_rest": 2,
+            "group_num_rest": 2,
             "memo_rest": "",
             "segmentation": 1,
             "select": 1
@@ -488,73 +604,6 @@ class HubViewSet(ListModelMixin,
             raise
         return Response(data={'detail': 'group configuration success'})
 
-    @staticmethod
-    def before_pattern_grouping(instance, serializer_data):
-        """下发(模式)分组之前 数据库操作"""
-        hub = instance
-        group_num = serializer_data.data['group']
-        memo = serializer_data.data['memo']
-        group_num_rest = serializer_data.data['group_rest']
-        memo_rest = serializer_data.data['memo_rest']
-        seg = serializer_data.data['segmentation']
-        sel = serializer_data.data['select']
-        group_config = {group_num: [], group_num_rest: []}
-        # # 删除已存在分组
-        # hub.hub_group.filter_by().soft_delete()
-        # 创建分组
-        lampctrls = hub.hub_lampctrl.filter_by().order_by('sequence')
-        for i, lampctrl in enumerate(lampctrls):
-            if i % (seg + sel) in range(seg):
-                # 未被选的lampctrl
-                LampCtrlGroup.objects.create(
-                    hub=hub,
-                    lampctrl=lampctrl,
-                    group_num=group_num_rest,
-                    memo=memo_rest
-                )
-                group_config[group_num_rest].append(lampctrl.sn)
-            else:
-                # 被选的lampctrl
-                LampCtrlGroup.objects.create(
-                    hub=hub,
-                    lampctrl=lampctrl,
-                    group_num=group_num,
-                    memo=memo
-                )
-                group_config[group_num].append(lampctrl.sn)
-        return group_config
-
-    @staticmethod
-    def before_custom_grouping(instance, serializer_data):
-        """下发(自定义)分组之前 数据库操作"""
-        hub = instance
-        configs = serializer_data.data['configs']
-        group_config = defaultdict()
-        # # 删除已存在分组
-        # hub.hub_group.filter_by().soft_delete()
-        # 创建分组
-        for config in configs:
-            lampctrl_sn = config['lampctrl']
-            group_num = config['group']
-            memo = config['memo']
-            # 创建分组
-            lampctrl = LampCtrl.objects.get_or_404(sn=lampctrl_sn)
-            LampCtrlGroup.objects.create(
-                hub=hub,
-                lampctrl=lampctrl,
-                group_num=group_num,
-                memo=memo
-            )
-            group_config[group_num].append(lampctrl_sn)
-        return group_config
-
-    @staticmethod
-    def before_recycle_group(instance):
-        """回收集控下的所有分组之前 数据库操作"""
-        hub = instance
-        # 删除所有自定义分组
-        hub.hub_group.filter_by(is_defalut=False).soft_delete()
-
     @action(methods=['POST'], detail=True, url_path='recycle-group')
     def recycle_group(self, request, *args, **kwargs):
         """
@@ -592,50 +641,276 @@ class HubViewSet(ListModelMixin,
             raise
         return Response(data={'detail': 'recycle group config success'})
 
+    @action(methods=['POST'], detail=False, url_path='gather-group')
+    def gather_group(self, request, *args, **kwargs):
+        """分组采集, 同步数据库(支持采集多个集控)
+        POST /hubs/gather-group/
+        {
+            "hub": [hub1, hub2, ...]
+        }
+        """
+        # TODO 采集分组
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        hubs = serializer.validated_data['hub']
+        for hub_sn in hubs:
+            hub = Hub.objects.get(sn=hub_sn)
+            sender = 'cmd-{}'.format(uuid.uuid1())
+            with MessageSocket(*settings.NS_ADDR,
+                               sender=sender) as msg_socket:
+                body = {
+                    "action": "gather_group_config",
+                    "type": "cmd"
+                }
+                msg_socket.send_single_message(receiver=hub_sn, body=body,
+                                               sender=sender)
+                recv = msg_socket.receive_data()
+                code = recv.get('code')
+                if code == 101:
+                    # 集控脱网, 告警
+                    record_alarm(
+                        event="集控脱网", object_type='hub',
+                        alert_source=hub_sn,
+                        object=hub_sn, level=3, status=3
+                    )
+                    raise ConnectHubTimeOut(
+                        'connect hub [{}] time out'.format(hub_sn))
+                if code != 0:
+                    raise HubError("hub [{}] unknown error".format(hub_sn))
+                default_group = recv.get('local_group_config')
+                custom_group = recv.get('slms_group_config')
+                try:
+                    with transaction.atomic():
+                        self.after_gather_group(instance=hub,
+                                                custom_group=custom_group,
+                                                default_group=default_group)
+                except Exception as ex:
+                    # TODO 除集控通讯外的其他异常处理
+                    raise
+        return Response(
+            data={'detail': 'gather group config success'})
+
     @action(methods=['POST'], detail=True, url_path='update-group')
     def update_group(self, request, *args, **kwargs):
         """
         修改分组配置(不能修改默认分组)
         POST /hubs/{sn}/update-group/
         {
-            "lampctrl": "001",
-            "group": "1"
+            "lampctrl": ["001"],
+            "group_num": 1
+        }
+        """
+        hub = self.get_object()
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        lampctrl_sns = serializer.data['lampctrl']
+        group_id = serializer.data['group_num']
+
+        try:
+            with transaction.atomic():
+                sender = 'cmd-{}'.format(uuid.uuid1())
+                with MessageSocket(*settings.NS_ADDR, sender=sender) as msg_socket:
+                    body = {
+                        "action": "lighten",
+                        "type": "cmd",
+                        "detail": {
+                            "hub_sn": hub.sn,
+                            "lamp_sn": [],
+                            "action": action,
+                            "all": True
+                        }
+                    }
+                    msg_socket.send_single_message(receiver=hub.sn, body=body,
+                                                   sender=sender)
+                    recv = msg_socket.receive_data()
+                    code = recv.get('code')
+                    if code == 101:
+                        # 集控脱网, 告警
+                        record_alarm(
+                            event="集控脱网", object_type='hub',
+                            alert_source=hub.sn, object=hub.sn,
+                            level=3, status=3
+                        )
+                        raise ConnectHubTimeOut(
+                            'connect hub [{}] time out'.format(hub.sn))
+                    if code != 0:
+                        raise HubError("hub [{}] unknown error".format(hub.sn))
+        except (ConnectHubTimeOut, HubError):
+            raise
+        except Exception as ex:
+            # TODO 除集控通讯外的其他异常处理
+            raise
+        return Response(data={'detail': 'update group config success'})
+
+    @action(methods=['POST'], detail=False, url_path='send-down-policyset')
+    def send_down_policyset(self, request, *args, **kwargs):
+        """下发策略集
+        POST /hubs/send-down-policyset/
+        {
+            "policys": [
+                {
+                    "hub": "hub_sn1"
+                    "group_num": null,
+                    "policyset_id": "1"
+                },
+                {
+                    "hub": "hub_sn2"
+                    "group_num": "1",
+                    "policyset_id": "1"
+                },
+                {
+                    "hub": "hub_sn2"
+                    "group_num": "2",
+                    "policyset_id": "1"
+                }
+            ]
         }
         """
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        action = serializer.data['action']
-        hub = self.get_object()
-        sender = 'cmd-{}'.format(uuid.uuid1())
-        with MessageSocket(*settings.NS_ADDR, sender=sender) as msg_socket:
-            body = {
-                "action": "lighten",
-                "type": "cmd",
-                "detail": {
-                    "hub_sn": hub.sn,
-                    "lamp_sn": [],
-                    "action": action,
-                    "all": True
+        policys = serializer.validated_data['policys']
+        for hub_sn, item in policys.items():
+            try:
+                with transaction.atomic():
+                    hub = Hub.objects.get(sn=hub_sn)
+                    policy_map, policy_items = self.before_send_down_policy_set(
+                        instance=hub, item=item
+                    )
+                    # 下发策略集
+                    sender = 'cmd-{}'.format(uuid.uuid1())
+                    with MessageSocket(*settings.NS_ADDR, sender=sender) as msg_socket:
+                        body = {
+                            "action": "send_down_policyset",
+                            "type": "cmd",
+                            "policy_map": policy_map,
+                            "policys": policy_items
+                        }
+                        msg_socket.send_single_message(receiver=hub.sn, body=body,
+                                                       sender=sender)
+                        recv = msg_socket.receive_data()
+                    code = recv.get('code')
+                    if code == 101:
+                        # 集控脱网, 告警
+                        record_alarm(
+                            event="集控脱网", object_type='hub',
+                            alert_source=hub.sn, object=hub.sn,
+                            level=3, status=3
+                        )
+                        raise ConnectHubTimeOut(
+                            'connect hub [{}] time out'.format(hub.sn))
+                    if code != 0:
+                        raise HubError("hub [{}] unknown error".format(hub.sn))
+            except (ConnectHubTimeOut, HubError):
+                raise
+            except Exception as ex:
+                # TODO 除集控通讯外的其他异常处理
+                raise
+        msg = _('send down policy scheme success')
+        return Response(data={'detail': msg})
+
+    @action(methods=['POST'], detail=False, url_path='gather-policyset')
+    def gather_policyset(self, request, *args, **kwargs):
+        """策略集采集, 同步数据库(支持采集多个集控)
+        POST /hubs/gather-policyset/
+        {
+            "hub": [hub1, hub2, ...]
+        }
+        """
+        # TODO 采集策略集
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        hub_sns = serializer.validated_data['hub']
+        for hub_sn in hub_sns:
+            hub = Hub.objects.get(sn=hub_sn)
+            sender = 'cmd-{}'.format(uuid.uuid1())
+            with MessageSocket(*settings.NS_ADDR,
+                               sender=sender) as msg_socket:
+                body = {
+                    "action": "gather_policyset",
+                    "type": "cmd"
                 }
-            }
-            msg_socket.send_single_message(receiver=hub.sn, body=body,
-                                           sender=sender)
-            recv = msg_socket.receive_data()
+                msg_socket.send_single_message(receiver=hub_sn, body=body,
+                                               sender=sender)
+                recv = msg_socket.receive_data()
             code = recv.get('code')
             if code == 101:
                 # 集控脱网, 告警
                 record_alarm(
-                    event="集控脱网", object_type='hub', alert_source=hub.sn,
-                    object=hub.sn, level=3, status=3
+                    event="集控脱网", object_type='hub',
+                    alert_source=hub_sn,
+                    object=hub_sn, level=3, status=3
                 )
                 raise ConnectHubTimeOut(
-                    'connect hub [{}] time out'.format(hub.sn))
+                    'connect hub [{}] time out'.format(hub_sn))
             if code != 0:
-                raise HubError("hub [{}] unknown error".format(hub.sn))
-            if code == 0:
-                # 控灯成功 更新灯具状态
-                LampCtrl.objects.filter(hub=hub).update(switch_status=1)
-        return Response(data={'detail': 'control lamps success'})
+                raise HubError("hub [{}] unknown error".format(hub_sn))
+            data = recv.get('data')
+            # 去掉不需要的字段
+            for i in ("action", "message", "code", "reason"):
+                data.pop(i, None)
+            try:
+                with transaction.atomic():
+                    self.after_gather_group(instance=hub,
+                                            policy_data=data)
+            except Exception as ex:
+                # TODO 除集控通讯外的其他异常处理
+                raise
+        msg = _('gather policy set success')
+        return Response(data={'detail': msg})
+
+    @action(methods=['POST'], detail=False, url_path='recycle-policyset')
+    def recycle_policyset(self, request, *args, **kwargs):
+        """策略集回收, 同步数据库(支持采集多个集控)
+        POST /hubs/recycle-policyset/
+        {
+            "hub": [hub1, hub2, ...]
+        }
+        """
+        # TODO 回收策略集
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        hub_sns = serializer.validated_data['hub']
+        for hub_sn in hub_sns:
+            try:
+                with transaction.atomic():
+                    # 删除下发策略
+                    pass
+                    # 回收策略
+                    sender = 'cmd-{}'.format(uuid.uuid1())
+                    with MessageSocket(*settings.NS_ADDR,
+                                       sender=sender) as msg_socket:
+                        body = {
+                            "action": "cancel_policyset",
+                            "type": "cmd"
+                        }
+                        msg_socket.send_single_message(receiver=hub_sn,
+                                                       body=body,
+                                                       sender=sender)
+                        recv = msg_socket.receive_data()
+                        code = recv.get('code')
+                        if code == 101:
+                            # 集控脱网, 告警
+                            record_alarm(
+                                event="集控脱网", object_type='hub',
+                                alert_source=hub_sn,
+                                object=hub_sn, level=3, status=3
+                            )
+                            raise ConnectHubTimeOut(
+                                'connect hub [{}] time out'.format(hub_sn))
+                        if code != 0:
+                            raise HubError(
+                                "hub [{}] unknown error".format(hub_sn))
+                        data = recv.get('data')
+                        # 去掉不需要的字段
+                        for i in ("action", "message", "code", "reason"):
+                            data.pop(i, None)
+            except (ConnectHubTimeOut, HubError):
+                raise
+            except Exception as ex:
+                # TODO 除集控通讯外的其他异常处理
+                raise
+        msg = _('recycle policy set success')
+        return Response(data={'detail': msg})
 
     # @action(methods=['POST'], detail=True, url_path='get-lampctrl-status')
     # def gather_lamp_ctrl_status(self, request, *args, **kwargs):
@@ -685,15 +960,7 @@ class HubViewSet(ListModelMixin,
         }
         """
 
-        pass
-
-    @action(methods=['POST'], detail=True, url_path='download_log')
-    def download_hub_log(self, request, *args, **kwargs):
-        """
-        下载集控日志
-        POST /hubs/{sn}/download_log/
-        """
-        pass
+        return Response()
 
     @staticmethod
     def average_endpoints(endpoints, divide_point_num):
@@ -759,3 +1026,156 @@ class HubViewSet(ListModelMixin,
             ret_points.append((x, y))
         return ret_points
 
+    @staticmethod
+    def before_pattern_grouping(instance, serializer_data):
+        """下发(模式)分组之前 数据库操作"""
+        hub = instance
+        group_num = serializer_data['group_num']
+        memo = serializer_data['memo']
+        group_num_rest = serializer_data['group_num_rest']
+        memo_rest = serializer_data['memo_rest']
+        seg = serializer_data['segmentation']
+        sel = serializer_data['select']
+        group_config = {group_num: [], group_num_rest: []}
+        # # 删除已存在分组
+        # hub.hub_group.filter_by().soft_delete()
+        # 创建分组
+        lampctrls = hub.hub_lampctrl.filter_by().order_by('sequence')
+        for i, lampctrl in enumerate(lampctrls):
+            if i % (seg + sel) in range(seg):
+                # 未被选的lampctrl
+                LampCtrlGroup.objects.create(
+                    hub=hub,
+                    lampctrl=lampctrl,
+                    group_num=group_num_rest,
+                    memo=memo_rest
+                )
+                group_config[group_num_rest].append(lampctrl.sn)
+            else:
+                # 被选的lampctrl
+                LampCtrlGroup.objects.create(
+                    hub=hub,
+                    lampctrl=lampctrl,
+                    group_num=group_num,
+                    memo=memo
+                )
+                group_config[group_num].append(lampctrl.sn)
+        return group_config
+
+    @staticmethod
+    def before_custom_grouping(instance, serializer_data):
+        """下发(自定义)分组之前 数据库操作"""
+        hub = instance
+        configs = serializer_data['configs']
+        group_config = defaultdict(list)
+        # # 删除已存在分组
+        # hub.hub_group.filter_by().soft_delete()
+        # 创建分组
+        for config in configs:
+            lampctrl_sns = config['lampctrl']
+            group_num = config['group_num']
+            memo = config['memo']
+            # 创建分组
+            for lampctrl_sn in lampctrl_sns:
+                lampctrl = LampCtrl.objects.get_or_404(sn=lampctrl_sn)
+                LampCtrlGroup.objects.create(
+                    hub=hub,
+                    lampctrl=lampctrl,
+                    group_num=group_num,
+                    memo=memo
+                )
+                group_config[group_num].append(lampctrl_sn)
+        return group_config
+
+    @staticmethod
+    def before_recycle_group(instance):
+        """回收集控下的所有分组之前 数据库操作"""
+        hub = instance
+        # 删除所有自定义分组
+        for i in hub.hub_group.filter_by(is_default=False):
+            i.soft_delete()
+
+    @staticmethod
+    def after_gather_group(instance, custom_group, default_group):
+        pass
+        # hub = instance
+        # # 采集集控分组后， 同步数据库， 以集控为准
+        # # 删除数据库中所有分组
+        # LampCtrlGroup.objects.filter_by(hub=hub).delete()
+        # # 添加自定义分组
+        # for group_num, lampctrls in custom_group.items():
+        #     for lampctrl_sn in lampctrls:
+        #         # TODO 灯控不存在
+        #         if not LampCtrl.objects.filter_by(
+        #                 sn=lampctrl_sn).exists():
+        #             raise InvalidInputError(
+        #                 "Please collect the hub configuration first")
+        #         LampCtrlGroup.objects.create(
+        #             hub=hub,
+        #             lampctrl=lampctrl_sn,
+        #             group_num=group_num,
+        #             is_default=False
+        #         )
+        # # 添加默认分组
+        # for group_num, lampctrls in default_group.items():
+        #     for lampctrl_sn in lampctrls:
+        #         # TODO 灯控不存在
+        #         if not LampCtrl.objects.filter_by(
+        #                 sn=lampctrl_sn).exists():
+        #             raise InvalidInputError(
+        #                 "Please collect the hub configuration first")
+        #         LampCtrlGroup.objects.create(
+        #             hub=hub,
+        #             lampctrl=lampctrl_sn,
+        #             group_num=group_num,
+        #             is_default=True
+        #         )
+
+    @staticmethod
+    def before_send_down_policy_set(instance, item):
+        """下发策略方案之前 数据处理+数据库操作
+        :param instance:
+        :param item: 集控下发策略详细信息
+        [
+            {
+                "hub": "hub_sn2"
+                "group_num": "1",
+                "policyset_id": "1"
+            },
+            {
+                "hub": "hub_sn2"
+                "group_num": "2",
+                "policyset_id": "1"
+            }
+        ]
+        """
+        # 数据处理
+        for im in item:
+            group_num = im.get('group_num')
+            policyset_id = im.get('policyset_id')
+            policyset = PolicySet.objects.filter_by(id=policyset_id).first()
+
+            policy_map = defaultdict(list)  # 策略-策略详情
+            # policy map
+            policy_ids = set(
+                policyset.policys.filter_by().values_list('id', flat=True))
+            for policy_id in policy_ids:
+                policy_map[policy_id] = Policy.objects.get(id=policy_id).item
+
+            policys = defaultdict(list)  # 分组-日期/策略
+            # 没有分组 默认为全部 标记为100
+            group_num = group_num or "100"
+            for relation in policyset.policyset_relations.filter_by():
+                policys[group_num].append(
+                    dict(execute_date=relation.execute_date,
+                         policy=relation.policy.id)
+                )
+
+            # TODO 不指定分组， 如何存策略集下发表
+            # 数据库同步 100分组代表下发所有分组
+            PolicySetSendDown.objects.create(
+                hub=instance,
+                policyset=policyset,
+                group_num=int(group_num)
+            )
+            return policy_map, policys
