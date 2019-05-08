@@ -31,7 +31,7 @@ from utils.paginator import CustomPagination
 from utils.mixins import ListModelMixin
 from utils.permissions import IsAdminUser
 from utils.exceptions import DeleteOnlineHubError, ConnectHubTimeOut, HubError, \
-    InvalidInputError
+    InvalidInputError, DMLError
 
 
 class UnitViewSet(ListModelMixin,
@@ -315,6 +315,28 @@ class HubViewSet(ListModelMixin,
             ))
         return Response(data=ret_data)
 
+    @staticmethod
+    def after_load_inventory(instance, inventory):
+        """采集集控配置后 数据库操作"""
+        # TODO 采集配置和注册时的操作相似， 是否需要合并?
+        hub = instance
+        hub_inventory = inventory.get('hub', {}) or {}
+        lamp_inventory = inventory.get('lamps', {}) or {}
+        # TODO 容错处理？ 非model中的字段需要过滤掉
+        # 更新hub表
+        hub_inventory = list(filter(lambda x: x in Hub.fields(), hub_inventory))
+        Hub.objects.filter_by(sn=hub.sn).update_or_create(**hub_inventory)
+        # 更新lamp表
+        for lamp_sn, item in lamp_inventory.items():
+            lamp = LampCtrl.objects.filter_by(sn=lamp_sn).first()
+            if lamp and lamp.on_map:
+                item.pop('longitude', None)
+                item.pop('latitude', None)
+            LampCtrl.objects.filter_by(sn=lamp_sn).update(**item)
+            # 删除数据库中存在 实际不存在的灯控
+            LampCtrl.objects.exclude(
+                sn__in=list(lamp_inventory.keys())).delete()
+
     @action(methods=['POST'], detail=False, url_path='load-inventory')
     def load_inventory(self, request, *args, **kwargs):
         """采集集控配置, 同步数据库(支持采集多个集控)
@@ -331,6 +353,7 @@ class HubViewSet(ListModelMixin,
 
         error_hubs = []
         for hub_sn in hubs:
+            hub = Hub.objects.get(sn=hub_sn)
             sender = 'cmd-{}'.format(uuid.uuid1())
             with MessageSocket(*settings.NS_ADDR, sender=sender) as msg_socket:
                 body = {
@@ -340,36 +363,24 @@ class HubViewSet(ListModelMixin,
                 msg_socket.send_single_message(receiver=hub_sn, body=body,
                                                sender=sender)
                 recv = msg_socket.receive_data()
-                code = recv.get('code')
-                if code == 101:
-                    # 集控脱网, 告警
-                    record_alarm(
-                        event="集控脱网", object_type='hub', alert_source=hub_sn,
-                        object=hub_sn, level=3, status=3
+            code = recv.get('code')
+            if code == 101:
+                # 集控脱网, 告警
+                record_alarm(
+                    event="集控脱网", object_type='hub', alert_source=hub,
+                    object=hub.sn, level=3, status=3
+                )
+                raise ConnectHubTimeOut()
+            if code != 0:
+                raise HubError
+            try:
+                with transaction.atomic():
+                    self.after_load_inventory(
+                        instance=hub,
+                        inventory=recv.get('inventory')
                     )
-                    raise ConnectHubTimeOut()
-                if code != 0:
-                    raise HubError
-                inventory = recv.get('inventory')
-                hub_inventory = inventory.get('hub', {}) or {}
-                lamp_inventory = inventory.get('lamps', {}) or {}
-                # TODO 容错处理？ 非model中的字段需要过滤掉
-                try:
-                    with transaction.atomic():
-                        # 更新hub表
-                        Hub.objects.update(**hub_inventory)
-                        # 更新lamp表
-                        for lamp_sn, item in lamp_inventory.items():
-                            lamp = LampCtrl.objects.filter_by(sn=lamp_sn).first()
-                            if lamp and lamp.on_map:
-                                item.pop('longitude', None)
-                                item.pop('latitude', None)
-                            LampCtrl.objects.filter_by(sn=lamp_sn).update(**item)
-                            # 删除数据库中存在 实际不存在的灯控
-                            LampCtrl.objects.exclude(sn__in=list(lamp_inventory.keys())).delete()
-                except Exception as ex:
-                    # _logger.error(str(ex))
-                    error_hubs.append(hub_sn)
+            except Exception as ex:
+                raise DMLError(str(ex))
 
         if error_hubs:
             return Response(status=status.HTTP_408_REQUEST_TIMEOUT,
@@ -399,7 +410,7 @@ class HubViewSet(ListModelMixin,
             if code == 101:
                 # 集控脱网, 告警
                 record_alarm(
-                    event="集控脱网", object_type='hub', alert_source=hub.sn,
+                    event="集控脱网", object_type='hub', alert_source=hub,
                     object=hub.sn, level=3, status=3
                 )
                 raise ConnectHubTimeOut()
@@ -444,7 +455,7 @@ class HubViewSet(ListModelMixin,
                 if code == 101:
                     # 集控脱网, 告警
                     record_alarm(
-                        event="集控脱网", object_type='hub', alert_source=hub_sn,
+                        event="集控脱网", object_type='hub', alert_source=hub,
                         object=hub_sn, level=3, status=3
                     )
                     raise ConnectHubTimeOut(
@@ -477,7 +488,7 @@ class HubViewSet(ListModelMixin,
             if code == 101:
                 # 集控脱网, 告警
                 record_alarm(
-                    event="集控脱网", object_type='hub', alert_source=hub.sn,
+                    event="集控脱网", object_type='hub', alert_source=hub,
                     object=hub.sn, level=3, status=3
                 )
                 raise ConnectHubTimeOut(
@@ -536,7 +547,7 @@ class HubViewSet(ListModelMixin,
                     if code == 101:
                         # 集控脱网, 告警
                         record_alarm(
-                            event="集控脱网", object_type='hub', alert_source=hub.sn,
+                            event="集控脱网", object_type='hub', alert_source=hub,
                             object=hub.sn, level=3, status=3
                         )
                         raise ConnectHubTimeOut(
@@ -590,7 +601,7 @@ class HubViewSet(ListModelMixin,
                         # 集控脱网, 告警
                         record_alarm(
                             event="集控脱网", object_type='hub',
-                            alert_source=hub.sn,
+                            alert_source=hub,
                             object=hub.sn, level=3, status=3
                         )
                         raise ConnectHubTimeOut(
@@ -627,7 +638,7 @@ class HubViewSet(ListModelMixin,
                     if code == 101:
                         # 集控脱网, 告警
                         record_alarm(
-                            event="集控脱网", object_type='hub', alert_source=hub.sn,
+                            event="集控脱网", object_type='hub', alert_source=hub,
                             object=hub.sn, level=3, status=3
                         )
                         raise ConnectHubTimeOut(
@@ -670,7 +681,7 @@ class HubViewSet(ListModelMixin,
                     # 集控脱网, 告警
                     record_alarm(
                         event="集控脱网", object_type='hub',
-                        alert_source=hub_sn,
+                        alert_source=hub,
                         object=hub_sn, level=3, status=3
                     )
                     raise ConnectHubTimeOut(
@@ -728,7 +739,7 @@ class HubViewSet(ListModelMixin,
                         # 集控脱网, 告警
                         record_alarm(
                             event="集控脱网", object_type='hub',
-                            alert_source=hub.sn, object=hub.sn,
+                            alert_source=hub, object=hub.sn,
                             level=3, status=3
                         )
                         raise ConnectHubTimeOut(
@@ -793,7 +804,7 @@ class HubViewSet(ListModelMixin,
                         # 集控脱网, 告警
                         record_alarm(
                             event="集控脱网", object_type='hub',
-                            alert_source=hub.sn, object=hub.sn,
+                            alert_source=hub, object=hub.sn,
                             level=3, status=3
                         )
                         raise ConnectHubTimeOut(
@@ -837,7 +848,7 @@ class HubViewSet(ListModelMixin,
                 # 集控脱网, 告警
                 record_alarm(
                     event="集控脱网", object_type='hub',
-                    alert_source=hub_sn,
+                    alert_source=hub,
                     object=hub_sn, level=3, status=3
                 )
                 raise ConnectHubTimeOut(
@@ -892,7 +903,7 @@ class HubViewSet(ListModelMixin,
                             # 集控脱网, 告警
                             record_alarm(
                                 event="集控脱网", object_type='hub',
-                                alert_source=hub_sn,
+                                alert_source=hub,
                                 object=hub_sn, level=3, status=3
                             )
                             raise ConnectHubTimeOut(
@@ -940,7 +951,7 @@ class HubViewSet(ListModelMixin,
     #         if code == 101:
     #             # 集控脱网, 告警
     #             record_alarm(
-    #                 event="集控脱网", object_type='hub', alert_source=hub.sn,
+    #                 event="集控脱网", object_type='hub', alert_source=hub,
     #                 object=hub.sn, level=3, status=3
     #             )
     #             raise ConnectHubTimeOut()

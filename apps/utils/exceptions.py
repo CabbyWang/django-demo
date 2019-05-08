@@ -49,3 +49,9 @@ class InvalidInputError(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
     default_detail = _('Invalid input.')
     default_code = 'invalid'
+
+
+class DMLError(APIException):
+    status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+    default_detail = _('Server Error')
+    default_code = 'server error'

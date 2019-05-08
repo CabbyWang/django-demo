@@ -74,6 +74,10 @@ class BaseModel(models.Model):
         self.deleted_time = datetime.datetime.now()
         self.save()
 
+    @classmethod
+    def fields(cls):
+        return [i.name for i in cls._meta.fields]
+
     class Meta:
         abstract = True
 

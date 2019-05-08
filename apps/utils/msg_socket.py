@@ -14,7 +14,7 @@ import json
 import socket
 import struct
 
-from utils.exceptions import ConnectNSError, AuthenticateNSError
+from utils.exceptions import ConnectNSError, AuthenticateNSError, ConnectHubTimeOut
 
 
 SENDER = 'NS'
@@ -147,6 +147,8 @@ class MessageSocket(object):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.socket.close()
+        if exc_type == socket.timeout:
+            raise ConnectHubTimeOut
         # return True
 
 

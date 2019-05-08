@@ -147,15 +147,14 @@ class SLMS(object):
         # TODO 产生告警， 存在则更新时间， 不存在则新增告警 逻辑是否需要在record_alarm中实现
         hub = Hub.objects.filter_by(sn=hub_sn).first()
         alert, is_created = Alert.objects.update_or_create(
-            event='集控脱网', level=3, object=hub,
-            object_type='hub', alert_source=hub, is_solved=False,
-            defaults=dict(is_solved=False)
+            event='集控脱网', level=3, object=hub.sn,
+            object_type='hub', alert_source=hub, is_solved=False
         )
 
         if is_created:
             # 集控之前正常，告警
             record_alarm(
-                event='集控脱网', object_type='hub', alert_source=hub_sn,
+                event='集控脱网', object_type='hub', alert_source=hub,
                 object=hub_sn, level=3, status=3
             )
             pass

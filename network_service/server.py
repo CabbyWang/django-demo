@@ -267,11 +267,14 @@ class Server(Protocol):
         self.transport.abortConnection()
 
     def _send_to_hub(self, content, hub, sender='NS'):
+        assert isinstance(content, dict)
         # 给集控发送指令(cmd)
+        content = json.dumps(content)
         if hub in clients:
             # 集控在线， 正常发送
             log.msg("[{}] send_content to [{}]: {}".format(sender, hub, content))
             header = self.pack_header(12 + len(content), __version__, 102)
+            # header = self.pack_header(12 + len(content), __version__, 2)
             clients[hub].transport.write(header + content.encode('utf-8'))
         else:
             # 集控脱网
@@ -289,15 +292,10 @@ class Server(Protocol):
             header = self.pack_header(12 + len(content), __version__, 102)
             self.transport.write(header + content.encode('utf-8'))
 
-    @staticmethod
-    def pack_header(length, version, command_id):
-        """generate header"""
-        header = [length, version, command_id]
-        header_pack = struct.pack("!3I", *header)
-        return header_pack
-
     def _send_to_cmd(self, content, cmd, sender='NS'):
+        assert isinstance(content, dict)
         # 给管控发送(ack)
+        content = json.dumps(content)
         header = self.pack_header(12 + len(content), __version__, 102)
         if cmd not in clients:
             # 管控指令超时, 断开连接, 不在线, 和集控(self.user)断开连接
@@ -306,6 +304,13 @@ class Server(Protocol):
         # 管控指令在线， 正常发送
         log.msg("[{}] send_content to [{}]: {}".format(sender, cmd, content))
         clients[cmd].transport.write(header + content.encode('utf-8'))
+
+    @staticmethod
+    def pack_header(length, version, command_id):
+        """generate header"""
+        header = [length, version, command_id]
+        header_pack = struct.pack("!3I", *header)
+        return header_pack
 
 
 class ServerFactory(Factory):
