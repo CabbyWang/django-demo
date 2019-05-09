@@ -26,11 +26,10 @@ from utils.mixins import ListModelMixin
 class OrderType(enum.Enum):
     others = 0
     hub = 1
-    lampctrl = 2
+    lamp = 2
     pole = 3
-    lamp = 4
-    cable = 5
-    cbox = 6
+    cable = 4
+    cbox = 5
 
 # TODO 创建工单和重新指派工单后需要生成语音
 
@@ -96,7 +95,7 @@ class WorkOrderViewSet(ListModelMixin,
         GET /workorders/malfunction_status/
         """
         ret = []
-        for i in range(0, 7):
+        for i in range(len(OrderType)):
             order = OrderType(i)
             d = dict(
                 name=order.name,

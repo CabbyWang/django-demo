@@ -148,6 +148,7 @@ class LampCtrlViewSet(ListModelMixin,
     def control_lamp(self, request, *args, **kwargs):
         """
         控灯
+        POST /lampctrls/control/
         {
             "lampctrl": ["001", "002", "003"],
             "action": "0,80"
@@ -155,13 +156,13 @@ class LampCtrlViewSet(ListModelMixin,
         """
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        lampctrls = serializer.data['lampctrl']
+        lampctrls = serializer.validated_data['lampctrl']
         action = serializer.data['action']
         switch_status = 0 if action == "0,0" else 1
 
         for hub_sn, lampctrl_sns in lampctrls.items():
             # 是否是控制所有灯控
-            hub = Hub.object.get(sn=hub_sn)
+            hub = Hub.objects.get(sn=hub_sn)
             is_all = all(i in lampctrl_sns for i in LampCtrl.objects.filter(hub=hub).values_list('sn', flat=True))
             sender = 'cmd-{}'.format(uuid.uuid1())
             with MessageSocket(*settings.NS_ADDR, sender=sender) as msg_socket:

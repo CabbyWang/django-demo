@@ -8,7 +8,7 @@ import copy
 import datetime
 import random
 
-from django.db import connections, transaction
+from django.db import transaction
 
 from lamp.models import LampCtrl, LampCtrlGroup
 from notify.models import Alert
@@ -17,9 +17,8 @@ from hub.models import Hub, Unit, HubStatus
 from projectinfo.models import ProjectInfo
 from workorder.models import WorkOrder
 from utils.alert import record_alarm
-
-from .serializers import DataSerializer
-from .config import HUB_FIELDS, LAMPCTRL_FIELDS
+from utils import refresh_connections
+from utils.data_handle import record_inventory, record_default_group
 
 
 class SLMS(object):
@@ -27,109 +26,20 @@ class SLMS(object):
     interface
     """
 
-    @staticmethod
-    def refresh_connections():
-        for conn in connections.all():
-            conn.queries_log.clear()
-            conn.close_if_unusable_or_obsolete()
-
-    @staticmethod
-    def prepare_inventory(inventory):
-        """清洗数据"""
-        # TODO 配置文件不规范的情况
-        hub = inventory['hub'] or {}
-        lamps = inventory['lamps'] or {}
-        hub_sn = hub.get('sn')
-
-        # 集控有unit字段则使用， 否则为None
-        unit = None
-        unit_name = hub.get('unit')
-        if unit_name:
-            unit, _ = Unit.objects.get_or_create(name=unit_name)
-        hub['unit'] = unit
-
-        # 集控重定位过， 不上报集控经纬度
-        first = Hub.objects.filter_by(sn=hub_sn).first()
-        is_redirect = first.is_redirect if first else 0
-        if is_redirect:
-            hub.pop('longitude', None)
-            hub.pop('latitude', None)
-        else:
-            # 未重定位过， 如果集控上报经纬度为空或0，则使用城市中心点经纬度
-            if not hub.get('longitude') or hub.get('latitude'):
-                ran_lon = random.uniform(-0.001, 0.001)
-                ran_lat = random.uniform(-0.0005, 0.0005)
-                try:
-                    first = ProjectInfo.objects.first()
-                    city_longitude = first.longitude + ran_lon
-                    city_latitude = first.latitude + ran_lat
-                except AttributeError:
-                    # projectinfo未配置
-                    pass
-                else:
-                    hub['longitude'] = city_longitude
-                    hub['latitude'] = city_latitude
-        for k in list(hub.keys()):
-            if k not in HUB_FIELDS:
-                hub.pop(k)
-
-        # 灯控
-        # 布放过的灯控 不修改经纬度
-        for lampctrl_sn, item in lamps.items():
-            lampctrl = LampCtrl.objects.filter_by(sn=lampctrl_sn).first()
-            on_map = lampctrl.on_map if lampctrl else False
-            if on_map:
-                item.pop('longitude', None)
-                item.pop('latitude', None)
-            item['lamp_type'] = item.get('type')
-            for k in list(item.keys()):
-                if k not in LAMPCTRL_FIELDS:
-                    item.pop(k)
-        return inventory
-
-    @staticmethod
-    def prepare_default_group(default_group):
-        assert isinstance(default_group, dict)
-        return default_group or {}
-
     @classmethod
     def register(cls, inventory, default_group):
         """
         注册
         """
-        cls.refresh_connections()
+        refresh_connections()
         print('network_service >> api.py >> register')
-        cls.prepare_inventory(inventory)
-        cls.prepare_default_group(default_group)
-        hub_inventory = inventory.get('hub', {})
-        hub_sn = hub_inventory.get('sn')
-        lamps = inventory.get('lamps', {}) or {}
         try:
             with transaction.atomic():
-                # 修改或创建集控信息
-                hub, _ = Hub.objects.update_or_create(sn=hub_sn, defaults=hub_inventory)
-                # 删除数据库中存在 上报数据中却不存在的灯控
-                LampCtrl.objects.filter_by().exclude(sn__in=set(lamps.keys())).delete()
-                # 修改或创建灯控信息
-                for lampctrl_sn, item in lamps.items():
-                    LampCtrl.objects.update_or_create(
-                        sn=lampctrl_sn,
-                        hub=hub,
-                        defaults=lamps.get(lampctrl_sn)
-                    )
-
-                # 删除数据库中原分组配置信息
-                LampCtrlGroup.objects.filter_by(hub=hub, is_default=True).delete()
-                # 创建默认分组信息
-                for group_num, lamp_ctrls in default_group.items():
-                    for lamp_ctrl_sn in lamp_ctrls:
-                        lampctrl = LampCtrl.objects.filter_by(sn=lamp_ctrl_sn).first()
-                        if not lampctrl:
-                            continue
-                        LampCtrlGroup.objects.create(
-                            hub=hub, lampctrl=lampctrl,
-                            group_num=group_num, is_default=True
-                        )
+                hub_inventory = inventory.get('hub', {})
+                hub_sn = hub_inventory.get('sn')
+                record_inventory(inventory=inventory)
+                record_default_group(hub_sn=hub_sn,
+                                     default_group=default_group)
         except Exception as ex:
             return dict(code=1, message=str(ex))
         else:
@@ -141,6 +51,7 @@ class SLMS(object):
         集控脱网
         :param hub_sn: 集控sn号
         """
+        refresh_connections()
         print('network_service >> api.py >> record_offline_hub')
         # TODO 集控是否在数据库中， 在则删除
         Hub.objects.filter_by(sn=hub_sn).update(status=3)
@@ -166,7 +77,7 @@ class SLMS(object):
         2. 集控重连
         :param hub_sn: 集控sn号
         """
-        cls.refresh_connections()
+        refresh_connections()
         print('network_service >> api.py >> record_connect_hub')
         # TODO 集控状态更新 status=1
         Hub.objects.filter_by(sn=hub_sn).update(status=1)
@@ -195,7 +106,7 @@ class SLMS(object):
         集控定时上报三相电能数据
         :param content: 三相电数据 dict 反序列化后的 集控上报的数据包
         """
-        cls.refresh_connections()
+        refresh_connections()
         print('network_service >> api.py >> report_status')
         assert isinstance(content, dict)
         cls.prepare_report_status_content(content)
@@ -230,7 +141,7 @@ class SLMS(object):
         集控定时上报告警
         :param content: 告警数据 dict 反序列化后的 集控上报的数据包
         """
-        cls.refresh_connections()
+        refresh_connections()
         print('network_service >> api.py >> report_alarms')
         assert isinstance(content, dict)
         cls.prepare_report_alarms_content(content)

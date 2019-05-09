@@ -64,9 +64,10 @@ def record_alarm(event, object_type, alert_source, object, level, status):
         tts.generate_audio(body)
 
         # 生成工单
+        # TODO 工单type需要根据之后的类型进行修改
         WorkOrder.objects.create(
             alert=alert, type=2, obj_sn=object,
-            message='{}，由告警自动生成'.format(event)
+            memo='{}，由告警自动生成'.format(event), status='todo'
         )
 
         # 发送告警短信

@@ -3,6 +3,8 @@
 """
 Create by 王思勇 on 2019/3/6
 """
+from collections import defaultdict
+
 from rest_framework import serializers
 
 from hub.models import Hub
@@ -180,13 +182,16 @@ class GatherLampCtrlSerializer(serializers.Serializer):
                     ', '.join(not_exists_lampctrl))
             )
 
-        ret = {}
+        ret = defaultdict(list)
         hub_sns = LampCtrl.objects.filter(
             sn__in=lampctrls).values_list('hub', flat=True)
-        for hub_sn in hub_sns:
-            hub = Hub.objects.get_or_404(sn=hub_sn)
-            lampctrls = LampCtrl.objects.filter(hub=hub).values_list('sn', flat=True)
-            ret[hub_sn] = lampctrls
+        for sn in lampctrls:
+            lampctrl = LampCtrl.objects.get(sn=sn)
+            ret[lampctrl.hub.sn].append(sn)
+        # for hub_sn in hub_sns:
+        #     hub = Hub.objects.get_or_404(sn=hub_sn)
+        #     lampctrls = LampCtrl.objects.filter(hub=hub).values_list('sn', flat=True)
+        #     ret[hub_sn] = list(lampctrls)
         return ret
 
 
@@ -198,7 +203,7 @@ class ControlLampSerializer(GatherLampCtrlSerializer):
         actions = action.split(',')
         if len(actions) != 2:
             raise InvalidInputError('the format of action must like "0,80"')
-        route1, route2 = actions
+        route1, route2 = [int(i) for i in actions]
         if route1 < 0 or route1 > 255 or route2 < 0 or route2 > 255:
             raise InvalidInputError(
                 'the brightness value must between 0 and 255')

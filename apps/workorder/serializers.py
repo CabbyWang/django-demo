@@ -5,6 +5,8 @@ Create by 王思勇 on 2019/4/8
 """
 import datetime
 
+from django.utils.translation import ugettext_lazy as _
+
 from rest_framework import serializers
 
 from asset.models import Pole, Lamp, Cable, CBox
@@ -30,7 +32,9 @@ class WorkOrderImageSerializer(serializers.ModelSerializer):
     updated_time = serializers.DateTimeField(read_only=True,
                                              format='%Y-%m-%d %H:%M:%S')
 
-    order = serializers.PrimaryKeyRelatedField(required=True, queryset=WorkOrder.objects.filter_by())
+    order = serializers.PrimaryKeyRelatedField(
+        required=True, queryset=WorkOrder.objects.filter_by()
+    )
 
     class Meta:
         model = WorkorderImage
@@ -77,11 +81,10 @@ class WorkOrderSerializer(serializers.ModelSerializer):
     TYPES = (
         (0, "其它"),
         (1, "集控"),
-        (2, "灯控"),
+        (2, "灯具"),
         (3, "灯杆"),
-        (4, "灯具"),
-        (5, "电缆"),
-        (6, "控制箱"),
+        (4, "电缆"),
+        (5, "控制箱")
     )
     STATUS = (('todo', '未处理'), ('doing', '处理中'), ('finished', '已处理'))
 
@@ -92,11 +95,6 @@ class WorkOrderSerializer(serializers.ModelSerializer):
     type = serializers.ChoiceField(choices=TYPES, help_text='工单类型')
     obj_sn = serializers.CharField(required=False, max_length=32,
                                    allow_blank=True, help_text='对象编号')
-    # lampctrl = serializers.PrimaryKeyRelatedField(required=False,
-    #                                               queryset=LampCtrl.objects.filter_by(),
-    #                                               allow_null=True)
-    # sequence = serializers.IntegerField(required=False,
-    #                                     allow_null=True)
     user = serializers.PrimaryKeyRelatedField(required=False,
                                               queryset=User.objects.filter_by(),
                                               allow_null=True,
@@ -112,42 +110,42 @@ class WorkOrderSerializer(serializers.ModelSerializer):
     def validate_alert(alert):
         if WorkOrder.objects.filter_by(alert=alert).exists():
             # raise serializers.ValidationError("该告警已生成工单")
-            raise InvalidInputError('the alert [{}] has generated a work order'.format(alert.event))
+            msg = _('the alert [{}] has generated a work order'.format(
+                alert.event))
+            raise InvalidInputError(msg)
         return alert
 
     def validate_obj_sn(self, obj_sn):
         w_type = self.initial_data.get("type")
         # 判断集控是否存在
-        if w_type == 1 and obj_sn and not Hub.objects.filter_by(sn=obj_sn).exists():
-            raise serializers.ValidationError("hub [{}] not exist".format(obj_sn))
-        # 判断灯控是否存在
-        elif w_type == 2 and obj_sn and not LampCtrl.objects.filter_by(sn=obj_sn).exists():
-            raise serializers.ValidationError("lamp control [{}] not exist".format(obj_sn))
+        if w_type == 1 and obj_sn and not Hub.objects.filter_by(
+                sn=obj_sn).exists():
+            raise InvalidInputError("hub [{}] not exist".format(obj_sn))
+        # # 判断灯控或灯具是否存在
+        elif w_type == 2 and obj_sn and not LampCtrl.objects.filter_by(
+                sn=obj_sn).exists() and not Lamp.objects.filter_by(
+                sn=obj_sn).exists():
+            raise serializers.ValidationError(
+                "lamp or lamp control [{}] not exist".format(obj_sn))
         # 判断灯杆是否存在
-        elif w_type == 3 and obj_sn and not Pole.objects.filter_by(sn=obj_sn).exists():
-            raise serializers.ValidationError("pole [{}] not exist".format(obj_sn))
-        # 判断灯具是否存在
-        elif w_type == 4 and obj_sn and not Lamp.objects.filter_by(sn=obj_sn).exists():
-            raise serializers.ValidationError("lamp [{}] not exist".format(obj_sn))
+        elif w_type == 3 and obj_sn and not Pole.objects.filter_by(
+                sn=obj_sn).exists():
+            raise InvalidInputError("pole [{}] not exist".format(obj_sn))
         # 判断电缆是否存在
-        elif w_type == 5 and obj_sn and not Cable.objects.filter_by(sn=obj_sn).exists():
-            raise serializers.ValidationError("cable [{}] not exist".format(obj_sn))
+        elif w_type == 4 and obj_sn and not Cable.objects.filter_by(
+                sn=obj_sn).exists():
+            raise InvalidInputError("cable [{}] not exist".format(obj_sn))
         # 判断控制箱是否存在
-        elif w_type == 6 and obj_sn and not CBox.objects.filter_by(sn=obj_sn).exists():
-            raise serializers.ValidationError("control box [{}] not exist".format(obj_sn))
+        elif w_type == 5 and obj_sn and not CBox.objects.filter_by(
+                sn=obj_sn).exists():
+            raise InvalidInputError(
+                "control box [{}] not exist".format(obj_sn))
         return obj_sn
 
-    # def validate(self, attrs):
-    #     w_type = self.initial_data['type']
-    #     if w_type == 1:
-    #         工单类型为“集控”
-    #         hub = Hub.objects.get(sn=self.initial_data['obj_sn'])
-    #         lamp = LampCtrl.objects.filter_by(hub=hub).first()
-    #         灯控编号存在
-    #         if lamp:
-    #             # 自动填充sequence
-    #             attrs['sequence'] = lamp.sequence
-    #     return attrs
+    def validate(self, attrs):
+        if attrs['type'] != 0 and 'obj_sn' not in attrs:
+            raise InvalidInputError('field "obj_sn" is required')
+        return attrs
 
     class Meta:
         model = WorkOrder

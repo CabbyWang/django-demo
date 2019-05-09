@@ -1,9 +1,11 @@
 from django.utils.translation import ugettext_lazy as _
+from django_filters.rest_framework import DjangoFilterBackend
 
 from rest_framework import mixins, viewsets
 from rest_framework.authentication import SessionAuthentication
 from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 
+from policy.filters import PolicyFilter, PolicySetFilter
 from .models import Policy, PolicySet
 from .serializers import (
     PolicySerializer, PolicySetSerializer
@@ -36,6 +38,8 @@ class PolicyViewSet(ListModelMixin,
     queryset = Policy.objects.filter_by()
     serializer_class = PolicySerializer
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
+    filter_backends = (DjangoFilterBackend, )
+    filter_class = PolicyFilter
 
     def perform_destroy(self, instance):
         if instance.policy_relations.exists:
@@ -67,6 +71,8 @@ class PolicySetViewSet(ListModelMixin,
     queryset = PolicySet.objects.filter_by()
     serializer_class = PolicySetSerializer
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
+    filter_backends = (DjangoFilterBackend, )
+    filter_class = PolicySetFilter
 
     def perform_destroy(self, instance):
         if instance.policyset_send_down_policysets.exists():

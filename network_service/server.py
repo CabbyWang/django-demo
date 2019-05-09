@@ -223,7 +223,7 @@ class Server(Protocol):
             clients[user].abort_connection()
         body = content.get('body')
         inventory = body.get("inventory")
-        default_group = body.get('defalut_group')
+        default_group = body.get('default_group')
         ret_msg = SLMS.register(inventory=inventory,
                                 default_group=default_group)
         code = ret_msg.get("code")
@@ -233,7 +233,7 @@ class Server(Protocol):
                 action="register_server_ack",
                 type="ack",
                 code=code,
-                message="向服务器注册失败",
+                message="Failed to register with the server",
                 reason=ret_msg.get('message')
             )
             self.write(101, json.dumps(failure_content))
@@ -248,7 +248,7 @@ class Server(Protocol):
             action="register_server_ack",
             type="ack",
             code=0,
-            message="向服务器注册成功"
+            message="Successful registration with server"
         )
         self.write(101, json.dumps(success_content))
 

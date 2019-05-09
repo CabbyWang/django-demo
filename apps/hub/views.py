@@ -30,8 +30,11 @@ from utils.msg_socket import MessageSocket
 from utils.paginator import CustomPagination
 from utils.mixins import ListModelMixin
 from utils.permissions import IsAdminUser
-from utils.exceptions import DeleteOnlineHubError, ConnectHubTimeOut, HubError, \
+from utils.data_handle import record_inventory, record_default_group
+from utils.exceptions import (
+    DeleteOnlineHubError, ConnectHubTimeOut, HubError,
     InvalidInputError, DMLError
+)
 
 
 class UnitViewSet(ListModelMixin,
@@ -79,6 +82,8 @@ class HubViewSet(ListModelMixin,
         采集集控状态
     gather_group:
         分组采集
+    update_group:
+        修改分组配置(不能修改默认分组)
     pattern_grouping:
         下发分组(按模式分组)
     custom_grouping:
@@ -123,6 +128,9 @@ class HubViewSet(ListModelMixin,
             return CustomGroupingSerializer
         if self.action == 'update_group':
             return UpdateGroupSerializer
+        # TODO serializer相同功能的合并
+        if self.action == 'gather_group':
+            return GatherGroupSerializer
         if self.action == 'gather_policyset':
             return GatherGroupSerializer
         if self.action == 'send_down_policyset':
@@ -180,15 +188,13 @@ class HubViewSet(ListModelMixin,
         POST /hubs/{sn}/layout/
         单边:
             {
-                # "hub_sn": "201803210014",
-                "odd-even": False,
+                "odd_even": False,
                 "points": [[116.203048, 39.801835],  [116.226478, 39.82416],  [116.256912, 39.873809]],
                 "sequence": [1, 2, 3, 4, 5, 7]
             }
         奇偶:
             {
-                # "hub_sn": "201803210014",
-                "odd-even": True,
+                "odd_even": True,
                 "points": {
                     "odd": [],
                     "even": []
@@ -199,7 +205,7 @@ class HubViewSet(ListModelMixin,
         request_data = request.data
         hub_sn = kwargs.get('pk')
         points = request_data.get('points')
-        is_odd_even = request_data.get('odd-even')
+        is_odd_even = request_data.get('odd_even')
         sequence = request_data.get('sequence')
 
         if not is_odd_even:
@@ -319,23 +325,7 @@ class HubViewSet(ListModelMixin,
     def after_load_inventory(instance, inventory):
         """采集集控配置后 数据库操作"""
         # TODO 采集配置和注册时的操作相似， 是否需要合并?
-        hub = instance
-        hub_inventory = inventory.get('hub', {}) or {}
-        lamp_inventory = inventory.get('lamps', {}) or {}
-        # TODO 容错处理？ 非model中的字段需要过滤掉
-        # 更新hub表
-        hub_inventory = list(filter(lambda x: x in Hub.fields(), hub_inventory))
-        Hub.objects.filter_by(sn=hub.sn).update_or_create(**hub_inventory)
-        # 更新lamp表
-        for lamp_sn, item in lamp_inventory.items():
-            lamp = LampCtrl.objects.filter_by(sn=lamp_sn).first()
-            if lamp and lamp.on_map:
-                item.pop('longitude', None)
-                item.pop('latitude', None)
-            LampCtrl.objects.filter_by(sn=lamp_sn).update(**item)
-            # 删除数据库中存在 实际不存在的灯控
-            LampCtrl.objects.exclude(
-                sn__in=list(lamp_inventory.keys())).delete()
+        record_inventory(inventory=inventory)
 
     @action(methods=['POST'], detail=False, url_path='load-inventory')
     def load_inventory(self, request, *args, **kwargs):
@@ -435,7 +425,7 @@ class HubViewSet(ListModelMixin,
         act = serializer.data['action']
 
         for hub_sn in hub_sns:
-            hub = Hub.objects.get_or_404(sn=hub_sn)
+            hub = Hub.objects.get(sn=hub_sn)
             sender = 'cmd-{}'.format(uuid.uuid1())
             with MessageSocket(*settings.NS_ADDR, sender=sender) as msg_socket:
                 body = {
@@ -451,20 +441,20 @@ class HubViewSet(ListModelMixin,
                 msg_socket.send_single_message(receiver=hub_sn, body=body,
                                                sender=sender)
                 recv = msg_socket.receive_data()
-                code = recv.get('code')
-                if code == 101:
-                    # 集控脱网, 告警
-                    record_alarm(
-                        event="集控脱网", object_type='hub', alert_source=hub,
-                        object=hub_sn, level=3, status=3
-                    )
-                    raise ConnectHubTimeOut(
-                        'connect hub [{}] time out'.format(hub_sn))
-                if code != 0:
-                    raise HubError("hub [{}] unknown error".format(hub_sn))
-                if code == 0:
-                    # 控灯成功 更新灯具状态
-                    LampCtrl.objects.filter(hub=hub).update(switch_status=1)
+            code = recv.get('code')
+            if code == 101:
+                # 集控脱网, 告警
+                record_alarm(
+                    event="集控脱网", object_type='hub', alert_source=hub,
+                    object=hub_sn, level=3, status=3
+                )
+                raise ConnectHubTimeOut(
+                    'connect hub [{}] time out'.format(hub_sn))
+            if code != 0:
+                raise HubError("hub [{}] unknown error".format(hub_sn))
+            if code == 0:
+                # 控灯成功 更新灯具状态
+                LampCtrl.objects.filter_by(hub=hub).update(switch_status=1)
         return Response(data={'detail': 'control lamps success'})
 
     @action(methods=['POST'], detail=True, url_path='download-log')
@@ -484,17 +474,17 @@ class HubViewSet(ListModelMixin,
             msg_socket.send_single_message(receiver=hub.sn, body=body,
                                            sender=sender)
             recv = msg_socket.receive_data()
-            code = recv.get('code')
-            if code == 101:
-                # 集控脱网, 告警
-                record_alarm(
-                    event="集控脱网", object_type='hub', alert_source=hub,
-                    object=hub.sn, level=3, status=3
-                )
-                raise ConnectHubTimeOut(
-                    'connect hub [{}] time out'.format(hub.sn))
-            if code != 0:
-                raise HubError("hub [{}] unknown error".format(hub.sn))
+        code = recv.get('code')
+        if code == 101:
+            # 集控脱网, 告警
+            record_alarm(
+                event="集控脱网", object_type='hub', alert_source=hub,
+                object=hub.sn, level=3, status=3
+            )
+            raise ConnectHubTimeOut(
+                'connect hub [{}] time out'.format(hub.sn))
+        if code != 0:
+            raise HubError("hub [{}] unknown error".format(hub.sn))
 
         resp = StreamingHttpResponse(recv["recv"]["message"])
         resp['Content-Type'] = 'application/octet-stream'
@@ -529,10 +519,10 @@ class HubViewSet(ListModelMixin,
         serializer.is_valid(raise_exception=True)
 
         try:
-            group_config = self.before_custom_grouping(
-                instance=hub, serializer_data=serializer.data
-            )
             with transaction.atomic():
+                group_config = self.before_custom_grouping(
+                    instance=hub, serializer_data=serializer.validated_data
+                )
                 sender = 'cmd-{}'.format(uuid.uuid1())
                 with MessageSocket(*settings.NS_ADDR, sender=sender) as msg_socket:
                     body = {
@@ -543,22 +533,22 @@ class HubViewSet(ListModelMixin,
                     msg_socket.send_single_message(receiver=hub.sn, body=body,
                                                    sender=sender)
                     recv = msg_socket.receive_data()
-                    code = recv.get('code')
-                    if code == 101:
-                        # 集控脱网, 告警
-                        record_alarm(
-                            event="集控脱网", object_type='hub', alert_source=hub,
-                            object=hub.sn, level=3, status=3
-                        )
-                        raise ConnectHubTimeOut(
-                            'connect hub [{}] time out'.format(hub.sn))
-                    if code != 0:
-                        raise HubError("hub [{}] unknown error".format(hub.sn))
+                code = recv.get('code')
+                if code == 101:
+                    # 集控脱网, 告警
+                    record_alarm(
+                        event="集控脱网", object_type='hub', alert_source=hub,
+                        object=hub.sn, level=3, status=3
+                    )
+                    raise ConnectHubTimeOut(
+                        'connect hub [{}] time out'.format(hub.sn))
+                if code != 0:
+                    raise HubError("hub [{}] unknown error".format(hub.sn))
         except (ConnectHubTimeOut, HubError):
             raise
         except Exception as ex:
             # TODO 除集控通讯外的其他异常处理
-            raise
+            raise DMLError(str(ex))
         return Response(data={'detail': 'group configuration success'})
 
     @action(methods=['POST'], detail=True, url_path='pattern-grouping')
@@ -583,7 +573,7 @@ class HubViewSet(ListModelMixin,
         try:
             with transaction.atomic():
                 group_config = self.before_pattern_grouping(
-                    instance=hub, serializer_data=serializer.data
+                    instance=hub, serializer_data=serializer.validated_data
                 )
 
                 sender = 'cmd-{}'.format(uuid.uuid1())
@@ -596,23 +586,23 @@ class HubViewSet(ListModelMixin,
                     msg_socket.send_single_message(receiver=hub.sn, body=body,
                                                    sender=sender)
                     recv = msg_socket.receive_data()
-                    code = recv.get('code')
-                    if code == 101:
-                        # 集控脱网, 告警
-                        record_alarm(
-                            event="集控脱网", object_type='hub',
-                            alert_source=hub,
-                            object=hub.sn, level=3, status=3
-                        )
-                        raise ConnectHubTimeOut(
-                            'connect hub [{}] time out'.format(hub.sn))
-                    if code != 0:
-                        raise HubError("hub [{}] unknown error".format(hub.sn))
+                code = recv.get('code')
+                if code == 101:
+                    # 集控脱网, 告警
+                    record_alarm(
+                        event="集控脱网", object_type='hub',
+                        alert_source=hub,
+                        object=hub.sn, level=3, status=3
+                    )
+                    raise ConnectHubTimeOut(
+                        'connect hub [{}] time out'.format(hub.sn))
+                if code != 0:
+                    raise HubError("hub [{}] unknown error".format(hub.sn))
         except (ConnectHubTimeOut, HubError):
             raise
         except Exception as ex:
             # TODO 除集控通讯外的其他异常处理
-            raise
+            raise DMLError(str(ex))
         return Response(data={'detail': 'group configuration success'})
 
     @action(methods=['POST'], detail=True, url_path='recycle-group')
@@ -634,17 +624,17 @@ class HubViewSet(ListModelMixin,
                     msg_socket.send_single_message(receiver=hub.sn, body=body,
                                                    sender=sender)
                     recv = msg_socket.receive_data()
-                    code = recv.get('code')
-                    if code == 101:
-                        # 集控脱网, 告警
-                        record_alarm(
-                            event="集控脱网", object_type='hub', alert_source=hub,
-                            object=hub.sn, level=3, status=3
-                        )
-                        raise ConnectHubTimeOut(
-                            'connect hub [{}] time out'.format(hub.sn))
-                    if code != 0:
-                        raise HubError("hub [{}] unknown error".format(hub.sn))
+                code = recv.get('code')
+                if code == 101:
+                    # 集控脱网, 告警
+                    record_alarm(
+                        event="集控脱网", object_type='hub', alert_source=hub,
+                        object=hub.sn, level=3, status=3
+                    )
+                    raise ConnectHubTimeOut(
+                        'connect hub [{}] time out'.format(hub.sn))
+                if code != 0:
+                    raise HubError("hub [{}] unknown error".format(hub.sn))
         except (ConnectHubTimeOut, HubError):
             raise
         except Exception as ex:
@@ -701,6 +691,37 @@ class HubViewSet(ListModelMixin,
         return Response(
             data={'detail': 'gather group config success'})
 
+    @staticmethod
+    def before_update_group(instance, serializer_data):
+        """下发(模式)分组之前 数据库操作"""
+        hub = instance
+        group_num = serializer_data['group_num']
+        lampctrl_sns = serializer_data['lampctrl']
+
+        if not LampCtrlGroup.objects.filter_by(is_default=False).exists():
+            # 自定义分组不存在
+            for lampctrl_sn in lampctrl_sns:
+                lampctrl = LampCtrl.objects.get(sn=lampctrl_sn)
+                LampCtrlGroup.objects.create(
+                    hub=hub, lampctrl=lampctrl, group_num=group_num
+                )
+        else:
+            # 自定义分组存在 灯控有分组则修改 无分组则创建
+            for lampctrl_sn in lampctrl_sns:
+                lampctrl = LampCtrl.objects.get(sn=lampctrl_sn)
+                LampCtrlGroup.objects.filter_by().update_or_create(
+                    hub=hub, lampctrl=lampctrl, is_default=False,
+                    defaults=dict(group_num=group_num)
+                )
+
+        # 更新后的自定义分组配置
+        group_config = defaultdict(list)
+        group_nums = set(LampCtrlGroup.objects.filter_by(hub=hub, is_default=False).values_list('group_num', flat=True))
+        for group_num in group_nums:
+            group_config[group_num] = list(LampCtrlGroup.objects.filter_by(hub=hub, group_num=group_num).values_list('lampctrl', flat=True))
+
+        return group_config
+
     @action(methods=['POST'], detail=True, url_path='update-group')
     def update_group(self, request, *args, **kwargs):
         """
@@ -715,43 +736,41 @@ class HubViewSet(ListModelMixin,
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         lampctrl_sns = serializer.data['lampctrl']
-        group_id = serializer.data['group_num']
+        group_num = serializer.data['group_num']
 
         try:
             with transaction.atomic():
+                group_config = self.before_update_group(
+                    instance=hub, serializer_data=serializer.validated_data
+                )
                 sender = 'cmd-{}'.format(uuid.uuid1())
-                with MessageSocket(*settings.NS_ADDR, sender=sender) as msg_socket:
+                with MessageSocket(*settings.NS_ADDR,
+                                   sender=sender) as msg_socket:
                     body = {
-                        "action": "lighten",
+                        "action": "send_down_group_config",
                         "type": "cmd",
-                        "detail": {
-                            "hub_sn": hub.sn,
-                            "lamp_sn": [],
-                            "action": action,
-                            "all": True
-                        }
+                        "group_config": group_config
                     }
                     msg_socket.send_single_message(receiver=hub.sn, body=body,
                                                    sender=sender)
                     recv = msg_socket.receive_data()
-                    code = recv.get('code')
-                    if code == 101:
-                        # 集控脱网, 告警
-                        record_alarm(
-                            event="集控脱网", object_type='hub',
-                            alert_source=hub, object=hub.sn,
-                            level=3, status=3
-                        )
-                        raise ConnectHubTimeOut(
-                            'connect hub [{}] time out'.format(hub.sn))
-                    if code != 0:
-                        raise HubError("hub [{}] unknown error".format(hub.sn))
+                code = recv.get('code')
+                if code == 101:
+                    # 集控脱网, 告警
+                    record_alarm(
+                        event="集控脱网", object_type='hub', alert_source=hub,
+                        object=hub.sn, level=3, status=3
+                    )
+                    raise ConnectHubTimeOut(
+                        'connect hub [{}] time out'.format(hub.sn))
+                if code != 0:
+                    raise HubError("hub [{}] unknown error".format(hub.sn))
         except (ConnectHubTimeOut, HubError):
             raise
         except Exception as ex:
             # TODO 除集控通讯外的其他异常处理
-            raise
-        return Response(data={'detail': 'update group config success'})
+            raise DMLError(str(ex))
+        return Response(data={'detail': 'group configuration success'})
 
     @action(methods=['POST'], detail=False, url_path='send-down-policyset')
     def send_down_policyset(self, request, *args, **kwargs):
@@ -882,6 +901,7 @@ class HubViewSet(ListModelMixin,
         serializer.is_valid(raise_exception=True)
         hub_sns = serializer.validated_data['hub']
         for hub_sn in hub_sns:
+            hub = Hub.objects.get(sn=hub_sn)
             try:
                 with transaction.atomic():
                     # 删除下发策略
