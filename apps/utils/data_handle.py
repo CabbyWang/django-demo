@@ -5,8 +5,9 @@ Create by 王思勇 on 2019/5/8
 """
 import random
 
-from hub.models import Hub, Unit
-from lamp.models import LampCtrl, LampCtrlGroup
+from equipment.models import Hub, LampCtrl
+from base.models import Unit
+from group.models import LampCtrlGroup
 from projectinfo.models import ProjectInfo
 
 __all__ = ("record_inventory", "record_default_group")

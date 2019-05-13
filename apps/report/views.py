@@ -151,9 +151,9 @@ class ReportViewSet(ListModelMixin,
             setting = Setting.objects.get(option='daily_consumption')
             daily_consumption = float(setting.value)
         except Setting.DoesNotExist:
-            # raise serializers.ValidationError('每日能耗未配置')
-            return Response(status=status.HTTP_404_NOT_FOUND,
-                            data={'code': 2, 'message': "每日能耗未配置"})
+            raise InvalidInputError('每日能耗未配置')
+            # return Response(status=status.HTTP_404_NOT_FOUND,
+            #                 data={'code': 2, 'message': "每日能耗未配置"})
         days = LampCtrlConsumption.objects.values('date').annotate().count()
         # 预期总能耗
         expect_consumption = daily_consumption * days

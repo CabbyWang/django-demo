@@ -2,17 +2,21 @@ import platform
 import re
 import subprocess
 
-from rest_framework import viewsets
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import viewsets, mixins
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 
-from lamp.models import LampCtrlStatus
+from status.filters import LampCtrlStatusFilter
+from status.models import LampCtrlStatus
 from setting.models import Setting
+from status.serializers import LampCtrlStatusSerializer
 from utils.mixins import ListModelMixin
-from hub.models import Hub, HubStatus
-from hub.serializers import HubDetailSerializer
+from equipment.models import Hub
+from status.models import HubStatus
+from equipment.serializers import HubDetailSerializer
 
 
 class StatusViewSet(viewsets.GenericViewSet):
@@ -91,3 +95,18 @@ class StatusViewSet(viewsets.GenericViewSet):
             'lamp_status_count_threshold': lamp_status_count_threshold
         }
         return Response(data=ret_data)
+
+
+class LampCtrlStatusViewSet(ListModelMixin,
+                            mixins.CreateModelMixin,
+                            viewsets.GenericViewSet):
+    """
+    灯控状态
+    list:
+        获取单灯历史状态
+    """
+    queryset = LampCtrlStatus.objects.all()
+    serializer_class = LampCtrlStatusSerializer
+    authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
+    filter_backends = (DjangoFilterBackend, )
+    filter_class = LampCtrlStatusFilter

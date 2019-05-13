@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 
-from hub.models import Hub
+from equipment.models import Hub
 from base.models import BaseModel, MyAbstractUser
 
 

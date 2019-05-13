@@ -24,6 +24,7 @@ log.startLogging(sys.stdout)
 # twisted clients pool
 clients = {}
 # TODO 是否可以将日志按集控来分文件，方便问题追踪
+# TODO 如何过滤非法信息， 如 不经过verifiy的连接 格式不匹配
 
 
 class Server(Protocol):

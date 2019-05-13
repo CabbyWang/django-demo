@@ -8,7 +8,6 @@ import datetime
 from django.db import transaction
 
 from rest_framework import serializers
-from rest_framework.validators import UniqueValidator
 
 from .models import Policy, PolicySet, PolicySetRelation, PolicySetSendDown
 from utils.validators import UniqueValidator

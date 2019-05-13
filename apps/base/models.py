@@ -108,3 +108,19 @@ class MyAbstractUser(AbstractUser):
 
     class Meta:
         abstract = True
+
+
+class Unit(BaseModel):
+    """
+    管理单元
+    """
+    name = models.CharField(max_length=32, verbose_name="名称", unique=True)
+
+    class Meta:
+        verbose_name = "管理单元"
+        verbose_name_plural = verbose_name
+        ordering = ('name',)
+        db_table = "unit"
+
+    def __str__(self):
+        return self.name

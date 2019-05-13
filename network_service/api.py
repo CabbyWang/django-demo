@@ -10,10 +10,13 @@ import random
 
 from django.db import transaction
 
-from lamp.models import LampCtrl, LampCtrlGroup
+from equipment.models import LampCtrl
+from group.models import LampCtrlGroup
 from notify.models import Alert
 
-from hub.models import Hub, Unit, HubStatus
+from equipment.models import Hub
+from base.models import Unit
+from status.models import HubStatus
 from projectinfo.models import ProjectInfo
 from workorder.models import WorkOrder
 from utils.alert import record_alarm
@@ -57,6 +60,8 @@ class SLMS(object):
         Hub.objects.filter_by(sn=hub_sn).update(status=3)
         # TODO 产生告警， 存在则更新时间， 不存在则新增告警 逻辑是否需要在record_alarm中实现
         hub = Hub.objects.filter_by(sn=hub_sn).first()
+        if not hub:
+            return
         alert, is_created = Alert.objects.update_or_create(
             event='集控脱网', level=3, object=hub.sn,
             object_type='hub', alert_source=hub, is_solved=False

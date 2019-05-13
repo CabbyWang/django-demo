@@ -14,7 +14,7 @@ from rest_framework_jwt.serializers import JSONWebTokenSerializer, \
     jwt_payload_handler, jwt_encode_handler
 from rest_framework.validators import UniqueValidator
 
-from hub.models import Hub
+from equipment.models import Hub
 from django.conf import settings
 from user.models import UserGroup, User, Permission
 from utils.exceptions import InvalidInputError

@@ -14,7 +14,7 @@ class UserGroupAdmin(object):
 
 class UserAdmin(object):
     list_display = [
-        "id", "mobile", "email", "read_only_user", "receive_alarm",
+        "id", "mobile", "email", "is_read_only", "is_receive_alarm",
         "password_modified_time", "user_group", "updated_user",
         "organization", "memo", "is_deleted", "created_time",
         "updated_time", "deleted_time"

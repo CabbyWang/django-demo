@@ -15,7 +15,7 @@ django-crontab
     `python manage.py crontab remove`
 """
 
-from hub.models import HubStatus
+from status.models import HubStatus
 from lamp.models import LampCtrlStatus
 
 

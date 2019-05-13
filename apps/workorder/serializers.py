@@ -9,13 +9,12 @@ from django.utils.translation import ugettext_lazy as _
 
 from rest_framework import serializers
 
-from asset.models import Pole, Lamp, Cable, CBox
-from hub.models import Hub
-from lamp.models import LampCtrl
+from equipment.models import Pole, Lamp, Cable, CBox
+from equipment.models import Hub, LampCtrl
 from notify.models import Alert
 from user.views import User
 from .models import WorkOrder, WorkorderImage, WorkOrderAudio, Inspection, InspectionImage, InspectionItem
-from utils.exceptions import InvalidInputError
+from utils.exceptions import InvalidInputError, ValidationError
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -120,26 +119,26 @@ class WorkOrderSerializer(serializers.ModelSerializer):
         # 判断集控是否存在
         if w_type == 1 and obj_sn and not Hub.objects.filter_by(
                 sn=obj_sn).exists():
-            raise InvalidInputError("hub [{}] not exist".format(obj_sn))
+            raise InvalidInputError("hub [{}] does not exist".format(obj_sn))
         # # 判断灯控或灯具是否存在
         elif w_type == 2 and obj_sn and not LampCtrl.objects.filter_by(
                 sn=obj_sn).exists() and not Lamp.objects.filter_by(
                 sn=obj_sn).exists():
             raise serializers.ValidationError(
-                "lamp or lamp control [{}] not exist".format(obj_sn))
+                "lamp or lamp control [{}] does not exist".format(obj_sn))
         # 判断灯杆是否存在
         elif w_type == 3 and obj_sn and not Pole.objects.filter_by(
                 sn=obj_sn).exists():
-            raise InvalidInputError("pole [{}] not exist".format(obj_sn))
+            raise InvalidInputError("pole [{}] does not exist".format(obj_sn))
         # 判断电缆是否存在
         elif w_type == 4 and obj_sn and not Cable.objects.filter_by(
                 sn=obj_sn).exists():
-            raise InvalidInputError("cable [{}] not exist".format(obj_sn))
+            raise InvalidInputError("cable [{}] does not exist".format(obj_sn))
         # 判断控制箱是否存在
         elif w_type == 5 and obj_sn and not CBox.objects.filter_by(
                 sn=obj_sn).exists():
             raise InvalidInputError(
-                "control box [{}] not exist".format(obj_sn))
+                "control box [{}] does not exist".format(obj_sn))
         return obj_sn
 
     def validate(self, attrs):

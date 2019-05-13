@@ -1,6 +1,6 @@
 from django.db import models
 
-from hub.models import Hub
+from equipment.models import Hub
 from user.models import User
 
 from base.models import BaseModel

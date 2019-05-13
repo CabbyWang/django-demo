@@ -12,7 +12,7 @@ from rest_framework import status, viewsets, mixins
 from rest_framework.authentication import SessionAuthentication
 from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 
-from hub.models import Hub
+from equipment.models import Hub
 from user.filters import UserGroupFilter, UserFilter
 from user.models import UserGroup, Permission
 from user.serializers import (
@@ -172,12 +172,15 @@ class UserViewSet(ListModelMixin,
     def get_permissions(self):
         if self.action in ('update', ):
             return [IsAuthenticated(), IsAdminUser()]
-        if self.action in ('create', 'set_superuser', 'update_group',
-                           'assign_permission'):
+        if self.action in (
+            'create', 'set_superuser', 'update_group',
+            'assign_permission'
+        ):
             return [IsAuthenticated(), IsSuperUser()]
-        if self.action in ('cancel_superuser', 'set_read_only',
-                           'set_receive_alarm', 'set_active', 'destroy'
-                           ):
+        if self.action in (
+            'cancel_superuser', 'set_read_only',
+            'set_receive_alarm', 'set_active', 'destroy'
+        ):
             return [IsAuthenticated(), IsPriority()]
         if self.action in ('change_profile', 'change_password'):
             return [IsAuthenticated(), IsOwner()]

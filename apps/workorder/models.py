@@ -1,7 +1,6 @@
 from django.db import models
 
-from hub.models import Hub
-from lamp.models import LampCtrl
+from equipment.models import Hub, LampCtrl
 from user.models import User
 from notify.models import Alert
 from base.models import BaseModel

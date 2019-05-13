@@ -8,7 +8,7 @@ import copy
 import requests
 from django.conf import settings
 
-from hub.models import Hub
+from equipment.models import Hub
 from setting.models import Setting
 from user.models import Permission, User
 

@@ -10,8 +10,7 @@ import requests
 from django.conf import settings
 
 from notify.models import Alert
-from hub.models import Hub
-from lamp.models import LampCtrl
+from equipment.models import Hub, LampCtrl
 from setting.models import Setting
 from user.models import Permission, User
 from workorder.models import WorkOrder

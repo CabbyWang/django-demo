@@ -20,16 +20,17 @@ from django.views.static import serve
 from rest_framework import routers
 from rest_framework.documentation import include_docs_urls
 
+from base.views import UnitViewSet
+from communication.views import CommunicateViewSet
+from equipment.views import HubViewSet, LampCtrlViewSet, PoleViewSet, \
+    LampViewSet, CBoxViewSet, CableViewSet
+from group.views import LampCtrlGroupViewSet
 from report.views import ReportViewSet
-from status.views import StatusViewSet
+from status.views import StatusViewSet, LampCtrlStatusViewSet
 from user.auth import CustomObtainJSONWebToken
 from user.views import UserGroupViewSet, UserViewSet
-from hub.views import HubViewSet, UnitViewSet
 from setting.views import SettingViewSet
-from lamp.views import LampCtrlViewSet, LampCtrlStatusViewSet, \
-    LampCtrlGroupViewSet
 from projectinfo.views import ProjectInfoViewSet
-from asset.views import PoleViewSet, CableViewSet, CBoxViewSet, LampViewSet
 from notify.views import LogViewSet, AlertViewSet, AlertAudioViewSet
 from policy.views import PolicyViewSet, PolicySetViewSet
 from workorder.views import (
@@ -123,6 +124,9 @@ router.register('status', StatusViewSet, base_name='status')
 
 # 灯控分组
 router.register('lampctrlgroups', LampCtrlGroupViewSet, base_name='lampctrlgroups')
+
+# 集控通讯
+router.register('communicate', CommunicateViewSet, base_name='communicate')
 
 
 urlpatterns = [

@@ -56,14 +56,14 @@ class PolicySetRelationAdmin(object):
 class PolicySetSendDownAdmin(object):
 
     list_display = [
-        "policyset", "hub", "group_id", "is_deleted", "created_time",
+        "policyset", "hub", "group_num", "is_deleted", "created_time",
         "updated_time", "deleted_time"
     ]
     list_filter = [
-        "policyset", "hub", "group_id", "is_deleted"
+        "policyset", "hub", "group_num", "is_deleted"
     ]
     search_fields = [
-        "policyset", "hub", "group_id", "is_deleted", "created_time",
+        "policyset", "hub", "group_num", "is_deleted", "created_time",
         "updated_time", "deleted_time"
     ]
 

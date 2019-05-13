@@ -2,9 +2,9 @@ import ast
 
 from django.db import models
 
-from hub.models import Hub
+from equipment.models import Hub
 from base.models import BaseModel
-from lamp.models import LampCtrlGroup
+from group.models import LampCtrlGroup
 
 
 class ListField(models.TextField):
