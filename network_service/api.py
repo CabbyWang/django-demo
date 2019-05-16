@@ -62,18 +62,17 @@ class SLMS(object):
         hub = Hub.objects.filter_by(sn=hub_sn).first()
         if not hub:
             return
-        alert, is_created = Alert.objects.update_or_create(
-            event='集控脱网', level=3, object=hub.sn,
-            object_type='hub', alert_source=hub, is_solved=False
-        )
+        # alert, is_created = Alert.objects.update_or_create(
+        #     event='集控脱网', level=3, object=hub.sn,
+        #     object_type='hub', alert_source=hub, is_solved=False
+        # )
 
-        if is_created:
-            # 集控之前正常，告警
-            record_alarm(
-                event='集控脱网', object_type='hub', alert_source=hub,
-                object=hub_sn, level=3, status=3
-            )
-            pass
+        # if is_created:
+        # 集控之前正常，告警
+        record_alarm(
+            event='集控脱网', object_type='hub', alert_source=hub,
+            object=hub_sn, level=3, status=3
+        )
 
     @classmethod
     def record_connect_hub(cls, hub_sn):
@@ -99,11 +98,17 @@ class SLMS(object):
             solved_time=datetime.datetime.now(), is_solved=True, memo='集控重连'
         )
 
-    @staticmethod
-    def prepare_report_status_content(content):
-        """集控上报三相电能数据预处理"""
-        # TODO 数据预处理
-        return content
+    # @staticmethod
+    # def prepare_report_status_content(content):
+    #     """集控上报三相电能数据预处理"""
+    #     # TODO 数据预处理
+    #     body = content['body']
+    #     hub_status = body['hub']
+    #     lamps_status = body['lamps']
+    #     for k in list(item.keys()):
+    #         if k not in LampCtrl.fields():
+    #             item.pop(k)
+    #     return content
 
     @classmethod
     def report_status(cls, content):
@@ -111,14 +116,15 @@ class SLMS(object):
         集控定时上报三相电能数据
         :param content: 三相电数据 dict 反序列化后的 集控上报的数据包
         """
+        # TODO 老板赶时间 后期再优化吧
         refresh_connections()
         print('network_service >> api.py >> report_status')
         assert isinstance(content, dict)
-        cls.prepare_report_status_content(content)
         # TODO 是否需要进行格式检验
+        # cls.prepare_report_status_content(content)
 
         hub_sn = content.get('sender')
-        body = content.get('body')
+        body = content.get('body', {})
         hub_status = body.get('hub', {}) or {}
         lamps_status = body.get('lamps', {}) or {}
         # TODO 存入数据库
@@ -126,7 +132,8 @@ class SLMS(object):
             with transaction.atomic():
                 # HubStatus表
                 # HubStatus.objects.create(body)
-                # TODO
+                # LampCtrlStatus表
+
                 pass
         # TODO 分析三相电数据，作相应更新和告警
         except Exception as ex:

@@ -5,6 +5,7 @@ from django.db import models
 from equipment.models import Hub
 from base.models import BaseModel
 from group.models import LampCtrlGroup
+from user.models import User
 
 
 class ListField(models.TextField):
@@ -36,7 +37,9 @@ class Policy(BaseModel):
     name = models.CharField(max_length=255, verbose_name='策略名称')
     item = ListField(default=[])
     memo = models.CharField(max_length=255, null=True, blank=True, verbose_name='备注')
-    creator = models.CharField(max_length=16, blank=True, null=True)
+    creator = models.ForeignKey(User, db_column='creator',
+                                related_name='user_policys',
+                                blank=True, null=True)
 
     class Meta:
         verbose_name = "策略"
@@ -55,7 +58,9 @@ class PolicySet(BaseModel):
     policys = models.ManyToManyField(Policy, through='PolicySetRelation')
     name = models.CharField(max_length=255)
     memo = models.CharField(max_length=255, null=True, blank=True)
-    creator = models.CharField(max_length=16, blank=True, null=True)
+    creator = models.ForeignKey(User, db_column='creator',
+                                related_name='user_policysets',
+                                blank=True, null=True)
 
     def get_policys(self, obj):
         return obj.policyset_relations.filter(is_deleted=False)

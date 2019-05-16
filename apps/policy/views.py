@@ -42,7 +42,11 @@ class PolicyViewSet(ListModelMixin,
     filter_class = PolicyFilter
 
     def perform_destroy(self, instance):
-        if instance.policy_relations.exists:
+        # 只能删除自己创建的策略
+        if instance.creator != self.request.user:
+            msg = _('the policy was not created by yourself, can not be deleted')
+            raise InvalidInputError(msg)
+        if instance.policy_relations.exists():
             raise InvalidInputError('the policy is using, can not be deleted')
         instance.soft_delete()
 
@@ -75,6 +79,10 @@ class PolicySetViewSet(ListModelMixin,
     filter_class = PolicySetFilter
 
     def perform_destroy(self, instance):
+        # 只能删除自己创建的策略
+        if instance.creator != self.request.user:
+            msg = _('the policyset was not created by yourself, can not be deleted')
+            raise InvalidInputError(msg)
         if instance.policyset_send_down_policysets.exists():
             msg = _('the policyset is using, can not be deleted')
             raise InvalidInputError(msg)

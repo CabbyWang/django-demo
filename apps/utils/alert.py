@@ -42,6 +42,9 @@ def record_alarm(event, object_type, alert_source, object, level, status):
     elif object_type == 'lamp':
         # 改变灯控状态
         LampCtrl.objects.filter_by(sn=object).update(status=status)
+    else:
+        # TODO illegal object type(warning)
+        return
 
     # 告警不存在， 新增告警 / 告警存在， 更新时间
     alert, is_created = Alert.objects.filter_by().update_or_create(
@@ -65,7 +68,8 @@ def record_alarm(event, object_type, alert_source, object, level, status):
         # 生成工单
         # TODO 工单type需要根据之后的类型进行修改
         WorkOrder.objects.create(
-            alert=alert, type=2, obj_sn=object,
+            alert=alert, type=2 if object_type == 'lamp' else 1,
+            obj_sn=object,
             memo='{}，由告警自动生成'.format(event), status='todo'
         )
 

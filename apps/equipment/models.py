@@ -168,6 +168,10 @@ class LampCtrl(BaseModel):
     on_map = models.BooleanField(default=False, help_text='是否在地图上显示')
     memo = models.CharField(max_length=255, null=True, blank=True,
                             help_text='备注')
+    version = models.CharField(
+        max_length=255, null=True, blank=True,
+        verbose_name='固件版本', help_text='固件版本'
+    )
     # failure_date = models.DateField(null=True, blank=True, help_text='故障日期')
     registered_time = models.DateField(default=datetime.now, help_text='入网时间')
     is_redirect = models.BooleanField(default=False, verbose_name='是否重定位',

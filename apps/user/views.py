@@ -65,7 +65,7 @@ class UserGroupViewSet(ListModelMixin,
             return UserGroup.objects.filter_by()
         # 非管理员用户只能看到自己的用户组
         user = self.request.user
-        return user.user_group.filter_by()
+        return UserGroup.objects.filter(id=user.user_group.id)
 
     def get_serializer_class(self):
         if self.action in ('list', 'retrieve'):
@@ -197,6 +197,8 @@ class UserViewSet(ListModelMixin,
             return ChangePswSerializer
         if self.action == 'change_profile':
             return ChangeProfileSerializer
+        # if self.action == 'reset_password':
+        #     return ResetPswSerializer
         if self.action == 'assign_permission':
             return AssignPermissionSerializer
         if self.action == 'set_read_only':
@@ -358,11 +360,12 @@ class UserViewSet(ListModelMixin,
         """重置密码
         PUT /users/{id}/reset-password/
         """
+        default_psw = settings.DEFAULT_PASSWORD
         instance = self.get_object()
-        instance.set_password(settings.DEFAULT_PASSWORD)
+        instance.set_password(default_psw)
         instance.updated_user = request.user
         instance.save()
-        return Response()
+        return Response(data={"password": default_psw})
 
     @action(methods=['PUT'], detail=True, url_path='permission')
     def assign_permission(self, request, *args, **kwargs):

@@ -29,13 +29,13 @@ class AuthenticateNSError(APIException):
 
 
 class ConnectHubTimeOut(APIException):
-    status_code = status.HTTP_408_REQUEST_TIMEOUT
+    status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
     default_detail = _("connect hub timeout")
     default_code = 'connect error'
 
 
 class HubError(APIException):
-    status_code = status.HTTP_408_REQUEST_TIMEOUT
+    status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
     default_detail = _("hub unknown error")
     default_code = 'hub error'
 

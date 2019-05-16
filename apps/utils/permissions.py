@@ -11,8 +11,6 @@ class IsSuperUser(permissions.IsAdminUser):
     判断是否是superuser
     """
 
-    message = "你没有该操作权限"
-
     def has_permission(self, request, view):
         return request.user.is_superuser
 
@@ -24,8 +22,6 @@ class IsAdminUser(permissions.IsAdminUser):
     """
     判断是否是admin
     """
-
-    message = "你没有该操作权限"
 
     def has_permission(self, request, view):
         return request.user.username == 'admin'

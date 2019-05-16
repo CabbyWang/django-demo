@@ -45,7 +45,7 @@ class Server(Protocol):
             "get_hub_status", "send_down_policyset",
             "gather_policyset", "cancel_policyset",
             "send_down_group_config", "cancel_group_config",
-            "gather_group_config"
+            "gather_group_config", "get_hub_log"
         )
         self.cmd_ack_actions = ['{}_ack'.format(i) for i in self.cmd_actions]
         self.time_actions = ("report_status", "report_alarms")
@@ -63,7 +63,7 @@ class Server(Protocol):
         return True
 
     def connectionLost(self, reason):
-        if self.is_hub():
+        if self.user and self.is_hub():
             log.msg("Connection break!")
             SLMS.record_offline_hub(self.user)  # 记录脱网后的集控
         if self.user in clients:
@@ -151,7 +151,8 @@ class Server(Protocol):
             # 这里需要注意: SLMS中的上报指令处理函数名必须和action同名
             ret = getattr(SLMS, action)(content=content)
             code = ret.get('code', 1)
-            message = code == 0 and "上报成功" or "上报失败"
+            # message = code == 0 and "上报成功" or "上报失败"
+            message = code == 0 and "success" or "fail"
             reason = ret.get("reason")
 
             send_content = dict(
@@ -203,7 +204,8 @@ class Server(Protocol):
         user = content.get("sender")
         self.user = user
         clients[user] = self
-        log.msg("New client <{}> has registered!".format(user))
+        # log.msg("New client <{}> has registered!".format(user))
+        log.msg("New client <{}>".format(user))
         log.msg("Online clients now: {}".format(clients))
         success_content = dict(
             action="register_server_ack",
@@ -222,6 +224,7 @@ class Server(Protocol):
         if user in clients and clients[user].is_hub():
             log.msg("Hub <{}> is already existed.".format(user))
             clients[user].abort_connection()
+            clients.pop(user)
         body = content.get('body')
         inventory = body.get("inventory")
         default_group = body.get('default_group')
@@ -331,6 +334,7 @@ class ServerFactory(Factory):
                 continue
             log.msg("There is no heartbeat of <{}>. Break it.".format(hub))
             server.abort_connection()
+            clients.pop(hub)
             # SLMS.record_offline_hub(hub)
 
 

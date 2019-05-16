@@ -10,10 +10,13 @@ class Log(BaseModel):
     """
     日志
     """
-    user = models.ForeignKey(User, related_name='user_log', help_text='操作人员用户名')
+    STATUS = ('success', 'fail')
+
+    user = models.ForeignKey(User, null=True, blank=True, related_name='user_log', help_text='操作人员用户名')
     event = models.CharField(max_length=1024, help_text='操作事件')
     object = models.CharField(max_length=255, help_text='操作对象')
-    memo = models.CharField(max_length=1024, null=True, help_text='详情')
+    status = models.IntegerField(choices=enumerate(STATUS), verbose_name='操作状态')
+    memo = models.CharField(max_length=1024, null=True, blank=True, help_text='详情')
 
     class Meta:
         verbose_name = '日志'

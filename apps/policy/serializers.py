@@ -9,6 +9,7 @@ from django.db import transaction
 
 from rest_framework import serializers
 
+from user.models import User
 from .models import Policy, PolicySet, PolicySetRelation, PolicySetSendDown
 from utils.validators import UniqueValidator
 from utils.exceptions import InvalidInputError
@@ -24,8 +25,10 @@ class PolicySerializer(serializers.ModelSerializer):
                                          message='policy name has been existed')])
     # type = serializers.ChoiceField([(0, '时控'), (1, '经纬度'), (2, '光控'), (3, '回路控制')])
     item = serializers.ListField(min_length=1)
-    creator = serializers.CharField(
+    creator = serializers.SlugRelatedField(
         # write_only=True,
+        slug_field='username',
+        queryset=User.objects.filter_by(),
         default=serializers.CurrentUserDefault()
     )
     is_used = serializers.SerializerMethodField()
@@ -104,7 +107,7 @@ class PolicySetRelationSerializer(serializers.ModelSerializer):
     name = serializers.ReadOnlyField(source='policy.name')
     type = serializers.ReadOnlyField(source='policy.type')
     item = serializers.ReadOnlyField(source='policy.item')
-    creator = serializers.ReadOnlyField(source='policy.creator')
+    creator = serializers.ReadOnlyField(source='policy.creator.username')
     memo = serializers.ReadOnlyField(source='policy.memo')
 
     class Meta:
@@ -126,8 +129,10 @@ class PolicySetSerializer(serializers.ModelSerializer):
                                      UniqueValidator(
                                          queryset=PolicySet.objects.filter_by(),
                                          message='policyset name has been existed')])
-    creator = serializers.CharField(
+    creator = serializers.SlugRelatedField(
         # write_only=True,
+        slug_field='username',
+        queryset=User.objects.filter_by(),
         default=serializers.CurrentUserDefault()
     )
     created_time = serializers.DateTimeField(read_only=True,

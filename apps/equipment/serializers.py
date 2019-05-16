@@ -8,6 +8,8 @@ from rest_framework import serializers
 from base.serializers import UnitSerializer
 from equipment.models import PoleImage, Pole, LampImage, Lamp, CBoxImage, CBox, \
     Cable, LampCtrl, Hub
+from status.serializers import LampCtrlStatusSerializer, \
+    LampCtrlLatestStatusSerializer
 
 
 class PoleImageSerializer(serializers.ModelSerializer):
@@ -198,6 +200,20 @@ class CableBatchDeleteSerializer(serializers.ModelSerializer):
         fields = ("sn", )
 
 
+# class LampCtrlLatestStatusSerializer(serializers.ModelSerializer):
+#     voltage = serializers.DecimalField(max_digits=32, decimal_places=1)
+#     current = serializers.DecimalField(max_digits=32, decimal_places=1)
+#     power = serializers.DecimalField(max_digits=32, decimal_places=1)
+#     consumption = serializers.DecimalField(max_digits=32, decimal_places=1)
+#     created_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
+#     updated_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
+#     deleted_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
+#
+#     class Meta:
+#         model = LampCtrlLatestStatus
+#         fields = "__all__"
+
+
 class LampCtrlSerializer(serializers.ModelSerializer):
     # failure_date = serializers.DateField(read_only=True, format='%Y-%m-%d')
     registered_time = serializers.DateField(read_only=True, format='%Y-%m-%d')
@@ -207,6 +223,8 @@ class LampCtrlSerializer(serializers.ModelSerializer):
                                              format='%Y-%m-%d %H:%M:%S')
     deleted_time = serializers.DateTimeField(read_only=True,
                                              format='%Y-%m-%d %H:%M:%S')
+
+    status = LampCtrlLatestStatusSerializer(read_only=True, source='lampctrl_latest_status')
 
     lamp_status = serializers.SerializerMethodField()
     hub_is_redirect = serializers.SerializerMethodField()
@@ -250,10 +268,12 @@ class LampCtrlSerializer(serializers.ModelSerializer):
 
 class LampCtrlPartialUpdateSerializer(serializers.ModelSerializer):
     new_address = serializers.CharField()
+    longitude = serializers.FloatField(max_value=180, min_value=0)
+    latitude = serializers.FloatField(max_value=90, min_value=0)
 
     def validate(self, attrs):
         for k, v in attrs.items():
-            if k == "new_address":
+            if k in ("new_address", "longitude", "latitude"):
                 continue
             attrs[k] = getattr(self.instance, k)
         return attrs

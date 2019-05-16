@@ -4,6 +4,7 @@ from collections import defaultdict
 from django.conf import settings
 from django.db import transaction
 from django.http import StreamingHttpResponse
+from django.utils.translation import ugettext_lazy as _
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.response import Response
 from rest_framework import mixins, viewsets, status
@@ -70,8 +71,6 @@ class CommunicateViewSet(viewsets.ModelViewSet):
             return GatherLampCtrlSerializer
         elif self.action == 'control_lamp':
             return ControlLampSerializer
-        elif self.action == 'load_inventory':
-            return HubIsExistedSerializer
         elif self.action == 'control_all':
             return ControlAllSerializer
         elif self.action == 'pattern_grouping':
@@ -80,11 +79,6 @@ class CommunicateViewSet(viewsets.ModelViewSet):
             return CustomGroupingSerializer
         elif self.action == 'update_group':
             return UpdateGroupSerializer
-        # TODO serializer相同功能的合并
-        elif self.action == 'gather_group':
-            return HubIsExistedSerializer
-        elif self.action == 'gather_policyset':
-            return HubIsExistedSerializer
         elif self.action == 'send_down_policyset':
             return SendDownPolicySetSerializer
         elif self.action == 'recycle_policyset':
@@ -112,7 +106,6 @@ class CommunicateViewSet(viewsets.ModelViewSet):
             with MessageSocket(*settings.NS_ADDR, sender=sender) as msg_socket:
                 body = {
                     "action": "get_lamp_status",
-                    "type": "cmd",
                     "lamp_sn": lampctrl_sns
                 }
                 msg_socket.send_single_message(receiver=hub_sn, body=body,
@@ -160,7 +153,6 @@ class CommunicateViewSet(viewsets.ModelViewSet):
             with MessageSocket(*settings.NS_ADDR, sender=sender) as msg_socket:
                 body = {
                     "action": "lighten",
-                    "type": "cmd",
                     "detail": {
                         "hub_sn": hub_sn,
                         "lamp_sn": lampctrl_sns,
@@ -205,15 +197,13 @@ class CommunicateViewSet(viewsets.ModelViewSet):
         hubs = serializer.validated_data['hub']
 
         error_hubs = []
-        for hub_sn in hubs:
-            hub = Hub.objects.get(sn=hub_sn)
+        for hub in hubs:
             sender = 'cmd-{}'.format(uuid.uuid1())
             with MessageSocket(*settings.NS_ADDR, sender=sender) as msg_socket:
                 body = {
-                    "action": "load_inventory",
-                    "type": "cmd"
+                    "action": "load_inventory"
                 }
-                msg_socket.send_single_message(receiver=hub_sn, body=body,
+                msg_socket.send_single_message(receiver=hub.sn, body=body,
                                                sender=sender)
                 recv = msg_socket.receive_data()
             code = recv.get('code')
@@ -257,14 +247,11 @@ class CommunicateViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         hubs = serializer.validated_data['hub']
         ret_data = []
-        for hub_sn in hubs:
-            hub = Hub.objects.get(sn=hub_sn)
+        for hub in hubs:
             sender = 'cmd-{}'.format(uuid.uuid1())
             with MessageSocket(*settings.NS_ADDR, sender=sender) as msg_socket:
                 body = {
-                    "action": "get_hub_status",
-                    "type": "cmd",
-                    "hub_sn": hub.sn
+                    "action": "get_hub_status"
                 }
                 msg_socket.send_single_message(receiver=hub.sn, body=body,
                                                sender=sender)
@@ -295,24 +282,22 @@ class CommunicateViewSet(viewsets.ModelViewSet):
         """
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        hub_sns = serializer.validated_data['hub']
+        hubs = serializer.validated_data['hub']
         act = serializer.validated_data['action']
 
-        for hub_sn in hub_sns:
-            hub = Hub.objects.get(sn=hub_sn)
+        for hub in hubs:
             sender = 'cmd-{}'.format(uuid.uuid1())
             with MessageSocket(*settings.NS_ADDR, sender=sender) as msg_socket:
                 body = {
                     "action": "lighten",
-                    "type": "cmd",
                     "detail": {
-                        "hub_sn": hub_sn,
+                        "hub_sn": hub.sn,
                         "lamp_sn": [],
                         "action": act,
                         "all": True
                     }
                 }
-                msg_socket.send_single_message(receiver=hub_sn, body=body,
+                msg_socket.send_single_message(receiver=hub.sn, body=body,
                                                sender=sender)
                 recv = msg_socket.receive_data()
             code = recv.get('code')
@@ -320,12 +305,12 @@ class CommunicateViewSet(viewsets.ModelViewSet):
                 # 集控脱网, 告警
                 record_alarm(
                     event="集控脱网", object_type='hub', alert_source=hub,
-                    object=hub_sn, level=3, status=3
+                    object=hub.sn, level=3, status=3
                 )
                 raise ConnectHubTimeOut(
-                    'connect hub [{}] time out'.format(hub_sn))
+                    'connect hub [{}] time out'.format(hub.sn))
             if code != 0:
-                raise HubError("hub [{}] unknown error".format(hub_sn))
+                raise HubError("hub [{}] unknown error".format(hub.sn))
             if code == 0:
                 # 控灯成功 更新灯具状态
                 LampCtrl.objects.filter_by(hub=hub).update(switch_status=1)
@@ -343,14 +328,12 @@ class CommunicateViewSet(viewsets.ModelViewSet):
         # TODO 大文件下载问题? 更换文件下载方式 支持多个下载?
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        hub_sns = serializer.validated_data['hub']
-        for hub_sn in hub_sns:
-            hub = Hub.objects.get(sn=hub_sn)
+        hubs = serializer.validated_data['hub']
+        for hub in hubs:
             sender = 'cmd-{}'.format(uuid.uuid1())
             with MessageSocket(*settings.NS_ADDR, sender=sender) as msg_socket:
                 body = {
-                    "action": "get_hub_log",
-                    "type": "cmd"
+                    "action": "get_hub_log"
                 }
                 msg_socket.send_single_message(receiver=hub.sn, body=body,
                                                sender=sender)
@@ -412,7 +395,6 @@ class CommunicateViewSet(viewsets.ModelViewSet):
                                    sender=sender) as msg_socket:
                     body = {
                         "action": "send_down_group_config",
-                        "type": "cmd",
                         "group_config": group_config
                     }
                     msg_socket.send_single_message(receiver=hub.sn, body=body,
@@ -468,7 +450,6 @@ class CommunicateViewSet(viewsets.ModelViewSet):
                                    sender=sender) as msg_socket:
                     body = {
                         "action": "send_down_group_config",
-                        "type": "cmd",
                         "group_config": group_config
                     }
                     msg_socket.send_single_message(receiver=hub.sn, body=body,
@@ -504,9 +485,8 @@ class CommunicateViewSet(viewsets.ModelViewSet):
         """
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        hub_sns = serializer.validated_data['hub']
-        for hub_sn in hub_sns:
-            hub = Hub.objects.get(sn=hub_sn)
+        hubs = serializer.validated_data['hub']
+        for hub in hubs:
             try:
                 with transaction.atomic():
                     before_recycle_group(instance=hub)
@@ -515,7 +495,6 @@ class CommunicateViewSet(viewsets.ModelViewSet):
                                        sender=sender) as msg_socket:
                         body = {
                             "action": "cancel_group_config",
-                            "type": "cmd"
                         }
                         msg_socket.send_single_message(
                             receiver=hub.sn,
@@ -554,17 +533,16 @@ class CommunicateViewSet(viewsets.ModelViewSet):
         # TODO 采集分组
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        hub_sns = serializer.validated_data['hub']
-        for hub_sn in hub_sns:
-            hub = Hub.objects.get(sn=hub_sn)
+        hubs = serializer.validated_data['hub']
+        for hub in hubs:
+            hub = Hub.objects.get(sn=hub.sn)
             sender = 'cmd-{}'.format(uuid.uuid1())
             with MessageSocket(*settings.NS_ADDR,
                                sender=sender) as msg_socket:
                 body = {
                     "action": "gather_group_config",
-                    "type": "cmd"
                 }
-                msg_socket.send_single_message(receiver=hub_sn, body=body,
+                msg_socket.send_single_message(receiver=hub.sn, body=body,
                                                sender=sender)
                 recv = msg_socket.receive_data()
                 code = recv.get('code')
@@ -573,12 +551,12 @@ class CommunicateViewSet(viewsets.ModelViewSet):
                     record_alarm(
                         event="集控脱网", object_type='hub',
                         alert_source=hub,
-                        object=hub_sn, level=3, status=3
+                        object=hub.sn, level=3, status=3
                     )
                     raise ConnectHubTimeOut(
-                        'connect hub [{}] time out'.format(hub_sn))
+                        'connect hub [{}] time out'.format(hub.sn))
                 if code != 0:
-                    raise HubError("hub [{}] unknown error".format(hub_sn))
+                    raise HubError("hub [{}] unknown error".format(hub.sn))
                 default_group = recv.get('local_group_config')
                 custom_group = recv.get('slms_group_config')
                 try:
@@ -617,7 +595,6 @@ class CommunicateViewSet(viewsets.ModelViewSet):
                                    sender=sender) as msg_socket:
                     body = {
                         "action": "send_down_group_config",
-                        "type": "cmd",
                         "group_config": group_config
                     }
                     msg_socket.send_single_message(receiver=hub.sn, body=body,
@@ -682,7 +659,6 @@ class CommunicateViewSet(viewsets.ModelViewSet):
                                        sender=sender) as msg_socket:
                         body = {
                             "action": "send_down_policyset",
-                            "type": "cmd",
                             "policy_map": policy_map,
                             "policys": policy_items
                         }
@@ -722,17 +698,15 @@ class CommunicateViewSet(viewsets.ModelViewSet):
         # TODO 采集策略集
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        hub_sns = serializer.validated_data['hub']
-        for hub_sn in hub_sns:
-            hub = Hub.objects.get(sn=hub_sn)
+        hubs = serializer.validated_data['hub']
+        for hub in hubs:
             sender = 'cmd-{}'.format(uuid.uuid1())
             with MessageSocket(*settings.NS_ADDR,
                                sender=sender) as msg_socket:
                 body = {
-                    "action": "gather_policyset",
-                    "type": "cmd"
+                    "action": "gather_policyset"
                 }
-                msg_socket.send_single_message(receiver=hub_sn, body=body,
+                msg_socket.send_single_message(receiver=hub.sn, body=body,
                                                sender=sender)
                 recv = msg_socket.receive_data()
             code = recv.get('code')
@@ -741,20 +715,22 @@ class CommunicateViewSet(viewsets.ModelViewSet):
                 record_alarm(
                     event="集控脱网", object_type='hub',
                     alert_source=hub,
-                    object=hub_sn, level=3, status=3
+                    object=hub.sn, level=3, status=3
                 )
                 raise ConnectHubTimeOut(
-                    'connect hub [{}] time out'.format(hub_sn))
+                    'connect hub [{}] time out'.format(hub.sn))
             if code != 0:
-                raise HubError("hub [{}] unknown error".format(hub_sn))
+                raise HubError("hub [{}] unknown error".format(hub.sn))
             data = recv.get('data')
             # 去掉不需要的字段
             for i in ("action", "message", "code", "reason"):
                 data.pop(i, None)
             try:
                 with transaction.atomic():
-                    after_gather_group(instance=hub,
-                                            policy_data=data)
+                    # TODO 采集策略集后如何操作， 展示 or 存入数据库  最好是展示
+                    pass
+                    # after_gather_group(instance=hub,
+                    #                    policy_data=data)
             except Exception as ex:
                 # TODO 除集控通讯外的其他异常处理
                 raise
@@ -773,9 +749,8 @@ class CommunicateViewSet(viewsets.ModelViewSet):
         # TODO 回收策略集
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        hub_sns = serializer.validated_data['hub']
-        for hub_sn in hub_sns:
-            hub = Hub.objects.get(sn=hub_sn)
+        hubs = serializer.validated_data['hub']
+        for hub in hubs:
             try:
                 with transaction.atomic():
                     # TODO 删除下发策略
@@ -785,10 +760,9 @@ class CommunicateViewSet(viewsets.ModelViewSet):
                     with MessageSocket(*settings.NS_ADDR,
                                        sender=sender) as msg_socket:
                         body = {
-                            "action": "cancel_policyset",
-                            "type": "cmd"
+                            "action": "cancel_policyset"
                         }
-                        msg_socket.send_single_message(receiver=hub_sn,
+                        msg_socket.send_single_message(receiver=hub.sn,
                                                        body=body,
                                                        sender=sender)
                         recv = msg_socket.receive_data()
@@ -798,17 +772,13 @@ class CommunicateViewSet(viewsets.ModelViewSet):
                             record_alarm(
                                 event="集控脱网", object_type='hub',
                                 alert_source=hub,
-                                object=hub_sn, level=3, status=3
+                                object=hub.sn, level=3, status=3
                             )
                             raise ConnectHubTimeOut(
-                                'connect hub [{}] time out'.format(hub_sn))
+                                'connect hub [{}] time out'.format(hub.sn))
                         if code != 0:
                             raise HubError(
-                                "hub [{}] unknown error".format(hub_sn))
-                        data = recv.get('data')
-                        # 去掉不需要的字段
-                        for i in ("action", "message", "code", "reason"):
-                            data.pop(i, None)
+                                "hub [{}] unknown error".format(hub.sn))
             except (ConnectHubTimeOut, HubError):
                 raise
             except Exception as ex:

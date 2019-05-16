@@ -197,6 +197,27 @@ class MyBaseSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+# class ResetPswSerializer(MyBaseSerializer):
+#
+#     def validate(self, attrs):
+#         for k, v in attrs.items():
+#             if k == 'is_active':
+#                 continue
+#             attrs[k] = getattr(self.instance, k)
+#         return attrs
+#
+#     def update(self, instance, validated_data):
+#
+#         instance = super(ResetPswSerializer, self).update(instance, validated_data)
+#
+#         # TODO 是否可以通过signal来完成
+#         request = self.context['request']
+#         instance.set_password(settings.DEFAULT_PASSWORD)
+#         instance.updated_user = request.user
+#         instance.save()
+#         return instance
+
+
 class ChangePswSerializer(MyBaseSerializer):
     old_password = serializers.CharField(required=True, min_length=8, write_only=True)
     new_password = serializers.CharField(required=True, min_length=8, write_only=True)
@@ -208,6 +229,10 @@ class ChangePswSerializer(MyBaseSerializer):
     )
 
     def validate_old_password(self, password):
+        # 一周只能修改一次密码
+        last_time = self.instance.updated_time
+        if (datetime.datetime.now() - last_time).days < 7:
+            raise InvalidInputError('一周只能修改一次密码')
         request = self.context['request']
         user = request.user
         if not user.check_password(password):

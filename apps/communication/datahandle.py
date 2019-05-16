@@ -162,7 +162,7 @@ def before_send_down_policy_set(instance, item):
         group_num = group_num or "100"
         for relation in policyset.policyset_relations.filter_by():
             policys[group_num].append(
-                dict(execute_date=relation.execute_date,
+                dict(execute_date=relation.execute_date.strftime('%Y-%m-%d'),
                      policy=relation.policy.id)
             )
 

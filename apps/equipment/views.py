@@ -395,9 +395,9 @@ class LampCtrlViewSet(ListModelMixin,
     retrieve:
         获取单个灯控详情
     update:
-        修改灯控信息
+       修改灯控信息
     partial_update:
-        修改灯控地址
+        修改灯控地址(修改地址/单灯重定位)
     get_light_rate:
         灯控投运率
     """

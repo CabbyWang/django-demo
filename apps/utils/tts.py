@@ -4,6 +4,10 @@
 Create by 王思勇 on 2019/4/3
 """
 import os
+
+from notify.models import AlertAudio, Alert
+from workorder.models import WorkOrderAudio, WorkOrder
+
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "smartlamp.settings")
 
 import django
@@ -143,6 +147,15 @@ class AlertTTS(BaseTTS):
         file_name = os.path.join(self.audio_path, name)
         return file_name
 
+    def generate_audio(self, body):
+        alert_id = body.get('id')
+        # 生成告警文本
+        text = self.generate_text(body)
+        # 生成告警语音content
+        audio_content = self.fetch_audio_content(text)
+        AlertAudio.objects.create(alert=Alert.objects.get(id=alert_id),
+                                  audio=audio_content)
+
 
 @singleton
 class WorkorderTTS(BaseTTS):
@@ -163,6 +176,15 @@ class WorkorderTTS(BaseTTS):
         name = 'workorder_{}.{}'.format(workorder_id, FORMAT)
         file_name = os.path.join(self.audio_path, name)
         return file_name
+
+    def generate_audio(self, body):
+        order_id = body.get('id')
+        # 生成告警文本
+        text = self.generate_text(body)
+        # 生成告警语音content
+        audio_content = self.fetch_audio_content(text)
+        WorkOrderAudio.objects.create(order=WorkOrder.objects.get(id=order_id),
+                                      audio=audio_content)
 
 
 if __name__ == '__main__':

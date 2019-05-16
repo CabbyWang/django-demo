@@ -95,13 +95,13 @@ class HubIsExistedSerializer(serializers.Serializer):
         return hubs
 
 
-class ControlAllSerializer(serializers.Serializer):
+class ControlAllSerializer(HubIsExistedSerializer):
 
-    hub = serializers.ListField(
-        child=serializers.PrimaryKeyRelatedField(
-            queryset=Hub.objects.filter_by()
-        )
-    )
+    # hub = serializers.ListField(
+    #     child=serializers.PrimaryKeyRelatedField(
+    #         queryset=Hub.objects.filter_by()
+    #     )
+    # )
     action = serializers.ChoiceField(choices=['open', 'close'])
 
     @staticmethod
