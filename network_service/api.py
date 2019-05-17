@@ -16,12 +16,15 @@ from notify.models import Alert
 
 from equipment.models import Hub
 from base.models import Unit
-from status.models import HubStatus
+from setting.models import Setting
+from status.models import HubStatus, HubLatestStatus, LampCtrlStatus, \
+    LampCtrlLatestStatus
 from projectinfo.models import ProjectInfo
 from workorder.models import WorkOrder
 from utils.alert import record_alarm
 from utils import refresh_connections
 from utils.data_handle import record_inventory, record_default_group
+from utils.settings import HUB_ALARMS, LAMP_ALARMS
 
 
 class SLMS(object):
@@ -105,15 +108,22 @@ class SLMS(object):
     #     body = content['body']
     #     hub_status = body['hub']
     #     lamps_status = body['lamps']
-    #     for k in list(item.keys()):
-    #         if k not in LampCtrl.fields():
-    #             item.pop(k)
+    #     for k in list(hub_status.keys()):
+    #         if k not in Hub.fields():
+    #             hub_status.pop(k)
+    #     for lampctrl_sn, status in lamps_status.items():
+    #         for k in list(status.keys()):
+    #             if k not in LampCtrl.fields():
+    #                 lamps_status.pop(k)
     #     return content
 
     @classmethod
     def report_status(cls, content):
         """
         集控定时上报三相电能数据
+        1. 记录集控上报状态信息(HubStatus/LampCtrlStatus)(HubLatestStatus/LampLatestCtrlStatus)
+        2. 能耗报表的维护更新(便于报表生成)
+        3. 单灯告警检验(通过电流判断是否 节点异常/节点漏电)
         :param content: 三相电数据 dict 反序列化后的 集控上报的数据包
         """
         # TODO 老板赶时间 后期再优化吧
@@ -127,15 +137,93 @@ class SLMS(object):
         body = content.get('body', {})
         hub_status = body.get('hub', {}) or {}
         lamps_status = body.get('lamps', {}) or {}
+        report_time = body.get('report_datetime')
         # TODO 存入数据库
         try:
             with transaction.atomic():
-                # HubStatus表
-                # HubStatus.objects.create(body)
-                # LampCtrlStatus表
+                # HubStatus表和HubLatestStatus表
+                for hub_sn, value in hub_status.items():
+                    hub = Hub.objects.get(sn=hub_sn)
+                    data = {
+                        'A_voltage': value.get('A_voltage'),
+                        'A_current': value.get('A_current'),
+                        'A_power': value.get('A_voltage') * value.get('A_current'),
+                        'A_consumption': value.get('A_consumption'),
+                        'B_voltage': value.get('B_voltage'),
+                        'B_current': value.get('B_current'),
+                        'B_power': value.get('B_voltage') * value.get('B_current'),
+                        'B_consumption': value.get('B_consumption'),
+                        'C_voltage': value.get('C_voltage'),
+                        'C_current': value.get('C_current'),
+                        'C_power': value.get('C_voltage') * value.get('C_current'),
+                        'C_consumption': value.get('C_consumption'),
+                        'consumption': value.get('consumption'),
+                        'power': 1.732 * 0.38 * value.get('A_current') * 0.8,  # 单位KW
+                        'voltage': 1.732 * (value.get('A_voltage') + value.get('B_voltage') + value.get('C_voltage')) / 3,
+                        'current': (value.get('A_current') + value.get('B_current') + value.get('C_current')) / 3
+                    }
+                    HubStatus.objects.create(hub=hub, report_time=report_time, **data)
+                    HubLatestStatus.objects.update_or_create(
+                        sn=hub_sn, defaults={"report_time": report_time, **data}
+                    )
 
-                pass
-        # TODO 分析三相电数据，作相应更新和告警
+                # LampCtrlStatus表和LampCtrlLatestStatus表
+                for lampctrl_sn, item in lamps_status.items():
+                    lampctrl = LampCtrl.objects.get(sn=lampctrl_sn)
+                    route1, route2 = item.get("brightness", (0, 0)) or (0, 0)  # 兼容brightness=[]
+                    energy = item.get("electric_energy", {})
+                    data = {
+                        'route_one': route1,
+                        'route_two': route2,
+                        'voltage': value.get('voltage'),
+                        'power': value.get('power'),
+                        'current': value.get('current'),
+                        'consumption': value.get('consumption')
+                    }
+                    LampCtrlStatus.objects.create(lampctrl=lampctrl, report_time=report_time, **data)
+                    LampCtrlLatestStatus.objects.update_or_create(
+                        lampctrl=lampctrl, defaults={"report_time": report_time, **data}
+                    )
+
+                    # 记录灯具开关状态
+                    # switch_status = 1 if value.get('route2') or value.get('route1') else 0  # 灯具打开则为1， 关闭为0
+                    switch_status = 1 if value.get('current') and value.get('voltage') else 0  # 灯具打开则为1， 关闭为0
+                    LampCtrl.objects.filter_by(sn=lampctrl_sn).update(switch_status=switch_status)
+
+                    # 单灯告警 判断电流(current)是否低于设置阈值
+                    # 获取最小阈值和最大阈值
+                    min_current_obj = Setting.objects.filter(option='min_current').first()
+                    # TODO 配置中有max_current参数？
+                    max_current_obj = Setting.objects.filter(option='max_current').first()
+                    # 未设置最小电流阈值时使用默认阈值
+                    # TODO 默认值写入配置文件中
+                    min_current = float(min_current_obj.value) if min_current_obj else 0.02
+                    max_current = float(max_current_obj.value) if max_current_obj else 2
+                    current = data.get('current', 0)
+                    if switch_status:
+                        # 电流小于最小阈值
+                        if current < min_current:
+                            record_alarm(
+                                event=u'节点异常', object_type='lamp',
+                                alert_source=hub, object=lampctrl_sn,
+                                level=1, status=2
+                            )
+                        # 电流大于最大阈值
+                        if current > max_current:
+                            record_alarm(
+                                event=u'节点漏电', object_type='lamp',
+                                alert_source=hub, object=lampctrl_sn,
+                                level=1, status=2
+                            )
+                    else:
+                        if current > min_current:
+                            record_alarm(
+                                event=u'节点漏电', object_type='lamp',
+                                alert_source=hub, object=lampctrl_sn,
+                                level=1, status=2
+                            )
+
+        # TODO 能耗报表的维护?
         except Exception as ex:
             return dict(code=1, message=str(ex))
         else:
@@ -151,6 +239,8 @@ class SLMS(object):
     def report_alarms(cls, content):
         """
         集控定时上报告警
+        1. 记录告警信息
+        2. 改变集控/灯控状态
         :param content: 告警数据 dict 反序列化后的 集控上报的数据包
         """
         refresh_connections()
@@ -158,14 +248,41 @@ class SLMS(object):
         assert isinstance(content, dict)
         cls.prepare_report_alarms_content(content)
         # TODO 是否需要进行格式检验
-
-        # TODO 分析数据，告警 改变灯控状态
         hub_sn = content.get('sender')
         body = content.get('body')
+        hub = Hub.objects.filter_by(sn=hub_sn).first()
         try:
             with transaction.atomic():
-
-                pass
+                if not hub:
+                    return
+                # 集控告警
+                hub_alarms = body.get('hub', {})
+                for k, v in HUB_ALARMS.items():
+                    time_value = hub_alarms.get(k, {})
+                    if time_value.get('value') == 1:
+                        # 告警存在
+                        record_alarm(
+                            event=v.get('event'), object_type='hub',
+                            alert_source=hub, object=hub_sn,
+                            level=v.get('level'), status=v.get('status'),
+                            occurred_time=v.get('datetime')
+                        )
+                # 灯控告警
+                lampctrl_alarms = body.get('lamps', {})
+                for lampctrl_sn, alarms in lampctrl_alarms.items():
+                    lampctrl = LampCtrl.objects.filter_by(sn=lampctrl_sn).first()
+                    if not lampctrl:
+                        continue
+                    for k, v in LAMP_ALARMS.items():
+                        time_value = alarms.get(k, {})
+                        if time_value.get('value') == 1:
+                            # 告警存在
+                            record_alarm(
+                                event=v.get('event'), object_type='hub',
+                                alert_source=hub, object=lampctrl_sn,
+                                level=v.get('level'), status=v.get('status'),
+                                occurred_time=v.get('datetime')
+                            )
         except Exception as ex:
             return dict(code=1, message=str(ex))
         else:

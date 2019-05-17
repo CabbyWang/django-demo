@@ -211,7 +211,7 @@ class Server(Protocol):
             action="register_server_ack",
             type="ack",
             code=0,
-            message="向服务器注册成功"
+            message="Successful registration with server"
         )
         self.write(101, json.dumps(success_content))
 
@@ -285,7 +285,7 @@ class Server(Protocol):
             # 当前用户是cmd, 发送不在线反馈给管控(self.user)
             log.msg("Hub <{}> is offline. Can not be communicated with it.".format(hub))
             body = dict(action='ns_ack', code=101,
-                        message="集控[{}]脱网, 无法通信".format(hub))
+                        message="hub [{}] if offline. Can not be communicated with it".format(hub))
             content = dict(
                 sender='NS',
                 receiver=self.user,

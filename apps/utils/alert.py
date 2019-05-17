@@ -25,7 +25,7 @@ def record_hub_alarm(value=0):
     record_alarm(event, alert_source, object_type, object, level, status)
 
 
-def record_alarm(event, object_type, alert_source, object, level, status):
+def record_alarm(event, object_type, alert_source, object, level, status, occurred_time=datetime.datetime.now()):
     """
     记录告警
     :param event: 故障名称
@@ -34,6 +34,7 @@ def record_alarm(event, object_type, alert_source, object, level, status):
     :param object: 故障设备sn号
     :param level: 故障级别
     :param status: 1正常、2故障还是3脱网
+    :param occurred_time: 告警发生时间, 默认为当前时间
     """
 
     if object_type == 'hub':
@@ -49,7 +50,8 @@ def record_alarm(event, object_type, alert_source, object, level, status):
     # 告警不存在， 新增告警 / 告警存在， 更新时间
     alert, is_created = Alert.objects.filter_by().update_or_create(
         event=event, object_type=object_type, alert_source=alert_source,
-        object=object, level=level, is_solved=False
+        object=object, level=level, is_solved=False,
+        defaults=dict(occurred_time=occurred_time)
     )
 
     if is_created:

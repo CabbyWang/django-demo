@@ -8,7 +8,7 @@ class HubStatus(BaseModel):
     """
     集控状态历史记录
     """
-    sn = models.ForeignKey(Hub, related_name='hub_status', help_text='集控编号')
+    hub = models.ForeignKey(Hub, related_name='hub_status', help_text='集控编号')
     A_voltage = models.DecimalField(max_digits=32, decimal_places=1, default=0, help_text='A相电压')
     A_current = models.DecimalField(max_digits=32, decimal_places=1, default=0, help_text='A相电流')
     A_power = models.DecimalField(max_digits=32, decimal_places=1, default=0, help_text='A相功率')
@@ -25,6 +25,7 @@ class HubStatus(BaseModel):
     current = models.DecimalField(max_digits=32, decimal_places=1, default=0, help_text='总电流')
     power = models.DecimalField(max_digits=32, decimal_places=1, default=0, help_text='总功率')
     consumption = models.DecimalField(max_digits=32, decimal_places=1, default=0, help_text='总能耗')
+    report_time = models.DateTimeField(verbose_name="上报时间", help_text='上报时间')
 
     class Meta:
         verbose_name = '集控状态历史'
@@ -37,7 +38,7 @@ class HubLatestStatus(BaseModel):
     """
     集控最新状态
     """
-    sn = models.ForeignKey(Hub, related_name='hub_latest_status', help_text='集控编号')
+    hub = models.ForeignKey(Hub, related_name='hub_latest_status', help_text='集控编号')
     A_voltage = models.DecimalField(max_digits=32, decimal_places=1, default=0, help_text='A相电压')
     A_current = models.DecimalField(max_digits=32, decimal_places=1, default=0, help_text='A相电流')
     A_power = models.DecimalField(max_digits=32, decimal_places=1, default=0, help_text='A相功率')
@@ -54,7 +55,6 @@ class HubLatestStatus(BaseModel):
     current = models.DecimalField(max_digits=32, decimal_places=1, default=0, help_text='总电流')
     power = models.DecimalField(max_digits=32, decimal_places=1, default=0, help_text='总功率')
     consumption = models.DecimalField(max_digits=32, decimal_places=1, default=0, help_text='总能耗')
-    time = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         verbose_name = '集控最新状态'
@@ -74,6 +74,7 @@ class LampCtrlStatus(BaseModel):
     current = models.DecimalField(max_digits=32, decimal_places=1, help_text='电流')
     power = models.DecimalField(max_digits=32, decimal_places=1, help_text='功率')
     consumption = models.DecimalField(max_digits=32, decimal_places=1, help_text='能耗')
+    report_time = models.DateTimeField(verbose_name="上报时间", help_text='上报时间')
 
     class Meta:
         verbose_name = '灯控状态历史'

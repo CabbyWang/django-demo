@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from django.db import models
 
 from equipment.models import Hub
@@ -42,6 +44,7 @@ class Alert(BaseModel):
     object_type = models.CharField(max_length=16, choices=OBJECT_TYPE, help_text='告警设备类型')
     object = models.CharField(max_length=64, help_text='产生告警的设备(集控/灯控)')
     memo = models.CharField(max_length=255, null=True, blank=True, help_text='备注')
+    occurred_time = models.DateTimeField(default=datetime.now)
     is_solved = models.BooleanField(default=False, help_text='是否解决')
     solver = models.ForeignKey(User, related_name='solved_alert', null=True, blank=True, help_text='处理人员')
     solved_time = models.DateTimeField(auto_now=True, null=True, blank=True, help_text='处理时间')
