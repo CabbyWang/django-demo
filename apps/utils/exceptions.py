@@ -3,86 +3,109 @@
 """
 Create by 王思勇 on 2019/3/6
 """
+from django.http import Http404
+from django.core.exceptions import PermissionDenied
+
+from rest_framework import exceptions
 from rest_framework import status
-from rest_framework.exceptions import APIException, _get_error_details
-from rest_framework.exceptions import ValidationError as _ValidationError
+from rest_framework.views import set_rollback
+from rest_framework.response import Response
 
 from django.utils.translation import ugettext_lazy as _
 
 
-class DeleteOnlineHubError(APIException):
+class DeleteOnlineHubError(exceptions.APIException):
     status_code = status.HTTP_400_BAD_REQUEST
     default_detail = _("can't delete the hub online")
     default_code = 'invalid'
 
 
-class ConnectNSError(APIException):
+class ConnectNSError(exceptions.APIException):
     status_code = status.HTTP_408_REQUEST_TIMEOUT
     default_detail = _("can't connect network service")
     default_code = 'server error'
 
 
-class AuthenticateNSError(APIException):
+class AuthenticateNSError(exceptions.APIException):
     status_code = status.HTTP_408_REQUEST_TIMEOUT
     default_detail = _("authenticate failed when connect network service")
     default_code = 'authentication error'
 
 
-class ConnectHubTimeOut(APIException):
+class ConnectHubTimeOut(exceptions.APIException):
     status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
     default_detail = _("connect hub timeout")
     default_code = 'connect error'
 
 
-class HubError(APIException):
+class HubError(exceptions.APIException):
     status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
     default_detail = _("hub unknown error")
     default_code = 'hub error'
 
 
-class ObjectHasExisted(APIException):
+class ObjectHasExisted(exceptions.APIException):
     status_code = status.HTTP_400_BAD_REQUEST
     default_detail = _("object has been existed")
     default_code = 'object exist error'
 
 
-class InvalidInputError(APIException):
+class InvalidInputError(exceptions.APIException):
     status_code = status.HTTP_400_BAD_REQUEST
     default_detail = _('Invalid input.')
     default_code = 'invalid'
 
 
-class DMLError(APIException):
+class DMLError(exceptions.APIException):
     status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
     default_detail = _('Server Error')
     default_code = 'server error'
 
 
-class UnknownError(APIException):
+class UnknownError(exceptions.APIException):
     status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
     default_detail = _('Server Error')
     default_code = 'server error'
 
 
-class ValidationError(_ValidationError):
-    status_code = status.HTTP_400_BAD_REQUEST
-    default_detail = _('Invalid input.')
-    default_code = 'invalid'
+def custom_exception_handler(exc, context):
+    """
+        Returns the response that should be used for any given exception.
 
-    def __init__(self, detail=None, code=None):
-        if detail is None:
-            detail = self.default_detail
-        if code is None:
-            code = self.default_code
+        By default we handle the REST framework `APIException`, and also
+        Django's built-in `Http404` and `PermissionDenied` exceptions.
 
-        # For validation failures, we may collect many errors together,
-        # so the details should always be coerced to a list if not already.
-        if not isinstance(detail, dict) and not isinstance(detail, list):
-            detail = [detail]
-        if isinstance(detail, dict):
-            # key = list(detail.keys())[0]
-            detail = list(detail.values())[0]
-        if isinstance(detail, list):
-            detail = detail[0]
+        Any unhandled exceptions may return `None`, which will cause a 500 error
+        to be raised.
+        """
+    if isinstance(exc, Http404):
+        exc = exceptions.NotFound()
+    elif isinstance(exc, PermissionDenied):
+        exc = exceptions.PermissionDenied()
 
-        self.detail = _get_error_details(detail, code)
+    if isinstance(exc, exceptions.APIException):
+        headers = {}
+        if getattr(exc, 'auth_header', None):
+            headers['WWW-Authenticate'] = exc.auth_header
+        if getattr(exc, 'wait', None):
+            headers['Retry-After'] = '%d' % exc.wait
+
+        # if isinstance(exc.detail, (list, dict)):
+        #     data = exc.detail
+        # else:
+        #     data = {'detail': exc.detail}
+        data = {'message': ''}
+        if isinstance(exc.detail, list):
+            data['detail'] = exc.detail
+            data['message'] = exc.detail[0]
+        elif isinstance(exc.detail, dict):
+            data['detail'] = exc.detail
+            key = list(exc.detail.keys())[0]
+            data['message'] = exc.detail[key][0]
+        else:
+            data['message'] = data['detail'] = exc.detail
+
+        set_rollback()
+        return Response(data, status=exc.status_code, headers=headers)
+
+    return None

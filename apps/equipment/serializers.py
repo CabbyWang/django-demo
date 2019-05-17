@@ -200,20 +200,6 @@ class CableBatchDeleteSerializer(serializers.ModelSerializer):
         fields = ("sn", )
 
 
-# class LampCtrlLatestStatusSerializer(serializers.ModelSerializer):
-#     voltage = serializers.DecimalField(max_digits=32, decimal_places=1)
-#     current = serializers.DecimalField(max_digits=32, decimal_places=1)
-#     power = serializers.DecimalField(max_digits=32, decimal_places=1)
-#     consumption = serializers.DecimalField(max_digits=32, decimal_places=1)
-#     created_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
-#     updated_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
-#     deleted_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
-#
-#     class Meta:
-#         model = LampCtrlLatestStatus
-#         fields = "__all__"
-
-
 class LampCtrlSerializer(serializers.ModelSerializer):
     # failure_date = serializers.DateField(read_only=True, format='%Y-%m-%d')
     registered_time = serializers.DateField(read_only=True, format='%Y-%m-%d')

@@ -14,7 +14,7 @@ from equipment.models import Hub, LampCtrl
 from notify.models import Alert
 from user.views import User
 from .models import WorkOrder, WorkorderImage, WorkOrderAudio, Inspection, InspectionImage, InspectionItem
-from utils.exceptions import InvalidInputError, ValidationError
+from utils.exceptions import InvalidInputError
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -91,7 +91,9 @@ class WorkOrderSerializer(serializers.ModelSerializer):
                                                queryset=Alert.objects.filter_by(),
                                                allow_null=True,
                                                help_text='告警编号')
-    type = serializers.ChoiceField(choices=TYPES, help_text='工单类型')
+    type = serializers.ChoiceField(
+        required=True, choices=TYPES, help_text='工单类型'
+    )
     obj_sn = serializers.CharField(required=False, max_length=32,
                                    allow_blank=True, help_text='对象编号')
     user = serializers.PrimaryKeyRelatedField(required=False,
