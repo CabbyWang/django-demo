@@ -258,10 +258,15 @@ class LampCtrlPartialUpdateSerializer(serializers.ModelSerializer):
     latitude = serializers.FloatField(max_value=90, min_value=0)
 
     def validate(self, attrs):
+        is_redirect = self.instance.is_redirect
         for k, v in attrs.items():
-            if k in ("new_address", "longitude", "latitude"):
+            if k == "new_address":
+                continue
+            if k in ("longitude", "latitude"):
+                is_redirect = True
                 continue
             attrs[k] = getattr(self.instance, k)
+        attrs['is_redirect'] = is_redirect
         return attrs
 
     class Meta:

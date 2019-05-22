@@ -4,5 +4,4 @@
 Create by 王思勇 on 
 """
 
-__author__ = 'wangsy'
-
+__version__ = '5.0'

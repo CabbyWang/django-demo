@@ -12,6 +12,7 @@ from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 from projectinfo.models import ProjectInfo
 from projectinfo.serializers import ProjectInfoSerializer
 from utils.mixins import ListModelMixin
+from apps import __version__
 
 
 class ProjectInfoViewSet(ListModelMixin,
@@ -44,15 +45,15 @@ class ProjectInfoViewSet(ListModelMixin,
     def get_version(self, request, *args, **kwargs):
         project = ProjectInfo.objects.first()
         name = project.name if project else ""
-        if platform.system() == 'Linux':
-            process = subprocess.Popen('rpm -q smartlamp_core', shell=True,
-                                       stdout=subprocess.PIPE)
-            ret = process.stdout.readline()
-            if ret:
-                match_str = re.match('smartlamp_core-(.*?)debug.noarch', ret)
-                version = match_str.group(1)
-            return Response(status=status.HTTP_200_OK,
-                            data={'version': version,
-                                  'name': name})
-        return Response(status=status.HTTP_200_OK, data={'version': '5.0',
-                                                         'name': name})
+        city = project.city if project else ""
+        # version = '5.0'
+        # if platform.system() == 'Linux':
+        #     process = subprocess.Popen('rpm -q smartlamp_core', shell=True,
+        #                                stdout=subprocess.PIPE)
+        #     ret = process.stdout.readline()
+        #     if ret:
+        #         match_str = re.match('smartlamp_core-(.*?)debug.noarch', ret)
+        #         version = match_str.group(1)
+        return Response(dict(
+            version=__version__, name=name, city=city
+        ))

@@ -168,6 +168,7 @@ AUTHENTICATION_BACKENDS = (
 # https://docs.djangoproject.com/en/1.11/howto/static-files/
 
 STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, "static")
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
@@ -231,7 +232,7 @@ MODIFY_PSW_INTERVAL = datetime.timedelta(days=30)
 DEFAULT_PASSWORD = '12345678'
 
 # Network Service Address
-NS_ADDR = ('127.0.0.1', 9995)
+NS_ADDR = ('127.0.0.1', 9999)
 
 # 备份目录
 BACKUP_ROOT = os.path.join(BASE_DIR, 'backup')
