@@ -1,9 +1,13 @@
-#!/usr/bin/python
 # -*- coding: utf-8 -*-
 """
 Create by 王思勇 on 2019/3/11
 """
 import os
+import sys
+
+# the base_dir should be added into system path.
+base_dir = os.path.dirname(os.path.dirname(__file__))
+sys.path.insert(0, base_dir)
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "smartlamp.settings")
 
