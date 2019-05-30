@@ -225,17 +225,15 @@ class Server(Protocol):
             log.msg("Hub <{}> is already existed.".format(user))
             clients[user].abort_connection()
             clients.pop(user)
-        body = content.get('body')
-        inventory = body.get("inventory")
-        default_group = body.get('default_group')
-        ret_msg = SLMS.register(inventory=inventory,
-                                default_group=default_group)
+        body = content.get('body', {})
+        data = body.get("data", {})
+        # default_group = data.get('default_group')
+        ret_msg = SLMS.register(data=data)
         code = ret_msg.get("code")
         if code != 0:
             # 注册失败
             failure_content = dict(
                 action="register_server_ack",
-                type="ack",
                 code=code,
                 message="Failed to register with the server",
                 reason=ret_msg.get('message')
@@ -250,7 +248,6 @@ class Server(Protocol):
         log.msg("Online hubs now: {}".format(clients))
         success_content = dict(
             action="register_server_ack",
-            type="ack",
             code=0,
             message="Successful registration with server"
         )

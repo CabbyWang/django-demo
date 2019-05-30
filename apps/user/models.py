@@ -11,17 +11,18 @@ class UserGroup(BaseModel):
     """
     name = models.CharField(max_length=32, verbose_name='用户组名', help_text='用户组名')
     memo = models.CharField(max_length=255, null=True, blank=True, verbose_name='备注', help_text='备注')
-    # created_time = models.DateTimeField(auto_now_add=True, verbose_name='创建时间', help_text='创建时间')
-    # update_time = models.DateTimeField(auto_now=True, verbose_name='修改时间', help_text='修改时间')
 
     class Meta:
         verbose_name = "用户组"
         verbose_name_plural = verbose_name
-        ordering = ('name', )
+        ordering = ('created_time', )
         db_table = "usergroup"
 
     def __str__(self):
         return self.name
+
+    def exists_users(self):
+        return self.users.filter(is_deleted=False)
 
 
 class User(MyAbstractUser):
@@ -32,7 +33,6 @@ class User(MyAbstractUser):
     username = models.CharField(max_length=32)
     hubs = models.ManyToManyField(Hub, related_name='users', through='Permission')
     mobile = models.CharField(max_length=11, verbose_name="电话")
-    # email = models.EmailField(max_length=100, verbose_name="邮箱")
     is_read_only = models.BooleanField(default=False, verbose_name="只读用户")
     is_receive_alarm = models.BooleanField(default=False, verbose_name="接收告警")
     password_modified_time = models.DateTimeField(auto_now=True, null=True, blank=True, verbose_name="密码修改时间")

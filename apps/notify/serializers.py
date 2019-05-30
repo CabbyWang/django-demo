@@ -7,6 +7,7 @@ from datetime import datetime
 
 from rest_framework import serializers
 
+from workorder.models import WorkOrder
 from .models import Log, Alert, AlertAudio
 from user.models import User
 
@@ -73,22 +74,36 @@ class AlertSerializer(serializers.ModelSerializer):
 
 
 class AlertUpdateSerializer(serializers.ModelSerializer):
-    is_deleted = serializers.BooleanField(read_only=True)
-    deleted_time = serializers.DateTimeField(read_only=True)
     event = serializers.CharField(read_only=True)
     level = serializers.IntegerField(read_only=True)
     alert_source = serializers.CharField(read_only=True)
     object_type = serializers.CharField(read_only=True)
     object = serializers.CharField(read_only=True)
-    # occurred_time = serializers.DateTimeField(read_only=True)
 
-    memo = serializers.CharField(max_length=255, allow_blank=True)
-    is_solved = serializers.BooleanField(default=False, help_text='是否解决')
     solver = serializers.HiddenField(
         default=serializers.CurrentUserDefault()
     )
     solved_time = serializers.HiddenField(default=datetime.now)
 
+    is_solved = serializers.BooleanField(required=True, help_text='是否解决')
+    memo = serializers.CharField(required=True, max_length=255)
+
     class Meta:
         model = Alert
         fields = '__all__'
+
+    def validate(self, attrs):
+        # TODO 使用signal来实现
+        if self.initial_data['is_solved']:
+            # 告警撤销  工单变已处理
+            WorkOrder.objects.filter_by(alert=self.instance).update(
+                finished_time=datetime.now(),
+                status='finished', description='告警手动撤销'
+            )
+        else:
+            # 告警撤销解除  工单变未处理
+            WorkOrder.objects.filter_by(alert=self.instance).update(
+                finished_time=None, user=None,
+                status='todo', description=None
+            )
+        return attrs

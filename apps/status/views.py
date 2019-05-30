@@ -1,9 +1,12 @@
 import platform
 import re
 import subprocess
+from pathlib import Path
 
+from django.conf import settings
+from django.http import FileResponse
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import viewsets, mixins
+from rest_framework import viewsets, mixins, status
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.response import Response
 from rest_framework.decorators import action
@@ -110,3 +113,31 @@ class LampCtrlStatusViewSet(ListModelMixin,
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
     filter_backends = (DjangoFilterBackend, )
     filter_class = LampCtrlStatusFilter
+
+
+class HubLogViewSet(mixins.RetrieveModelMixin,
+                    viewsets.GenericViewSet):
+
+    queryset = Hub.objects.filter_by()
+    serializer_class = HubDetailSerializer
+    permission_classes = []
+    authentication_classes = []
+
+    def retrieve(self, request, *args, **kwargs):
+        hub = self.get_object()
+        log_dir = Path(settings.MEDIA_ROOT) / 'logs' / hub.sn
+        file_name = 'hub.log'
+        # TODO 下载zip文件
+        try:
+            f = open(log_dir / file_name, 'rb')
+        except FileNotFoundError:
+            return Response(data={
+                "message": "file not found",
+                "detail": "file not found"
+            }, status=status.HTTP_408_REQUEST_TIMEOUT)
+        response = FileResponse(f)
+        response['Content-Type'] = 'application/octet-stream'
+        response[
+            'Content-Disposition'] = 'attachment;filename="{}"'.format(
+            file_name)
+        return response

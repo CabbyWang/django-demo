@@ -23,7 +23,7 @@ class Log(BaseModel):
     class Meta:
         verbose_name = '日志'
         verbose_name_plural = verbose_name
-        ordering = ('created_time',)
+        ordering = ('-created_time',)
         db_table = "log"
 
     def __str__(self):

@@ -2,14 +2,17 @@ import re
 import datetime
 
 from django.conf import settings
+from django.utils.translation import ugettext_lazy as _
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django_filters.rest_framework import DjangoFilterBackend
+
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework import status, viewsets, mixins
+from rest_framework import status, viewsets, mixins, serializers
 from rest_framework.authentication import SessionAuthentication
+from rest_framework.filters import OrderingFilter
 from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 
 from equipment.models import Hub
@@ -45,18 +48,19 @@ class UserGroupViewSet(ListModelMixin,
         创建一个用户组(权限需要：admin, 管理员)
     update:
         修改用户组信息
-    destory:
+    destroy:
         删除用户组
     assign_permission:
         修改用户组权限
     """
 
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
-    filter_backends = (DjangoFilterBackend, )
+    filter_backends = (DjangoFilterBackend, OrderingFilter)
     filter_class = UserGroupFilter
+    ordering_fields = ('created_time', 'name')
 
     def get_permissions(self):
-        if self.action in ('create', 'update', 'destory', 'assign_permission'):
+        if self.action in ('create', 'update', 'destroy', 'assign_permission'):
             return [IsAuthenticated(), IsSuperUser()]
         return [IsAuthenticated()]
 
@@ -78,8 +82,9 @@ class UserGroupViewSet(ListModelMixin,
         instance = self.get_object()
         # 用户组中有用户，不允许删除
         if instance.users.filter(is_deleted=False).exists():
-            return Response(status=status.HTTP_400_BAD_REQUEST,
-                            data={'detail': '用户组不为空，不允许删除'})
+            # 用户组不为空，不允许删除
+            msg = _("can't delete user group that has users")
+            raise serializers.ValidationError(msg)
         self.perform_destroy(instance)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -109,7 +114,10 @@ class UserGroupViewSet(ListModelMixin,
                     for hub in hubs:
                         Permission.objects.create(user=user, hub=hub)
         except Exception as ex:
-            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR, data={'detail': str(ex)})
+            return Response(
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                data={'detail': str(ex), 'message': str(ex)}
+            )
         return Response()
 
 
@@ -215,11 +223,11 @@ class UserViewSet(ListModelMixin,
         return super(UserViewSet, self).get_object()
 
     def perform_create(self, serializer):
-        """已删除用户中有相同用户名"""
+        """已删除用户中有相同用户名, 直接覆盖"""
         validated_data = serializer.validated_data
         username = validated_data['username']
         # 删除被删除用户
-        self.get_queryset().filter(username=username).delete()
+        User.objects.filter(username=username).delete()
         serializer.save()
 
     def destroy(self, request, *args, **kwargs):
@@ -231,7 +239,9 @@ class UserViewSet(ListModelMixin,
         users = kwargs.get('pk')
         # TODO 是否需要验证pk传过来的格式
         for user_id in users.split(','):
-            user = User.objects.get(id=user_id)
+            user = User.objects.filter_by(id=user_id).first()
+            if not user:
+                continue
             if user.username == request.user.username:
                 return Response(
                     status=status.HTTP_400_BAD_REQUEST,
@@ -263,6 +273,10 @@ class UserViewSet(ListModelMixin,
     def set_superuser(self, request, *args, **kwargs):
         """设置管理员"""
         instance = self.get_object()
+        if instance.is_read_only:
+            # 只读用户不能设置为管理员
+            msg = _("read_only users can't be set to superuser")
+            raise serializers.ValidationError(msg)
         instance.is_superuser = True
         instance.save()
         return Response()

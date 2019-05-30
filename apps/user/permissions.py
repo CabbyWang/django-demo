@@ -15,7 +15,7 @@ class IsOwnerOrPriority(permissions.BasePermission):
             return True
 
         # is owner
-        return obj.user == request.user
+        return obj == request.user
 
 
 class IsOwner(permissions.BasePermission):

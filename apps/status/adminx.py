@@ -11,7 +11,7 @@ from status.models import (
 
 class HubStatusAdmin(object):
     list_display = [
-        "sn", "A_voltage", "A_current", "A_power", "A_consumption",
+        "hub", "A_voltage", "A_current", "A_power", "A_consumption",
         "B_voltage", "B_current", "B_power", "B_consumption",
         "C_voltage", "C_current", "C_power", "C_consumption",
         "voltage", "current", "power", "consumption"
@@ -20,7 +20,7 @@ class HubStatusAdmin(object):
 
 class HubLatestStatusAdmin(object):
     list_display = [
-        "sn", "A_voltage", "A_current", "A_power", "A_consumption",
+        "hub", "A_voltage", "A_current", "A_power", "A_consumption",
         "B_voltage", "B_current", "B_power", "B_consumption",
         "C_voltage", "C_current", "C_power", "C_consumption",
         "voltage", "current", "power", "consumption"
@@ -30,26 +30,26 @@ class HubLatestStatusAdmin(object):
 class LampCtrlStatusAdmin(object):
 
     list_display = [
-        "lampctrl", "voltage", "current", "power", "consumption"
+        "lampctrl", "hub", "voltage", "current", "power", "consumption"
     ]
     list_filter = [
-        "lampctrl", "voltage", "current", "power", "consumption"
+        "lampctrl", "hub", "voltage", "current", "power", "consumption"
     ]
     search_fields = [
-        "lampctrl", "voltage", "current", "power", "consumption"
+        "lampctrl", "hub", "voltage", "current", "power", "consumption"
     ]
 
 
 class LampCtrlLatestStatusAdmin(object):
 
     list_display = [
-        "lampctrl", "voltage", "current", "power", "consumption"
+        "lampctrl", "hub", "voltage", "current", "power", "consumption"
     ]
     list_filter = [
-        "lampctrl", "voltage", "current", "power", "consumption"
+        "lampctrl", "hub", "voltage", "current", "power", "consumption"
     ]
     search_fields = [
-        "lampctrl", "voltage", "current", "power", "consumption"
+        "lampctrl", "hub", "voltage", "current", "power", "consumption"
     ]
 
 

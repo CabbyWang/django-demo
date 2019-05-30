@@ -35,7 +35,7 @@ def _prepare_inventory(inventory):
         hub.pop('latitude', None)
     else:
         # 未重定位过， 如果集控上报经纬度为空或0，则使用城市中心点经纬度
-        if not hub.get('longitude') or hub.get('latitude'):
+        if not hub.get('longitude') and not hub.get('latitude'):
             ran_lon = random.uniform(-0.001, 0.001)
             ran_lat = random.uniform(-0.0005, 0.0005)
             try:
@@ -48,13 +48,15 @@ def _prepare_inventory(inventory):
             else:
                 hub['longitude'] = city_longitude
                 hub['latitude'] = city_latitude
+    hub_model_fields = Hub.fields()
     for k in list(hub.keys()):
-        if k not in Hub.fields():
+        if k not in hub_model_fields:
             hub.pop(k)
     # hub = {k: v for k, v in hub.items() if k in Hub.fields()}
 
     # 灯控
     # 布放过的灯控 不修改经纬度
+    lampctrl_model_fields = LampCtrl.fields()
     for lampctrl_sn, item in lamps.items():
         lampctrl = LampCtrl.objects.filter_by(sn=lampctrl_sn).first()
         on_map = lampctrl.on_map if lampctrl else False
@@ -63,7 +65,7 @@ def _prepare_inventory(inventory):
             item.pop('latitude', None)
         item['lamp_type'] = item.get('type')
         for k in list(item.keys()):
-            if k not in LampCtrl.fields():
+            if k not in lampctrl_model_fields:
                 item.pop(k)
         # item = {k: v for k, v in item.items() if k in LampCtrl.fields()}
     return inventory

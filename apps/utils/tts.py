@@ -4,6 +4,7 @@
 Create by 王思勇 on 2019/4/3
 """
 import os
+from pathlib import Path
 
 from notify.models import AlertAudio, Alert
 from workorder.models import WorkOrderAudio, WorkOrder
@@ -18,6 +19,8 @@ import logging
 import requests
 
 from django.conf import settings
+from django.core.files.base import ContentFile
+from django.core.files import File
 
 from setting.models import Setting
 from utils.decorators import singleton
@@ -106,18 +109,16 @@ class BaseTTS(object):
     def generate_text(self, body):
         raise NotImplementedError('`generate_text()` must be implemented.')
 
-    def generate_tts_name(self, body):
-        raise NotImplementedError('`generate_tts_name()` must be implemented.')
-
     def generate_audio(self, body):
-        # 生成告警文本
-        text = self.generate_text(body)
-        # 生成告警语音content
-        audio_content = self.fetch_audio_content(text)
-        # 存入文件
-        file_name = self.generate_tts_name(body)
-        with open(file_name, 'wb') as f:
-            f.write(audio_content)
+        raise NotImplementedError('`generate_text()` must be implemented.')
+        # # 生成告警文本
+        # text = self.generate_text(body)
+        # # 生成告警语音content
+        # audio_content = self.fetch_audio_content(text)
+        # # 存入文件
+        # file_name = self.generate_tts_name(body)
+        # with open(file_name, 'wb') as f:
+        #     f.write(audio_content)
 
 
 @singleton
@@ -141,20 +142,19 @@ class AlertTTS(BaseTTS):
         text = object_type + object + '产生告警:' + event + '。告警等级:' + level
         return text
 
-    def generate_tts_name(self, alert_body):
-        alert_id = alert_body.get('id')
-        name = 'alert_{}.{}'.format(alert_id, FORMAT)
-        file_name = os.path.join(self.audio_path, name)
-        return file_name
-
     def generate_audio(self, body):
         alert_id = body.get('id')
         # 生成告警文本
         text = self.generate_text(body)
         # 生成告警语音content
         audio_content = self.fetch_audio_content(text)
-        AlertAudio.objects.create(alert=Alert.objects.get(id=alert_id),
-                                  audio=audio_content)
+        AlertAudio.objects.create(
+            alert=Alert.objects.get(id=alert_id),
+            audio=ContentFile(
+                content=audio_content,
+                name='alert_{}.{}'.format(alert_id, FORMAT)
+            )
+        )
 
 
 @singleton
@@ -171,20 +171,19 @@ class WorkorderTTS(BaseTTS):
         text = u'您有新的工单，' + body.get('message', '')
         return text
 
-    def generate_tts_name(self, body):
-        workorder_id = body.get('id')
-        name = 'workorder_{}.{}'.format(workorder_id, FORMAT)
-        file_name = os.path.join(self.audio_path, name)
-        return file_name
-
     def generate_audio(self, body):
         order_id = body.get('id')
         # 生成告警文本
         text = self.generate_text(body)
         # 生成告警语音content
         audio_content = self.fetch_audio_content(text)
-        WorkOrderAudio.objects.create(order=WorkOrder.objects.get(id=order_id),
-                                      audio=audio_content)
+        WorkOrderAudio.objects.create(
+            order=WorkOrder.objects.get(id=order_id),
+            audio=ContentFile(
+                content=audio_content,
+                name='workorder_{}.{}'.format(order_id, FORMAT)
+            )
+        )
 
 
 if __name__ == '__main__':

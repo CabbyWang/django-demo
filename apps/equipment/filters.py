@@ -3,6 +3,7 @@
 """
 Create by 王思勇 on 2019/5/9
 """
+from django.db.models import Q
 from django_filters import rest_framework as filters
 
 from base.models import Unit
@@ -77,14 +78,13 @@ class LampCtrlFilter(filters.FilterSet):
     Filter of lampctrls.
     """
 
-    sn = filters.CharFilter(field_name='sn', lookup_expr='icontains',
-                            method='filter_sn')
+    sn = filters.CharFilter(field_name='sn', lookup_expr='icontains')
     sequence = filters.CharFilter(field_name='sequence',
                                   lookup_expr='icontains')
     hub = filters.CharFilter(field_name='hub', method='filter_hub')
     rf_band = filters.CharFilter(field_name='rf_band', lookup_expr='icontains')
     rf_addr = filters.CharFilter(field_name='rf_addr', lookup_expr='icontains')
-    address = filters.CharFilter(field_name='address', lookup_expr='icontains')
+    real_address = filters.CharFilter(method='filter_address')
     lamp_type = filters.NumberFilter(field_name='lamp_type')
     lamp_status = filters.CharFilter(field_name='status',
                                      method='filter_lamp_status')
@@ -94,13 +94,8 @@ class LampCtrlFilter(filters.FilterSet):
     end_time = filters.DateFilter(field_name='registered_time',
                                   lookup_expr='lte')
 
-    @staticmethod
-    def filter_sn(queryset, name, value):
-        """支持筛选多个灯控编号
-        0001,0002
-        """
-        sns = value.split(',')
-        return queryset.filter(sn__in=sns)
+    def filter_address(self, queryset, name, value):
+        return queryset.filter(Q(new_address__icontains=value) | (Q(new_address=None) & Q(address__icontains=value)))
 
     @staticmethod
     def filter_hub(queryset, name, value):

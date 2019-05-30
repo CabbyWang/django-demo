@@ -33,13 +33,25 @@ class AuthenticateNSError(exceptions.APIException):
 
 
 class ConnectHubTimeOut(exceptions.APIException):
-    status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+    status_code = status.HTTP_408_REQUEST_TIMEOUT
+    default_detail = _("connect hub timeout")
+    default_code = 'connect error'
+
+
+class DownLoadLogTimeOut(exceptions.APIException):
+    status_code = status.HTTP_200_OK
     default_detail = _("connect hub timeout")
     default_code = 'connect error'
 
 
 class HubError(exceptions.APIException):
-    status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+    status_code = status.HTTP_408_REQUEST_TIMEOUT
+    default_detail = _("hub unknown error")
+    default_code = 'hub error'
+
+
+class DownLoadLogError(exceptions.APIException):
+    status_code = status.HTTP_200_OK
     default_detail = _("hub unknown error")
     default_code = 'hub error'
 
@@ -57,13 +69,13 @@ class InvalidInputError(exceptions.APIException):
 
 
 class DMLError(exceptions.APIException):
-    status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+    status_code = status.HTTP_408_REQUEST_TIMEOUT
     default_detail = _('Server Error')
     default_code = 'server error'
 
 
 class UnknownError(exceptions.APIException):
-    status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+    status_code = status.HTTP_408_REQUEST_TIMEOUT
     default_detail = _('Server Error')
     default_code = 'server error'
 

@@ -69,6 +69,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'apps.utils.middleware.LogMiddleware',
+    # 'request_logging.middleware.LoggingMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.locale.LocaleMiddleware',
@@ -117,7 +118,7 @@ DATABASES = {
         "PASSWORD": "smartlamp",
         "HOST": "localhost",
         # "HOST": "127.0.0.1",
-        "PORT": "3315",
+        "PORT": "3305",
         # 'ATOMIC_REQUESTS': True,  # wrap each request in a transaction
         'OPTIONS': {
             # 'init_command': 'SET storage_engine=INNODB;'
@@ -177,10 +178,6 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
     ),
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework.authentication.SessionAuthentication',
-        'rest_framework.authentication.BasicAuthentication',
-    ),
     'EXCEPTION_HANDLER': 'apps.utils.exceptions.custom_exception_handler'
 }
 
@@ -202,7 +199,22 @@ LANGUAGES = (
     ('zh-Hans', _('中文简体')),
 )
 
-LOGGING = {}
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'django.request': {
+            'handlers': ['console'],
+            'level': 'DEBUG',  # change debug level as appropiate
+            'propagate': False,
+        },
+    },
+}
 
 # CORS
 CORS_ORIGIN_ALLOW_ALL = True
@@ -232,7 +244,7 @@ MODIFY_PSW_INTERVAL = datetime.timedelta(days=30)
 DEFAULT_PASSWORD = '12345678'
 
 # Network Service Address
-NS_ADDR = ('127.0.0.1', 9999)
+NS_ADDR = ('127.0.0.1', 9995)
 
 # 备份目录
 BACKUP_ROOT = os.path.join(BASE_DIR, 'backup')

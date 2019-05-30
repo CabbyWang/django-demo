@@ -6,9 +6,13 @@ Create by 王思勇 on 2019/2/28
 import os
 import shutil
 import pathlib
+import platform
 
 
-source_dir = r'D:\workspace\github\smartlamp_core_refactor\apps'
+if platform.system() == 'Windows':
+    source_dir = r'D:\workspace\github\smartlamp_core_refactor\apps'
+else:
+    source_dir = '/usr/share/smartlamp_core/apps'
 # source_dir = r'D:\workspace\github\smartlamp-core-v3.0'
 
 

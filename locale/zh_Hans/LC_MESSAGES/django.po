@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-04-25 17:59+0800\n"
+"POT-Creation-Date: 2019-05-24 16:48+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,80 +18,362 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
-#: .\apps\user\serializers.py:36
+#: .\apps\communication\serializers.py:23
+#, python-brace-format
+msgid "lamp control [{pk_value}] does not exist."
+msgstr "灯控[{pk_value}]不存在"
+
+#: .\apps\communication\serializers.py:52
+msgid "the format of action must like '0,80'"
+msgstr "action必须为'0,80'类似格式"
+
+#: .\apps\communication\serializers.py:56
+msgid "the brightness value must between 0 and 255"
+msgstr "亮度值必须在0到255之间"
+
+#: .\apps\communication\serializers.py:71
+#: .\apps\communication\serializers.py:100
+#: .\apps\communication\serializers.py:166
+#: .\apps\communication\serializers.py:214
+#: .\apps\communication\serializers.py:293
+#, python-brace-format
+msgid "hub [{pk_value}] does not exist."
+msgstr "集控[{pk_value}]不存在"
+
+#: .\apps\communication\serializers.py:82
+msgid "the value of 'action' should be 'open' or 'close'"
+msgstr "'select'字段不能为空"
+
+#: .\apps\communication\serializers.py:105
+msgid "field 'group_num' is required."
+msgstr "'group_num'字段不能为空"
+
+#: .\apps\communication\serializers.py:110
+#, fuzzy
+#| msgid "field 'memo' is required."
+msgid "field 'memo' is required."
+msgstr "'memo'字段不能为空"
+
+#: .\apps\communication\serializers.py:115
+msgid "field 'group_num_rest' is required."
+msgstr "'group_num_rest'字段不能为空"
+
+#: .\apps\communication\serializers.py:120
+msgid "field 'memo_rest' is required."
+msgstr "'memo_rest'字段不能为空"
+
+#: .\apps\communication\serializers.py:125
+msgid "field 'segmentation' is required."
+msgstr "'segmentation'字段不能为空"
+
+#: .\apps\communication\serializers.py:130
+msgid "field 'select' is required."
+msgstr "'select'字段不能为空"
+
+#: .\apps\communication\serializers.py:138
+#, fuzzy
+#| msgid "hub [{pk_value}] does not exist."
+msgid "hub '{}' does not exist"
+msgstr "集控[{pk_value}]不存在"
+
+#: .\apps\communication\serializers.py:142
+msgid "custom group already exists"
+msgstr "自定义分组已经存在"
+
+#: .\apps\communication\serializers.py:146
+msgid "two group id should be different"
+msgstr "两个分组编号不能相同"
+
+#: .\apps\communication\serializers.py:154
+msgid "group number should be different with default groups"
+msgstr "分组编号不能与默认分组编号相同"
+
+#: .\apps\communication\serializers.py:196
+msgid ""
+"fields('lampctrl', 'group_num', 'memo')should be include in the 'configs' "
+"items"
+msgstr "'configs'的项中必须包含'lampctrl','group_num'和'memo'字段"
+
+#: .\apps\communication\serializers.py:203
+#, python-brace-format
+msgid "lamp control [{lampctrl_sn}] does not exist"
+msgstr "灯控[{lampctrl_sn}]不存在"
+
+#: .\apps\communication\serializers.py:280
+msgid ""
+"fields('hub', 'group_num', 'policyset_id') should be include in the "
+"'configs' items"
+msgstr "'configs'的项中必须包含'hub','group_num'和'policyset_id'字段"
+
+#: .\apps\communication\views.py:133 .\apps\communication\views.py:194
+#: .\apps\communication\views.py:236 .\apps\communication\views.py:285
+#: .\apps\communication\views.py:327 .\apps\communication\views.py:426
+#: .\apps\communication\views.py:478 .\apps\communication\views.py:522
+#: .\apps\communication\views.py:562 .\apps\communication\views.py:614
+#: .\apps\communication\views.py:678 .\apps\communication\views.py:718
+#: .\apps\communication\views.py:772
+#, fuzzy, python-brace-format
+#| msgid "connect hub timeout"
+msgid "connect hub [{hub_sn}] time out"
+msgstr "连接集控[{hub_sn}]超时"
+
+#: .\apps\communication\views.py:136 .\apps\communication\views.py:197
+#: .\apps\communication\views.py:239 .\apps\communication\views.py:288
+#: .\apps\communication\views.py:330 .\apps\communication\views.py:429
+#: .\apps\communication\views.py:481 .\apps\communication\views.py:525
+#: .\apps\communication\views.py:565 .\apps\communication\views.py:617
+#: .\apps\communication\views.py:681 .\apps\communication\views.py:721
+#: .\apps\communication\views.py:775
+#, fuzzy, python-brace-format
+#| msgid "hub unknown error"
+msgid "hub [{hub_sn}] unknown error"
+msgstr "集控[{hub_sn}]未知错误"
+
+#: .\apps\communication\views.py:150
+#, fuzzy, python-brace-format
+#| msgid "lamp control [{lampctrl_sn}] does not exist"
+msgid "gather lamp control [{lamps}] failed"
+msgstr "灯控[{lampctrl_sn}]不存在"
+
+#: .\apps\communication\views.py:688
+msgid "send down policy scheme success"
+msgstr "下发策略集成功"
+
+#: .\apps\communication\views.py:736
+msgid "gather policy set success"
+msgstr "采集策略集成功"
+
+#: .\apps\communication\views.py:782
+msgid "recycle policy set success"
+msgstr "回收策略集成功"
+
+#: .\apps\equipment\views.py:78 .\apps\equipment\views.py:87
+#, fuzzy, python-brace-format
+#| msgid "the username already exists"
+msgid "pole '{sn}' already exist"
+msgstr "用户名已存在"
+
+#: .\apps\equipment\views.py:176 .\apps\equipment\views.py:185
+#, fuzzy, python-brace-format
+#| msgid "the username already exists"
+msgid "lamp '{sn}' already exist"
+msgstr "用户名已存在"
+
+#: .\apps\equipment\views.py:274 .\apps\equipment\views.py:283
+#, fuzzy, python-brace-format
+#| msgid "custom group already exists"
+msgid "control box '{sn}' already exist"
+msgstr "自定义分组已经存在"
+
+#: .\apps\equipment\views.py:366 .\apps\equipment\views.py:375
+#, fuzzy, python-brace-format
+#| msgid "the username already exists"
+msgid "cable '{sn}' already exist"
+msgstr "用户名已存在"
+
+#: .\apps\policy\serializers.py:32
+msgid "the value of 'type' should be in (0,1,2,3)"
+msgstr "'type'的值必须在(0,1,2,3)的范围内"
+
+#: .\apps\policy\serializers.py:93
+msgid "item format error"
+msgstr "item格式错误"
+
+#: .\apps\policy\serializers.py:171 .\apps\policy\serializers.py:175
+#, fuzzy
+#| msgid "Invalid input."
+msgid "'invalid input'"
+msgstr "数据格式错误"
+
+#: .\apps\policy\serializers.py:179
+#, python-brace-format
+msgid "policy id [{policy_id}] does not exist"
+msgstr "策略编号[{policy_id}]不存在"
+
+#: .\apps\policy\views.py:47
+msgid "you can only delete your own policy"
+msgstr "只能删除自己创建的策略"
+
+#: .\apps\policy\views.py:50 .\apps\policy\views.py:89
+#, fuzzy
+#| msgid "can't delete the hub online"
+msgid "you cant't delete the policy in use"
+msgstr "集控在线, 不能删除"
+
+#: .\apps\policy\views.py:86
+msgid "you can only delete your own policyset"
+msgstr "只能删除自己创建的策略集"
+
+#: .\apps\report\views.py:61 .\apps\report\views.py:115
+msgid "you may have not initialized settings"
+msgstr "数据未初始化"
+
+#: .\apps\setting\serializers.py:67
+#, fuzzy, python-brace-format
+#| msgid "'{}' should be a number greater than 0"
+msgid "'{name}' should be a number greater than 0"
+msgstr "'{name}'必须为一个大于0的数字"
+
+#: .\apps\setting\serializers.py:70
+#, fuzzy, python-brace-format
+#| msgid "'{}' should be a number"
+msgid "'{name}' should be a number"
+msgstr "'{name}'必须为数字"
+
+#: .\apps\setting\serializers.py:78
+#, fuzzy, python-brace-format
+#| msgid "'{}' should be a integer greater than 0"
+msgid "'{name}' should be a integer greater than 0"
+msgstr "'{name}'必须为一个大于0的整数"
+
+#: .\apps\setting\serializers.py:81
+#, fuzzy, python-brace-format
+#| msgid "'{}' should be a integer"
+msgid "'{name}' should be a integer"
+msgstr "'{name}'必须为整数"
+
+#: .\apps\setting\serializers.py:90
+#, fuzzy
+#| msgid "Invalid input."
+msgid "invalid input"
+msgstr "数据格式错误"
+
+#: .\apps\user\serializers.py:35
 msgid "User account is disabled."
 msgstr "该用户未激活"
 
-#: .\apps\user\serializers.py:47
+#: .\apps\user\serializers.py:45
 msgid "Unable to log in with provided credentials."
 msgstr "用户名或密码错误"
 
-#: .\apps\user\serializers.py:51
+#: .\apps\user\serializers.py:48
 #, python-brace-format
 msgid "Must include \"{username_field}\" and \"password\"."
 msgstr "必须包含\"{username_field}\"和\"password\"."
 
-#: .\apps\utils\exceptions.py:14
+#: .\apps\user\serializers.py:58
+#, python-brace-format
+msgid "User group '{pk_value}' does not exist"
+msgstr "用户组'{pk_value}'不存在"
+
+#: .\apps\user\serializers.py:66
+msgid "the username already exists"
+msgstr "用户名已存在"
+
+#: .\apps\user\serializers.py:92
+msgid "Please enter a valid mobile phone number"
+msgstr "请输入有效的手机号码"
+
+#: .\apps\user\serializers.py:157
+#, fuzzy, python-brace-format
+#| msgid "hub [{pk_value}] does not exist."
+msgid "hub '{hub_sn}' does not exist"
+msgstr "集控[{pk_value}]不存在"
+
+#: .\apps\user\serializers.py:163
+msgid "Superusers do not need to assign permissions"
+msgstr "管理员不需要分配权限"
+
+#: .\apps\user\serializers.py:240
+#, fuzzy
+#| msgid "you can only delete your own policyset"
+msgid "you can only change your password once a week"
+msgstr "只能删除自己创建的策略集"
+
+#: .\apps\user\serializers.py:246
+msgid "old password error"
+msgstr "旧密码错误"
+
+#: .\apps\user\serializers.py:253
+msgid "the new password is the same as the original password"
+msgstr "新密码与旧密码一致"
+
+#: .\apps\user\serializers.py:297
+msgid "Superusers can't be set to read_only user"
+msgstr "管理员不能被设置为只读用户"
+
+#: .\apps\user\views.py:86
+msgid "can't delete user group that has users"
+msgstr "用户组不为空，不允许删除"
+
+#: .\apps\utils\exceptions.py:19
 msgid "can't delete the hub online"
 msgstr "集控在线, 不能删除"
 
-#: .\apps\utils\exceptions.py:20
+#: .\apps\utils\exceptions.py:25
 msgid "can't connect network service"
 msgstr "网络服务连接失败"
 
-#: .\apps\utils\exceptions.py:26
+#: .\apps\utils\exceptions.py:31
 msgid "authenticate failed when connect network service"
 msgstr "网络服务验证失败"
 
-#: .\apps\utils\exceptions.py:32
+#: .\apps\utils\exceptions.py:37 .\apps\utils\exceptions.py:43
 msgid "connect hub timeout"
 msgstr "连接集控超时"
 
-#: .\apps\utils\exceptions.py:38
+#: .\apps\utils\exceptions.py:49 .\apps\utils\exceptions.py:55
 msgid "hub unknown error"
 msgstr "集控未知错误"
 
-#: .\apps\utils\exceptions.py:44
+#: .\apps\utils\exceptions.py:61
 msgid "object has been existed"
 msgstr "对象已经存在"
 
-#: .\apps\utils\exceptions.py:50
+#: .\apps\utils\exceptions.py:67
 msgid "Invalid input."
 msgstr "数据格式错误"
 
-#: .\initial\init_projectinfo.py:29
+#: .\apps\utils\exceptions.py:73 .\apps\utils\exceptions.py:79
+msgid "Server Error"
+msgstr "服务器错误"
+
+#: .\apps\utils\middleware.py:77
+msgid "log in"
+msgstr "用户登录"
+
+#: .\apps\utils\middleware.py:80
+#, python-brace-format
+msgid "user [{username}] log in on ip [{ip}]"
+msgstr "用户[{username}]在ip[{ip}]登录"
+
+#: .\apps\workorder\serializers.py:114
+msgid "the alert [{}] has generated a work order"
+msgstr "该告警[{}]已经生成过工单"
+
+#: .\initial\init_projectinfo.py:33
 msgid "voice"
 msgstr "语音"
 
-#: .\initial\init_projectinfo.py:34
+#: .\initial\init_projectinfo.py:38
 msgid "message"
 msgstr "短信"
 
-#: .\initial\init_projectinfo.py:39
+#: .\initial\init_projectinfo.py:43
 msgid "interface"
 msgstr "界面"
 
-#: .\initial\init_projectinfo.py:44
+#: .\initial\init_projectinfo.py:48
 msgid "communication"
 msgstr "通讯"
 
-#: .\initial\init_projectinfo.py:49
+#: .\initial\init_projectinfo.py:53
 msgid "alert"
 msgstr "告警"
 
-#: .\initial\init_projectinfo.py:54
+#: .\initial\init_projectinfo.py:58
 msgid "report"
 msgstr "报表"
 
-#: .\initial\init_projectinfo.py:59
+#: .\initial\init_projectinfo.py:63
 msgid "others"
 msgstr "其他"
 
-#: .\smartlamp\settings.py:197
+#: .\smartlamp\settings.py:198
 msgid "English"
 msgstr "英文"
 
-#: .\smartlamp\settings.py:198
+#: .\smartlamp\settings.py:199
 msgid "中文简体"
 msgstr "Simple Chinese"
 

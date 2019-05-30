@@ -4,6 +4,7 @@
 Create by 王思勇 on 2019/2/14
 """
 import requests
+from datetime import datetime
 
 from django.contrib.auth.backends import ModelBackend
 
@@ -11,6 +12,7 @@ from rest_framework import status
 from rest_framework.response import Response
 
 from rest_framework_jwt import views
+from rest_framework_jwt.settings import api_settings
 
 from user.models import User
 from user.serializers import LoginSerializer
@@ -30,6 +32,9 @@ class CustomBackend(ModelBackend):
             return None
 
 
+jwt_response_payload_handler = api_settings.JWT_RESPONSE_PAYLOAD_HANDLER
+
+
 class CustomObtainJSONWebToken(views.ObtainJSONWebToken):
     """
     用户登陆
@@ -40,7 +45,22 @@ class CustomObtainJSONWebToken(views.ObtainJSONWebToken):
         error = self.wechat_auth(request.data)
         if error:
             return Response(status=status.HTTP_400_BAD_REQUEST, data=error)
-        return super(CustomObtainJSONWebToken, self).post(request, *args, **kwargs)
+        # return super(CustomObtainJSONWebToken, self).post(request, *args, **kwargs)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user = serializer.object.get('user') or request.user
+        token = serializer.object.get('token')
+        response_data = jwt_response_payload_handler(token, user, request)
+        response = Response(response_data)
+        if api_settings.JWT_AUTH_COOKIE:
+            expiration = (datetime.utcnow() +
+                          api_settings.JWT_EXPIRATION_DELTA)
+            response.set_cookie(api_settings.JWT_AUTH_COOKIE,
+                                token,
+                                expires=expiration,
+                                httponly=True)
+        return response
 
     @staticmethod
     def wechat_auth(request_data):

@@ -1,6 +1,5 @@
 import os
 
-from django.conf import settings
 from django_filters.rest_framework import DjangoFilterBackend
 
 from rest_framework import viewsets, mixins

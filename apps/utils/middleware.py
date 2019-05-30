@@ -73,9 +73,11 @@ class LogMiddleware(MiddlewareMixin):
 
     def login(self, request, view_func, view_func_args, view_func_kwargs):
         """用户登录"""
-        event = _('用户登录')
+        # 用户登录
+        event = _("log in")
         ip = request.META.get('REMOTE_ADDR', '<none>')
-        msg = _('[用户[{username}]在[{ip}]登录]')
+        # [用户[{username}]在[{ip}]登录]
+        msg = _('user [{username}] log in on ip [{ip}]')
         memo = msg.format(username='', ip=ip)
         Log.objects.create(
             user=None, event=event, object=ip, status=0, memo=memo

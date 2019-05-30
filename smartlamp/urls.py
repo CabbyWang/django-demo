@@ -26,7 +26,7 @@ from equipment.views import HubViewSet, LampCtrlViewSet, PoleViewSet, \
     LampViewSet, CBoxViewSet, CableViewSet
 from group.views import LampCtrlGroupViewSet
 from report.views import ReportViewSet
-from status.views import StatusViewSet, LampCtrlStatusViewSet
+from status.views import StatusViewSet, LampCtrlStatusViewSet, HubLogViewSet
 from user.auth import CustomObtainJSONWebToken
 from user.views import UserGroupViewSet, UserViewSet
 from setting.views import SettingViewSet
@@ -127,6 +127,9 @@ router.register('lampctrlgroups', LampCtrlGroupViewSet, base_name='lampctrlgroup
 
 # 集控通讯
 router.register('communicate', CommunicateViewSet, base_name='communicate')
+
+# 获取集控日志
+router.register('hub-log', HubLogViewSet, base_name='hub-log')
 
 
 urlpatterns = [

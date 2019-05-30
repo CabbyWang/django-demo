@@ -1,7 +1,7 @@
 from django.utils.translation import ugettext_lazy as _
 from django_filters.rest_framework import DjangoFilterBackend
 
-from rest_framework import mixins, viewsets
+from rest_framework import mixins, viewsets, serializers
 from rest_framework.authentication import SessionAuthentication
 from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 
@@ -11,7 +11,6 @@ from .serializers import (
     PolicySerializer, PolicySetSerializer
 )
 from utils.mixins import ListModelMixin
-from utils.exceptions import InvalidInputError
 
 
 class PolicyViewSet(ListModelMixin,
@@ -43,11 +42,13 @@ class PolicyViewSet(ListModelMixin,
 
     def perform_destroy(self, instance):
         # 只能删除自己创建的策略
-        if instance.creator != self.request.user:
-            msg = _('the policy was not created by yourself, can not be deleted')
-            raise InvalidInputError(msg)
+        is_admin = self.request.user.username == 'admin'
+        if not is_admin and instance.creator != self.request.user:
+            msg = _('you can only delete your own policy')
+            raise serializers.ValidationError(msg)
         if instance.policy_relations.exists():
-            raise InvalidInputError('the policy is using, can not be deleted')
+            msg = _("you cant't delete the policy in use")
+            raise serializers.ValidationError(msg)
         instance.soft_delete()
 
 
@@ -80,11 +81,12 @@ class PolicySetViewSet(ListModelMixin,
 
     def perform_destroy(self, instance):
         # 只能删除自己创建的策略
-        if instance.creator != self.request.user:
-            msg = _('the policyset was not created by yourself, can not be deleted')
-            raise InvalidInputError(msg)
+        is_admin = self.request.user.username == 'admin'
+        if not is_admin and instance.creator != self.request.user:
+            msg = _("you can only delete your own policyset")
+            raise serializers.ValidationError(msg)
         if instance.policyset_send_down_policysets.exists():
-            msg = _('the policyset is using, can not be deleted')
-            raise InvalidInputError(msg)
+            msg = _("you cant't delete the policy in use")
+            raise serializers.ValidationError(msg)
         instance.policyset_relations.update(is_deleted=True)
         instance.soft_delete()

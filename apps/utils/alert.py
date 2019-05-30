@@ -20,11 +20,6 @@ from .tts import AlertTTS, WorkorderTTS
 from .sms import send_alert_sms
 
 
-def record_hub_alarm(value=0):
-    event, alert_source, object_type, object, level, status = {}
-    record_alarm(event, alert_source, object_type, object, level, status)
-
-
 def record_alarm(event, object_type, alert_source, object, level, status, occurred_time=datetime.datetime.now()):
     """
     记录告警
@@ -77,3 +72,67 @@ def record_alarm(event, object_type, alert_source, object, level, status, occurr
 
         # 发送告警短信
         send_alert_sms(**body)
+
+
+def record_report_alarm(event, object_type, alert_source, object, level, status, occurred_time, value):
+    """
+    处理集控上报告警
+    :param event: 故障名称
+    :param object_type: 故障设备的类型
+    :param alert_source: 告警源(hub instance)
+    :param object: 故障设备sn号
+    :param level: 故障级别
+    :param status: 1正常、2故障还是3脱网
+    :param occurred_time: 告警发生时间, 默认为当前时间
+    :param value: 0/1 0：无告警  1：有告警
+    """
+    if value == 0:
+        # value为0，表示没有故障  消除告警
+        unsolved_alert = Alert.objects.filter_by(
+            event=event, object_type=object_type, alert_source=alert_source,
+            object=object, level=level, status=status, is_solved=False
+        ).first()
+        if unsolved_alert:
+            # 告警生成的工单变为已完成
+            WorkOrder.objects.filter_by(alert=unsolved_alert).update(
+                status='finished', finished_time=datetime.datetime.now(),
+                memo='集控重连，自动完成'
+            )
+            unsolved_alert.__dict__.update(
+                solved_time=datetime.datetime.now(),
+                is_solved=True, memo='集控重连'
+            )
+    elif value == 1:
+        # value为1, 表示存在故障  记录告警
+        record_alarm(
+            event=event, object_type=object_type, alert_source=alert_source,
+            object=object, level=level, status=status,
+            occurred_time=occurred_time
+        )
+    else:
+        # TODO 无效value，日志记录
+        pass
+
+
+def record_hub_disconnect(hub):
+    """
+    记录集控脱网
+    :param hub: Hub instance
+    """
+    record_alarm(
+        event="集控脱网", object_type='hub', alert_source=hub,
+        object=hub.sn, level=3, status=3
+    )
+
+
+def record_lamp_ctrl_trouble(lampctrl):
+    """
+    记录灯控故障
+    :param lampctrl: LampCtrl instance
+    """
+    if not lampctrl:
+        return
+    assert isinstance(lampctrl, LampCtrl), \
+        "lampctrl should be a instance of LampCtrl"
+    lampctrl.status = 2
+    lampctrl.save()

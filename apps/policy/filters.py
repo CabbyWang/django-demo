@@ -15,7 +15,7 @@ class PolicyFilter(filters.FilterSet):
 
     name = filters.CharFilter(field_name='name', lookup_expr='icontains')
     memo = filters.CharFilter(field_name='memo', lookup_expr='icontains')
-    creator = filters.CharFilter(field_name='creator')
+    creator = filters.CharFilter(field_name='creator__username')
     is_used = filters.BooleanFilter(method='filter_is_used')
 
     @staticmethod
@@ -39,7 +39,7 @@ class PolicySetFilter(filters.FilterSet):
 
     name = filters.CharFilter(field_name='name', lookup_expr='icontains')
     memo = filters.CharFilter(field_name='memo', lookup_expr='icontains')
-    creator = filters.CharFilter(field_name='creator')
+    creator = filters.CharFilter(field_name='creator__username')
     is_used = filters.BooleanFilter(method='filter_is_used')
 
     @staticmethod

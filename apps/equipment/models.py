@@ -90,6 +90,7 @@ class Hub(BaseModel):
         default=False, verbose_name='是否重定位',
         help_text='是否重定位'
     )
+    version = models.CharField(max_length=16, verbose_name='集控版本号', help_text='集控版本号')
 
     class Meta:
         verbose_name = '集控'
@@ -99,43 +100,6 @@ class Hub(BaseModel):
 
     def __str__(self):
         return self.sn
-
-    def delete(self, using=None, keep_parents=False):
-        # 删除集控状态历史纪录
-        self.hub_hubstatus.update(deleted_time=datetime.now(),
-                                  is_deleted=True)
-        # 删除灯控
-        self.hub_lampctrl.update(deleted_time=datetime.now(),
-                                 is_deleted=True)
-        # 删除灯控分组
-        self.hub_group.update(deleted_time=datetime.now(),
-                              is_deleted=True)
-        # 删除告警
-        self.hub_alert.update(deleted_time=datetime.now(),
-                              is_deleted=True)
-        # 删除策略下发表
-        self.hub_send_down_policysets.update(
-            deleted_time=datetime.now(), is_deleted=True)
-        # 删除集控当天能耗表
-        self.hub_consumption.update(deleted_time=datetime.now(),
-                                    is_deleted=True)
-        # 删除用户权限
-        self.hub_permision.update(deleted_time=datetime.now(),
-                                  is_deleted=True)
-        # 删除巡检报告
-        self.hub_inspetion.update(deleted_time=datetime.now(),
-                                  is_deleted=True)
-        # TODO 删除工单？
-        # type=1 obj_sn=self.sn
-        # self.hub_lampctrl.update(deleted_time=datetime.now(), is_deleted=True)
-        # 删除巡检报告具体项表
-        self.hub_inspection_item.update(deleted_time=datetime.now(),
-                                        is_deleted=True)
-        # 删除集控
-        # self.deleted_time = datetime.now()
-        # self.is_deleted = True
-        # self.save()
-        self.soft_delete()
 
 
 class LampCtrl(BaseModel):
@@ -158,8 +122,8 @@ class LampCtrl(BaseModel):
     lamp_type = models.SmallIntegerField(default=1, choices=TYPE_CHOICE,
                                          help_text='灯具类型')
     is_repeated = models.BooleanField(default=False, help_text='是否是中继')
-    rf_band = models.IntegerField(help_text='信道')
-    rf_addr = models.IntegerField(help_text='通讯模块逻辑地址')
+    rf_band = models.IntegerField(help_text='射频频率')
+    rf_addr = models.IntegerField(help_text='射频地址')
     address = models.CharField(max_length=60, help_text='集控配置地址')
     new_address = models.CharField(max_length=255, null=True, blank=True,
                                    help_text='管控修改过的地址')

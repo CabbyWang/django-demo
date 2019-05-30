@@ -6,24 +6,32 @@ Create by 王思勇 on 2019/4/4
 import datetime
 
 from django.db import transaction
+from django.utils.translation import ugettext_lazy as _
 
 from rest_framework import serializers
 
 from user.models import User
 from .models import Policy, PolicySet, PolicySetRelation, PolicySetSendDown
 from utils.validators import UniqueValidator
-from utils.exceptions import InvalidInputError
 from utils.sunrise_sunset import calculate_sunrise_sunset
 
 
 class PolicySerializer(serializers.ModelSerializer):
     # ('时控', '经纬度', '光控', '回路控制')
-    name = serializers.CharField(max_length=255,
-                                 validators=[
-                                     UniqueValidator(
-                                         queryset=Policy.objects.filter_by(),
-                                         message='policy name has been existed')])
-    # type = serializers.ChoiceField([(0, '时控'), (1, '经纬度'), (2, '光控'), (3, '回路控制')])
+    name = serializers.CharField(
+        max_length=255,
+        validators=[
+            UniqueValidator(
+                queryset=Policy.objects.filter_by(),
+                message="policy name already exists")]
+    )
+    # type = serializers.ChoiceField(
+    #     write_only=True,
+    #     choices=[(0, '时控'), (1, '经纬度'), (2, '光控'), (3, '回路控制')],
+    #     error_messages={
+    #         'invalid_choice': _("the value of 'type' should be in (0,1,2,3)")
+    #     }
+    # )
     item = serializers.ListField(min_length=1)
     creator = serializers.SlugRelatedField(
         # write_only=True,
@@ -81,24 +89,26 @@ class PolicySerializer(serializers.ModelSerializer):
         type2 = ('action', 'detect_period', 'lower_bound', 'higher_bound',
                  'tolerance')
         type3 = ('action', 'minute', 'hour', 'second')
+        # item格式错误
+        msg = _('item format error')
         for im in item:
             if 'type' not in im:
-                raise InvalidInputError('item格式错误')
+                raise serializers.ValidationError(msg)
             type = im['type']
             if type == 0 and not all(i in im for i in type0):
-                raise InvalidInputError('item格式错误')
+                raise serializers.ValidationError(msg)
             if type == 1 and not all(i in im for i in type1):
-                raise InvalidInputError('item格式错误')
+                raise serializers.ValidationError(msg)
             if type == 2 and not all(i in im for i in type2):
-                raise InvalidInputError('item格式错误')
+                raise serializers.ValidationError(msg)
             if type == 3 and not all(i in im for i in type3):
-                raise InvalidInputError('item格式错误')
+                raise serializers.ValidationError(msg)
         return item
 
     class Meta:
         model = Policy
-        fields = ('id', 'name', 'item', 'format_item', 'is_used', 'creator',
-                  'created_time', 'updated_time')
+        fields = ('id', 'name', 'item', 'format_item', 'is_used',
+                  'creator', 'created_time', 'updated_time')
 
 
 class PolicySetRelationSerializer(serializers.ModelSerializer):
@@ -124,11 +134,13 @@ class PolicySetSerializer(serializers.ModelSerializer):
     #     many=True,
     #     read_only=True)
     policys = serializers.SerializerMethodField()
-    name = serializers.CharField(max_length=255,
-                                 validators=[
-                                     UniqueValidator(
-                                         queryset=PolicySet.objects.filter_by(),
-                                         message='policyset name has been existed')])
+    name = serializers.CharField(
+        max_length=255,
+        validators=[
+            UniqueValidator(
+                queryset=PolicySet.objects.filter_by(),
+                message="policyset name already exists")]
+    )
     creator = serializers.SlugRelatedField(
         # write_only=True,
         slug_field='username',
@@ -156,13 +168,16 @@ class PolicySetSerializer(serializers.ModelSerializer):
         """
         policys = self.initial_data.get('policys')
         if not policys or not isinstance(policys, list):
-            raise InvalidInputError('invalid input')
+            msg = _("'invalid input'")
+            raise serializers.ValidationError(msg)
         for item in policys:
             if 'execute_date' not in item or 'policy_id' not in item:
-                raise InvalidInputError('invalid input')
+                msg = _("'invalid input'")
+                raise serializers.ValidationError(msg)
             policy_id = item['policy_id']
             if not Policy.objects.filter_by(id=policy_id).exists():
-                raise InvalidInputError('policy id [{}] does not existed'.format(policy_id))
+                msg = _('policy id [{policy_id}] does not exist')
+                raise serializers.ValidationError(msg.format(policy_id))
         return attrs
 
     @staticmethod

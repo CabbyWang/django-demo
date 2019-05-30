@@ -3,12 +3,13 @@
 """
 Create by 王思勇 on 2019/3/4
 """
+from django.utils.translation import ugettext_lazy as _
+
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 from rest_framework.settings import api_settings
 
 from setting.models import SettingType, Setting
-from utils.exceptions import InvalidInputError
 
 
 class SettingSerializer(serializers.ModelSerializer):
@@ -51,7 +52,9 @@ class SettingUpdateSerializer(serializers.ModelSerializer):
         UniqueValidator(queryset=Setting.objects.filter_by())
     ])
     value = serializers.CharField(required=True)
-    s_type = serializers.PrimaryKeyRelatedField(required=False, queryset=SettingType.objects.filter_by())
+    s_type = serializers.PrimaryKeyRelatedField(
+        required=False, queryset=SettingType.objects.filter_by()
+    )
 
     def validate_value(self, value):
         setting = self.instance
@@ -61,24 +64,22 @@ class SettingUpdateSerializer(serializers.ModelSerializer):
             try:
                 value = float(value)
                 if value <= 0:
-                    raise InvalidInputError(
-                        "'{}' field must be a number greater than 0".format(
-                            setting.name))
+                    msg = _("'{name}' should be a number greater than 0")
+                    raise serializers.ValidationError(msg.format(name=setting.name))
             except ValueError:
-                raise InvalidInputError(
-                    "the '{}' field must be a number".format(setting.name))
+                msg = _("'{name}' should be a number")
+                raise serializers.ValidationError(msg.format(name=setting.name))
         elif option in ('request_timeout', 'pagination',
                         'hub_status_count_threshold',
                         'lamp_status_count_threshold'):
             try:
                 value = int(value)
                 if value <= 0:
-                    raise InvalidInputError(
-                        "the '{}' field must be a integer greater than 0".format(
-                            setting.name))
+                    msg = _("'{name}' should be a integer greater than 0")
+                    raise serializers.ValidationError(msg.format(name=setting.name))
             except ValueError:
-                raise InvalidInputError(
-                    "the '{}' field must be a integer".format(setting.name))
+                msg = _("'{name}' should be a integer")
+                raise serializers.ValidationError(msg.format(name=setting.name))
         elif option in ('lost_ignore_time', ):
             try:
                 value = value.split(',')
@@ -86,7 +87,8 @@ class SettingUpdateSerializer(serializers.ModelSerializer):
                 if not start_time or not end_time:
                     raise ValueError
             except ValueError:
-                raise InvalidInputError("Illegal input")
+                msg = _("invalid input")
+                raise serializers.ValidationError(msg)
         elif option in ('cycle_time', ):
             # 调用其他接口, 该接口中不改变值
             value = setting.value

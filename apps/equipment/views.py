@@ -1,6 +1,12 @@
+import zipfile
+from pathlib import Path
 from math import sqrt
 
 from django_filters.rest_framework import DjangoFilterBackend
+from django.utils.translation import ugettext_lazy as _
+from django.http import FileResponse
+from django.conf import settings
+
 from rest_framework.response import Response
 from rest_framework import status, mixins, viewsets
 from rest_framework.authentication import SessionAuthentication
@@ -69,7 +75,8 @@ class PoleViewSet(ListModelMixin,
         sn = serializer.validated_data.get('sn')
         # 判断sn是否存在
         if Pole.objects.filter_by(sn=sn).exists():
-            raise ObjectHasExisted(detail='pole [{}] has been existed'.format(sn))
+            msg = _("pole '{sn}' already exist")
+            raise ObjectHasExisted(detail=msg.format(sn=sn))
         serializer.save()
 
     def perform_update(self, serializer):
@@ -77,8 +84,8 @@ class PoleViewSet(ListModelMixin,
         # 判断sn是否存在
         instance = serializer.instance
         if Pole.objects.filter_by(sn=sn).exclude(id=instance.id).exists():
-            raise ObjectHasExisted(
-                detail='pole [{}] has been existed'.format(sn))
+            msg = _("pole '{sn}' already exist")
+            raise ObjectHasExisted(detail=msg.format(sn=sn))
         serializer.save()
 
     @action(methods=['POST'], detail=False, url_path='images')
@@ -95,7 +102,7 @@ class PoleViewSet(ListModelMixin,
         }
         """
         serializer = self.get_serializer(data=request.data)
-        a = serializer.is_valid(raise_exception=False)
+        serializer.is_valid(raise_exception=False)
         sns = serializer.data.get('sn')
         for pole_sn in sns:
             pole = Pole.objects.filter_by(sn=pole_sn).first()
@@ -166,7 +173,8 @@ class LampViewSet(ListModelMixin,
         sn = serializer.validated_data.get('sn')
         # 判断sn是否存在
         if Lamp.objects.filter_by(sn=sn).exists():
-            raise ObjectHasExisted(detail='lamp [{}] has been existed'.format(sn))
+            msg = _("lamp '{sn}' already exist")
+            raise ObjectHasExisted(detail=msg.format(sn=sn))
         serializer.save()
 
     def perform_update(self, serializer):
@@ -174,7 +182,8 @@ class LampViewSet(ListModelMixin,
         # 判断sn是否存在
         instance = serializer.instance
         if Lamp.objects.filter_by(sn=sn).exclude(id=instance.id).exists():
-            raise ObjectHasExisted(detail='lamp [{}] has been existed'.format(sn))
+            msg = _("lamp '{sn}' already exist")
+            raise ObjectHasExisted(detail=msg.format(sn=sn))
         serializer.save()
 
     @action(methods=['POST'], detail=False, url_path='images')
@@ -262,7 +271,8 @@ class CBoxViewSet(ListModelMixin,
         sn = serializer.validated_data.get('sn')
         # 判断sn是否存在
         if CBox.objects.filter_by(sn=sn).exists():
-            raise ObjectHasExisted(detail='cbox [{}] has been existed'.format(sn))
+            msg = _("control box '{sn}' already exist")
+            raise ObjectHasExisted(detail=msg.format(sn=sn))
         serializer.save()
 
     def perform_update(self, serializer):
@@ -270,7 +280,8 @@ class CBoxViewSet(ListModelMixin,
         # 判断sn是否存在
         instance = serializer.instance
         if CBox.objects.filter_by(sn=sn).exclude(id=instance.id).exists():
-            raise ObjectHasExisted(detail='cbox [{}] has been existed'.format(sn))
+            msg = _("control box '{sn}' already exist")
+            raise ObjectHasExisted(detail=msg.format(sn=sn))
         serializer.save()
 
     @action(methods=['POST'], detail=False, url_path='images')
@@ -352,7 +363,8 @@ class CableViewSet(ListModelMixin,
         sn = serializer.validated_data.get('sn')
         # 判断sn是否存在
         if Cable.objects.filter_by(sn=sn).exists():
-            raise ObjectHasExisted(detail='cable [{}] has been existed'.format(sn))
+            msg = _("cable '{sn}' already exist")
+            raise ObjectHasExisted(detail=msg.format(sn=sn))
         serializer.save()
 
     def perform_update(self, serializer):
@@ -360,7 +372,8 @@ class CableViewSet(ListModelMixin,
         # 判断sn是否存在
         instance = serializer.instance
         if Cable.objects.filter_by(sn=sn).exclude(id=instance.id).exists():
-            raise ObjectHasExisted(detail='cable [{}] has been existed'.format(sn))
+            msg = _("cable '{sn}' already exist")
+            raise ObjectHasExisted(detail=msg.format(sn=sn))
         serializer.save()
 
     @action(methods=['DELETE'], detail=False, url_path='batch')
@@ -742,5 +755,3 @@ class HubViewSet(ListModelMixin,
             y = (y2 - y1) * d / distance + y1
             ret_points.append((x, y))
         return ret_points
-
-

@@ -11,12 +11,19 @@ from django.utils.translation import ugettext_lazy as _
 
 from equipment.models import LampCtrl, Hub
 from group.models import LampCtrlGroup
-from utils.exceptions import InvalidInputError
 
 
 class GatherLampCtrlSerializer(serializers.Serializer):
 
-    lampctrl = serializers.ListField(required=True, min_length=1)
+    lampctrl = serializers.ListField(
+        required=True, min_length=1,
+        child=serializers.PrimaryKeyRelatedField(
+            queryset=LampCtrl.objects.filter_by(),
+            error_messages={
+                'does_not_exist': _("lamp control [{pk_value}] does not exist.")
+            }
+        )
+    )
 
     @staticmethod
     def validate_lampctrl(lampctrls):
@@ -29,27 +36,9 @@ class GatherLampCtrlSerializer(serializers.Serializer):
             "hub2": ["lamp3", "lamp4"]
         }
         """
-        # 验证灯控是否存在
-        not_exists_lampctrl = []
-        for sn in lampctrls:
-            if not LampCtrl.objects.filter_by(sn=sn).exists():
-                not_exists_lampctrl.append(sn)
-        if not_exists_lampctrl:
-            raise serializers.ValidationError(
-                'Lamp controls [{}] are not exist.'.format(
-                    ', '.join(not_exists_lampctrl))
-            )
-
         ret = defaultdict(list)
-        hub_sns = LampCtrl.objects.filter(
-            sn__in=lampctrls).values_list('hub', flat=True)
-        for sn in lampctrls:
-            lampctrl = LampCtrl.objects.get(sn=sn)
-            ret[lampctrl.hub.sn].append(sn)
-        # for hub_sn in hub_sns:
-        #     hub = Hub.objects.get_or_404(sn=hub_sn)
-        #     lampctrls = LampCtrl.objects.filter(hub=hub).values_list('sn', flat=True)
-        #     ret[hub_sn] = list(lampctrls)
+        for lampctrl in lampctrls:
+            ret[lampctrl.hub].append(lampctrl.sn)
         return ret
 
 
@@ -60,11 +49,12 @@ class ControlLampSerializer(GatherLampCtrlSerializer):
     def validate_action(action):
         actions = action.split(',')
         if len(actions) != 2:
-            raise InvalidInputError('the format of action must like "0,80"')
+            msg = _("the format of action must like '0,80'")
+            raise serializers.ValidationError(msg)
         route1, route2 = [int(i) for i in actions]
         if route1 < 0 or route1 > 255 or route2 < 0 or route2 > 255:
-            raise InvalidInputError(
-                'the brightness value must between 0 and 255')
+            msg = _('the brightness value must between 0 and 255')
+            raise serializers.ValidationError(msg)
         return action
 
 
@@ -78,31 +68,20 @@ class HubIsExistedSerializer(serializers.Serializer):
         child=serializers.PrimaryKeyRelatedField(
             queryset=Hub.objects.filter_by(),
             error_messages={
-                'does_not_exist': _('hub "{pk_value}" does not exist.')
+                'does_not_exist': _("hub [{pk_value}] does not exist.")
             }
         )
     )
 
-    @staticmethod
-    def validate_hub(hubs):
-        not_exists_hub = []
-        for hub_sn in hubs:
-            if not Hub.objects.filter_by(sn=hub_sn).exists():
-                not_exists_hub.append(hub_sn)
-        if not_exists_hub:
-            raise serializers.ValidationError(
-                'hubs [{}] are not exist.'.format(', '.join(not_exists_hub)))
-        return hubs
-
 
 class ControlAllSerializer(HubIsExistedSerializer):
 
-    # hub = serializers.ListField(
-    #     child=serializers.PrimaryKeyRelatedField(
-    #         queryset=Hub.objects.filter_by()
-    #     )
-    # )
-    action = serializers.ChoiceField(choices=['open', 'close'])
+    action = serializers.ChoiceField(
+        choices=['open', 'close'],
+        error_messages={
+            'invalid_choice': _("the value of 'action' should be 'open' or 'close'")
+        }
+    )
 
     @staticmethod
     def validate_action(action):
@@ -114,53 +93,79 @@ class ControlAllSerializer(HubIsExistedSerializer):
 class PatternGroupSerializer(serializers.Serializer):
     """下发(模式)分组"""
 
-    hub = serializers.CharField(required=True)
-    group_num = serializers.IntegerField(required=True, max_value=99, min_value=1)
-    memo = serializers.CharField(required=False, allow_blank=True)
-    group_num_rest = serializers.IntegerField(required=True, max_value=99, min_value=1)
-    memo_rest = serializers.CharField(required=False, allow_blank=True)
-    segmentation = serializers.IntegerField(required=True, max_value=6, min_value=1)
-    select = serializers.IntegerField(required=True, max_value=5, min_value=1)
-
-    @staticmethod
-    def validate_hub(hub_sn):
-        if not Hub.objects.filter_by(sn=hub_sn).exists():
-            msg = _('hub [{}] is not exist.'.format(', '.join(hub_sn)))
-            raise InvalidInputError(msg)
-        return hub_sn
+    hub = serializers.PrimaryKeyRelatedField(
+        required=True,
+        queryset=Hub.objects.filter_by(),
+        error_messages={
+            'does_not_exist': _("hub [{pk_value}] does not exist.")
+        }
+    )
+    group_num = serializers.IntegerField(
+        required=True, max_value=99, min_value=1,
+        error_messages={'required': _("field 'group_num' is required.")}
+    )
+    memo = serializers.CharField(
+        required=False, allow_blank=True,
+        error_messages={
+            'required': _("field 'memo' is required.")}
+    )
+    group_num_rest = serializers.IntegerField(
+        required=True, max_value=99, min_value=1,
+        error_messages={
+            'required': _("field 'group_num_rest' is required.")}
+    )
+    memo_rest = serializers.CharField(
+        required=False, allow_blank=True,
+        error_messages={
+            'required': _("field 'memo_rest' is required.")}
+    )
+    segmentation = serializers.IntegerField(
+        required=True, max_value=6, min_value=1,
+        error_messages={
+            'required': _("field 'segmentation' is required.")}
+    )
+    select = serializers.IntegerField(
+        required=True, max_value=5, min_value=1,
+        error_messages={
+            'required': _("field 'select' is required.")}
+    )
 
     def validate(self, attrs):
         hub_sn = self.initial_data['hub']
-        hub = Hub.objects.get_or_404(sn=hub_sn)
+        hub = Hub.objects.filter_by(sn=hub_sn).first()
+        if not hub:
+            msg = _("hub '{}' does not exist")
+            raise serializers.ValidationError(msg.format(hub_sn))
         # 自定义分组已存在
         if LampCtrlGroup.objects.filter_by(hub=hub, is_default=False).exists():
-            raise InvalidInputError('custom group has been existed')
+            msg = _('custom group already exists')
+            raise serializers.ValidationError(msg)
         # 两个分组id不能相同
         if attrs["group_num"] == attrs["group_num_rest"]:
-            raise InvalidInputError('two group id must be different')
+            msg = _('two group id should be different')
+            raise serializers.ValidationError(msg)
         # 分组id不能与默认分组的id相同
-        hub_sn = self.context['view'].kwargs.get('pk')
-        hub = Hub.objects.get_or_404(sn=hub_sn)
+        # hub_sn = self.context['view'].kwargs.get('pk')
+        # hub = Hub.objects.get_or_404(sn=hub_sn)
         default_groups = hub.hub_group.filter_by(is_default=True).values_list(
             'group_num', flat=True)
         if attrs['group_num'] in default_groups or attrs['group_num_rest'] in default_groups:
-            raise InvalidInputError(
-                'group number must be different with default groups')
+            msg = _('group number should be different with default groups')
+            raise serializers.ValidationError(msg)
         return attrs
 
 
 class CustomGroupingSerializer(serializers.Serializer):
     """下发(自定义)分组"""
 
-    hub = serializers.CharField(required=True)
+    hub = serializers.PrimaryKeyRelatedField(
+        required=True,
+        queryset=Hub.objects.filter_by(),
+        error_messages={
+            'does_not_exist': _("hub [{pk_value}] does not exist.")
+        }
+    )
     configs = serializers.ListField(required=True)
-
-    @staticmethod
-    def validate_hub(hub_sn):
-        if not Hub.objects.filter_by(sn=hub_sn).exists():
-            msg = _('hub [{}] is not exist.'.format(', '.join(hub_sn)))
-            raise InvalidInputError(msg)
-        return hub_sn
 
     def validate_configs(self, configs):
         """
@@ -180,22 +185,25 @@ class CustomGroupingSerializer(serializers.Serializer):
         }
         """
         hub_sn = self.initial_data['hub']
-        hub = Hub.objects.get_or_404(sn=hub_sn)
+        hub = Hub.objects.filter_by(sn=hub_sn).first()
+        if not hub:
+            msg = _("hub '{}' does not exist")
+            raise serializers.ValidationError(msg.format(hub_sn))
         # 自定义分组已存在
         if LampCtrlGroup.objects.filter_by(hub=hub, is_default=False).exists():
-            raise InvalidInputError('custom group has been existed')
+            raise serializers.ValidationError('custom group already exists')
         for item in configs:
             # 数据项中必须包含"lampctrl", "group_num", "memo"字段
             if any(i not in item for i in ("lampctrl", "group_num", "memo")):
-                raise InvalidInputError(
-                    'you should include "lampctrl", "group_num", "memo" in the list items'
-                )
+                msg = _("fields('lampctrl', 'group_num', 'memo')"
+                        "should be include in the 'configs' items")
+                raise serializers.ValidationError(msg)
             lampctrl_sns = item.get('lampctrl')
             for lampctrl_sn in lampctrl_sns:
                 # 灯控必须存在
                 if not LampCtrl.objects.filter_by(sn=lampctrl_sn).exists():
-                    raise InvalidInputError(
-                        'lamp control [{}] not existed'.format(lampctrl_sn))
+                    msg = _('lamp control [{lampctrl_sn}] does not exist')
+                    raise serializers.ValidationError(msg.format(lampctrl_sn))
         return configs
 
 
@@ -203,7 +211,10 @@ class UpdateGroupSerializer(serializers.Serializer):
     """修改分组"""
 
     hub = serializers.PrimaryKeyRelatedField(
-        required=True, queryset=Hub.objects.filter_by()
+        required=True, queryset=Hub.objects.filter_by(),
+        error_messages={
+            'does_not_exist': _("hub [{pk_value}] does not exist.")
+        }
     )
     lampctrl = serializers.ListField(
         required=True,
@@ -212,13 +223,6 @@ class UpdateGroupSerializer(serializers.Serializer):
         )
     )
     group_num = serializers.IntegerField(required=True)
-
-    @staticmethod
-    def validated_hub(hub):
-        if not Hub.objects.filter_by(sn=hub).exists():
-            msg = _('hub [{}] is not exist.'.format(', '.join(hub)))
-            raise InvalidInputError(msg)
-        return hub
 
 
 class SendDownPolicySetSerializer(serializers.Serializer):
@@ -251,14 +255,14 @@ class SendDownPolicySetSerializer(serializers.Serializer):
         }
         :return
         {
-            "hub_sn1": [
+            hub1: [
                 {
                     "hub": "hub_sn1"
                     "group_num": null,
                     "policyset_id": "1"
                 }
             ],
-            "hub_sn2": [
+            hub2: [
                 {
                     "hub": "hub_sn2"
                     "group_num": "1",
@@ -273,9 +277,32 @@ class SendDownPolicySetSerializer(serializers.Serializer):
         }
         """
         ret_data = defaultdict(list)
+        error_hubs = []
         for item in data:
             if any(i not in item for i in ("hub", "group_num", "policyset_id")):
-                msg = _('"hub","group_num" and "policyset_id" are required')
-                raise InvalidInputError(msg)
-            ret_data[item.get('hub')].append(item)
+                msg = _("fields('hub', 'group_num', 'policyset_id') should be include in the 'configs' items")
+                raise serializers.ValidationError(msg)
+            hub_sn = item.get('hub')
+            hub = Hub.objects.filter_by(sn=hub_sn).first()
+            if not hub:
+                error_hubs.append(hub_sn)
+                continue
+                # raise _("hub [{pk_value}] does not exist.").format(hub_sn)
+            ret_data[hub].append(item)
+        if error_hubs:
+            raise _("hub [{pk_value}] does not exist.").format(
+                pk_value=','.join(error_hubs)
+            )
         return ret_data
+
+
+class DownloadHubLogSerializer(serializers.Serializer):
+    """下载集控日志"""
+
+    hub = serializers.PrimaryKeyRelatedField(
+        required=True,
+        queryset=Hub.objects.filter_by(),
+        error_messages={
+            'does_not_exist': _("hub [{pk_value}] does not exist.")
+        }
+    )
