@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/1.11/ref/settings/
 """
 import os
 import sys
+import enum
 import datetime
 
 from django.utils.translation import ugettext_lazy as _
@@ -68,7 +69,6 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'apps.utils.middleware.LogMiddleware',
     # 'request_logging.middleware.LoggingMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -77,6 +77,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'apps.utils.middleware.LogMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -244,7 +245,7 @@ MODIFY_PSW_INTERVAL = datetime.timedelta(days=30)
 DEFAULT_PASSWORD = '12345678'
 
 # Network Service Address
-NS_ADDR = ('127.0.0.1', 9995)
+NS_ADDR = ('127.0.0.1', 9999)
 
 # 备份目录
 BACKUP_ROOT = os.path.join(BASE_DIR, 'backup')

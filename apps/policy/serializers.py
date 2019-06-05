@@ -68,7 +68,7 @@ class PolicySerializer(serializers.ModelSerializer):
                     latitude=item.get('latitude'),
                     date=date
                 )
-                time = ss.get('runrise') if item.get('s_type') == 'sunrise' else ss.get('runset')
+                time = ss.get('sunrise') if item.get('s_type') == 'sunrise' else ss.get('sunset')
                 time += datetime.timedelta(minutes=item.get('offset', 0))
                 minutes = time.hour * 60 + time.minute
                 ret_data.append(dict(

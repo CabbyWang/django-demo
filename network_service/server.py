@@ -23,6 +23,7 @@ log.startLogging(sys.stdout)
 
 # twisted clients pool
 clients = {}
+invalid_conns = {}
 # TODO 是否可以将日志按集控来分文件，方便问题追踪
 # TODO 如何过滤非法信息， 如 不经过verifiy的连接 格式不匹配
 
@@ -53,6 +54,10 @@ class Server(Protocol):
     def connectionMade(self):
         log.msg("New connection established.")
         log.msg("The host of new connection is:", self.transport.getPeer().host)
+        print("connectionMade: ", hash(self.transport))
+        invalid_conns[hash(self)] = self
+        print('connectionMad invalid_conns: ', invalid_conns)
+        print("hash self: ", hash(self))
 
     def is_hub(self):
         # if not self.user:
@@ -115,6 +120,7 @@ class Server(Protocol):
         1. 管控客户端
         2. 集控客户端
         """
+        print("register: ", hash(self.transport))
         content = json.loads(content)
         sender = content.get('sender', '')
         if sender.startswith('cmd'):
@@ -155,14 +161,14 @@ class Server(Protocol):
             message = code == 0 and "success" or "fail"
             reason = ret.get("reason")
 
-            send_content = dict(
+            body = dict(
                 action="{}_ack".format(action),
-                type="ack",
+                # type="ack",
                 code=code,
-                message=message,
+                # message=message,
                 reason=reason
             )
-            self.write(102, json.dumps(send_content))
+            self.write(102, body)
 
     def group_message(self, content):
         """
@@ -195,6 +201,8 @@ class Server(Protocol):
         """
         处理心跳包
         """
+        print("heartbeat: ", hash(self.transport))
+        print("hash self: ", hash(self))
         log.msg("receive heartbeat from {}".format(self.user))
         self.last_heartbeat_time = int(time.time())
 
@@ -204,6 +212,8 @@ class Server(Protocol):
         user = content.get("sender")
         self.user = user
         clients[user] = self
+        invalid_conns.pop(hash(self))
+        print("after register, invalid_conns: ", invalid_conns)
         # log.msg("New client <{}> has registered!".format(user))
         log.msg("New client <{}>".format(user))
         log.msg("Online clients now: {}".format(clients))
@@ -243,6 +253,8 @@ class Server(Protocol):
             return
 
         clients[user] = self
+        invalid_conns.pop(hash(self))
+        print("after register, invalid_conns: ", invalid_conns)
         SLMS.record_connect_hub(self.user)
         log.msg("New hub <{}> has registered!".format(user))
         log.msg("Online hubs now: {}".format(clients))
@@ -253,14 +265,22 @@ class Server(Protocol):
         )
         self.write(101, json.dumps(success_content))
 
-    def write(self, command_id, content):
+    def write(self, command_id, body):
         """通过transport发送(接收者为self.user)
         like self.transport.write()
         :param command_id: 指令id
-        :param content: 包数据
+        :param body: content中的body
         """
+        log.msg("[{}] send_content to [{}]: {}".format(
+            'NS', self.user, json.dumps(body)
+        ))
+        content = dict(
+            sender='NS',
+            receiver=self.user,
+            body=body
+        )
+        content = json.dumps(content)
         header = self.pack_header(12 + len(content), __version__, command_id)
-        log.msg("[{}] send_content to [{}]: {}".format('NS', self.user, content))
         self.transport.write(header + content.encode('utf-8'))
 
     def abort_connection(self):
@@ -273,27 +293,32 @@ class Server(Protocol):
         content = json.dumps(content)
         if hub in clients:
             # 集控在线， 正常发送
-            log.msg("[{}] send_content to [{}]: {}".format(sender, hub, content))
+            log.msg("[{}] send_content to [{}]: {}".format(
+                sender, hub, content
+            ))
             header = self.pack_header(12 + len(content), __version__, 102)
             # header = self.pack_header(12 + len(content), __version__, 2)
             clients[hub].transport.write(header + content.encode('utf-8'))
         else:
             # 集控脱网
             # 当前用户是cmd, 发送不在线反馈给管控(self.user)
-            log.msg("Hub <{}> is offline. Can not be communicated with it.".format(hub))
-            body = dict(action='ns_ack', code=101,
-                        message="hub [{}] if offline. Can not be communicated with it".format(hub))
+            msg = "hub [{}] if offline. Can not be communicated with it"
+            log.msg(msg.format(hub))
+            body = dict(action='ns_ack', code=101, message=msg.format(hub))
             content = dict(
                 sender='NS',
                 receiver=self.user,
                 body=body
             )
             content = json.dumps(content)
-            log.msg("[{}] send_content to [{}]: {}".format('NS', self.user, content))
+            log.msg("[{}] send_content to [{}]: {}".format(
+                'NS', self.user, content
+            ))
             header = self.pack_header(12 + len(content), __version__, 102)
             self.transport.write(header + content.encode('utf-8'))
 
     def _send_to_cmd(self, content, cmd, sender='NS'):
+        print("_send_to_cmd: ", hash(self.transport))
         assert isinstance(content, dict)
         # 给管控发送(ack)
         content = json.dumps(content)

@@ -57,79 +57,79 @@ router.register('users', UserViewSet, basename='users')
 router.register('hubs', HubViewSet, basename='hubs')
 
 # 管理单元
-router.register('units', UnitViewSet, base_name='units')
+router.register('units', UnitViewSet, basename='units')
 
 # 设置
-router.register('settings', SettingViewSet, base_name='settings')
+router.register('settings', SettingViewSet, basename='settings')
 
 # 灯控
-router.register('lampctrls', LampCtrlViewSet, base_name='lampctrls')
+router.register('lampctrls', LampCtrlViewSet, basename='lampctrls')
 
 # 灯控状态
-router.register('lampctrlstatus', LampCtrlStatusViewSet, base_name='lampctrlstatus')
+router.register('lampctrlstatus', LampCtrlStatusViewSet, basename='lampctrlstatus')
 
 # 项目信息
-router.register('projectinfo', ProjectInfoViewSet, base_name='projectinfo')
+router.register('projectinfo', ProjectInfoViewSet, basename='projectinfo')
 
 # 灯杆
-router.register('poles', PoleViewSet, base_name='poles')
+router.register('poles', PoleViewSet, basename='poles')
 
 # 灯具
-router.register('lamps', LampViewSet, base_name='lamps')
+router.register('lamps', LampViewSet, basename='lamps')
 
 # 控制箱
-router.register('cboxs', CBoxViewSet, base_name='cboxs')
+router.register('cboxs', CBoxViewSet, basename='cboxs')
 
 # 电缆
-router.register('cables', CableViewSet, base_name='cables')
+router.register('cables', CableViewSet, basename='cables')
 
 # 日志
-router.register('logs', LogViewSet, base_name='logs')
+router.register('logs', LogViewSet, basename='logs')
 
 # 告警
-router.register('alerts', AlertViewSet, base_name='alerts')
+router.register('alerts', AlertViewSet, basename='alerts')
 
 # 告警语音
-router.register('alertaudios', AlertAudioViewSet, base_name='alertaudios')
+router.register('alertaudios', AlertAudioViewSet, basename='alertaudios')
 
 # 策略
-router.register('policies', PolicyViewSet, base_name='policies')
+router.register('policies', PolicyViewSet, basename='policies')
 
 # 策略集
-router.register('policysets', PolicySetViewSet, base_name='policysets')
+router.register('policysets', PolicySetViewSet, basename='policysets')
 
 # 工单
-router.register('workorders', WorkOrderViewSet, base_name='workorders')
+router.register('workorders', WorkOrderViewSet, basename='workorders')
 
 # 工单图片
-router.register('workorderimages', WorkOrderImageViewSet, base_name='workorderimages')
+router.register('workorderimages', WorkOrderImageViewSet, basename='workorderimages')
 
 # 工单语音
-router.register('workorderaudios', WorkOrderAudioViewSet, base_name='workorderaudios')
+router.register('workorderaudios', WorkOrderAudioViewSet, basename='workorderaudios')
 
 # 巡检
-router.register('inspections', InspectionViewSet, base_name='inspections')
+router.register('inspections', InspectionViewSet, basename='inspections')
 
 # 巡检图片
-router.register('inspection-images', InspectionImageViewSet, base_name='inspection-images')
+router.register('inspection-images', InspectionImageViewSet, basename='inspection-images')
 
 # 巡检项
-router.register('inspection-items', InspectionItemViewSet, base_name='inspection-items')
+router.register('inspection-items', InspectionItemViewSet, basename='inspection-items')
 
 # 报表
-router.register('reports', ReportViewSet, base_name='reports')
+router.register('reports', ReportViewSet, basename='reports')
 
 # 状态
-router.register('status', StatusViewSet, base_name='status')
+router.register('status', StatusViewSet, basename='status')
 
 # 灯控分组
-router.register('lampctrlgroups', LampCtrlGroupViewSet, base_name='lampctrlgroups')
+router.register('lampctrlgroups', LampCtrlGroupViewSet, basename='lampctrlgroups')
 
 # 集控通讯
-router.register('communicate', CommunicateViewSet, base_name='communicate')
+router.register('communicate', CommunicateViewSet, basename='communicate')
 
 # 获取集控日志
-router.register('hub-log', HubLogViewSet, base_name='hub-log')
+router.register('hub-log', HubLogViewSet, basename='hub-log')
 
 
 urlpatterns = [

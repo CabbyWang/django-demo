@@ -154,8 +154,8 @@ def calculate_sunrise_sunset(longitude, latitude, date, utc_offset=8):
     #     "runset": set_time.strf('%Y-%m-%d %H:%M:%S')
     # }
     return {
-        "runrise": rise_time,
-        "runset": set_time
+        "sunrise": rise_time,
+        "sunset": set_time
     }
 
 

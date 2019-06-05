@@ -120,8 +120,9 @@ class SLMS(object):
 
         hub_sn = content.get('sender')
         body = content.get('body', {})
-        hub_status = body.get('hub', {}) or {}
-        lamps_status = body.get('lamps', {}) or {}
+        data = body.get('data', {})
+        hub_status = data.get('hub', {}) or {}
+        lamps_status = data.get('lamps', {}) or {}
         # TODO 存入数据库
         try:
             with transaction.atomic():
@@ -149,38 +150,39 @@ class SLMS(object):
                     }
                     HubStatus.objects.create(hub=hub, **data)
 
-                    voltage = data.get('voltage')
-                    current = data.get('current')
-                    consumption = data.get('consumption')
+                    voltage = data.get('voltage') or 0
+                    current = data.get('current') or 0
+                    consumption = data.get('consumption') or 0
                     has_three_phase = voltage and current
                     if has_three_phase and consumption:
                         # 集控有三相电，上报数据有能耗
                         last_status = HubLatestStatus.objects.filter_by(hub=hub).first()
                         last_csp = last_status.consumption if last_status else 0
-                        gap = consumption - last_csp
+                        gap = consumption - float(last_csp)
                         hub_csp = HubConsumption.objects.filter_by(hub=hub, date=datetime.date.today()).first()
-                        csp = hub_csp + gap if hub_csp else gap
+                        csp = float(hub_csp.consumption) + gap if hub_csp else gap
                         HubConsumption.objects.update_or_create(
                             hub=hub, date=datetime.date.today(),
                             defaults={'consumption': csp}
                         )
-                    else:
-                        # 集控无三相电，上报数据无能耗
+                    elif has_three_phase and not consumption:
+                        # 集控有三相电，上报数据无能耗
                         hub_csp = HubConsumption.objects.filter_by(
                             hub=hub,
                             date=datetime.date.today()
                         ).first()
                         gap = voltage * current * REPORT_STATUS_CYCLE
-                        csp = hub_csp + gap if hub_csp else gap
+                        csp = float(hub_csp.consumption) + gap if hub_csp else gap
                         HubConsumption.objects.update_or_create(
                             hub=hub, date=datetime.date.today(),
                             defaults={'consumption': csp}
                         )
 
                     HubLatestStatus.objects.update_or_create(
-                        sn=hub_sn, defaults=data
+                        hub=hub, defaults=data
                     )
 
+                total_lampctrl_csp = 0
                 # LampCtrlStatus表和LampCtrlLatestStatus表
                 for lampctrl_sn, item in lamps_status.items():
                     lampctrl = LampCtrl.objects.get(sn=lampctrl_sn)
@@ -189,10 +191,10 @@ class SLMS(object):
                     data = {
                         'route_one': route1,
                         'route_two': route2,
-                        'voltage': energy.get('voltage'),
-                        'power': energy.get('power'),
-                        'current': energy.get('current'),
-                        'consumption': energy.get('consumption')
+                        'voltage': energy.get('voltage') or 0,
+                        'power': energy.get('power') or 0,
+                        'current': energy.get('current') or 0,
+                        'consumption': energy.get('consumption') or 0
                     }
                     LampCtrlStatus.objects.create(lampctrl=lampctrl, hub=hub, **data)
 
@@ -204,7 +206,8 @@ class SLMS(object):
                             date=datetime.date.today()
                         ).first()
                     gap = voltage * current * REPORT_STATUS_CYCLE
-                    csp = lampctl_csp + gap if lampctl_csp else gap
+                    total_lampctrl_csp += gap
+                    csp = float(lampctl_csp.consumption) + gap if lampctl_csp else gap
                     LampCtrlConsumption.objects.update_or_create(
                         lampctrl=lampctrl, hub=hub, date=datetime.date.today(),
                         defaults={'consumption': csp}
@@ -251,6 +254,17 @@ class SLMS(object):
                                 alert_source=hub, object=lampctrl_sn,
                                 level=1, status=2
                             )
+                if not has_three_phase:
+                    # 没有三相电数据， 使用灯控总能耗作为集控能耗
+                    last_hub_csp = HubConsumption.objects.filter_by(
+                        hub=hub).first()
+                    last_csp = last_hub_csp.consumption if last_hub_csp else 0
+                    HubConsumption.objects.update_or_create(
+                        hub=hub, date=datetime.date.today(),
+                        defaults={
+                            'consumption': float(last_csp) + total_lampctrl_csp
+                        }
+                    )
 
         # TODO 能耗报表的维护?
         except Exception as ex:
@@ -287,13 +301,13 @@ class SLMS(object):
                 # 集控告警
                 hub_alarms = body.get('hub', {})
                 for k, v in HUB_ALARMS.items():
-                    time_value = hub_alarms.get(k, {})
+                    time_level = hub_alarms.get(k, {})
                     record_report_alarm(
                         event=v.get('event'), object_type='hub',
                         alert_source=hub, object=hub_sn,
                         level=v.get('level'), status=v.get('status'),
-                        occurred_time=time_value.get('datetime'),
-                        value=time_value.get('value')
+                        occurred_time=time_level.get('datetime'),
+                        h_level=time_level.get('level')
                     )
                 # 灯控告警
                 lampctrl_alarms = body.get('lamps', {})
@@ -302,13 +316,13 @@ class SLMS(object):
                     if not lampctrl:
                         continue
                     for k, v in LAMP_ALARMS.items():
-                        time_value = alarms.get(k, {})
+                        time_level = alarms.get(k, {})
                         record_report_alarm(
                             event=v.get('event'), object_type='hub',
                             alert_source=hub, object=lampctrl_sn,
                             level=v.get('level'), status=v.get('status'),
-                            occurred_time=time_value.get('datetime'),
-                            value=time_value.get('value')
+                            occurred_time=time_level.get('datetime'),
+                            h_level=time_level.get('level')
                         )
         except Exception as ex:
             return dict(code=1, message=str(ex))

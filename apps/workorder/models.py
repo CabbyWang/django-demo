@@ -1,9 +1,11 @@
 from django.db import models
+# from django.conf import settings
 
 from equipment.models import Hub, LampCtrl
 from user.models import User
 from notify.models import Alert
 from base.models import BaseModel
+from utils.settings import WORK_ORDER_TYPES
 
 
 class WorkOrder(BaseModel):
@@ -15,19 +17,13 @@ class WorkOrder(BaseModel):
     """
     # TODO 灯控合并到灯具类型中
     # TODO 将types提取出来到setting中
-    TYPES = (
-        (0, "其它"),
-        (1, "集控"),
-        (2, "灯具"),
-        (3, "灯杆"),
-        (4, "电缆"),
-        (5, "控制箱")
-    )
     STATUS = (('todo', '未处理'), ('doing', '处理中'), ('finished', '已处理'))
 
     alert = models.OneToOneField(Alert, related_name='alert_workorder',
                                  null=True, blank=True, help_text='告警编号')
-    type = models.IntegerField(choices=TYPES, help_text='工单类型')
+    type = models.IntegerField(
+        choices=WORK_ORDER_TYPES, help_text='工单类型'
+    )
     obj_sn = models.CharField(max_length=32, null=True, blank=True,
                               help_text='对象编号')
     user = models.ForeignKey(User, related_name='user_workorder', null=True,
@@ -47,6 +43,13 @@ class WorkOrder(BaseModel):
 
     def __str__(self):
         return "WorkOrder[{}]: {}".format(self.id, self.memo)
+
+    def not_listen_audio(self):
+        try:
+            audio = self.workorder_audio
+            return audio if audio.times < 2 else None
+        except models.ObjectDoesNotExist:
+            return
 
 
 class WorkorderImage(BaseModel):
@@ -72,7 +75,7 @@ class WorkOrderAudio(BaseModel):
     """
     工单语音
     """
-    order = models.OneToOneField(WorkOrder, related_name='workorder_audio')
+    order = models.OneToOneField(WorkOrder, null=True, blank=True, related_name='workorder_audio')
     audio = models.FileField(upload_to='audio', verbose_name='工单语音')
     times = models.IntegerField(default=0)
 

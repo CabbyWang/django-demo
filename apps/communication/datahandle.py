@@ -3,12 +3,14 @@
 """
 Create by 王思勇 on 2019/5/10
 """
+import datetime
 from collections import defaultdict
 
 from equipment.models import LampCtrl
 from group.models import LampCtrlGroup
 from policy.models import PolicySet, Policy, PolicySetSendDown
 from utils.data_handle import record_inventory
+from utils.sunrise_sunset import calculate_sunrise_sunset
 
 
 def before_update_group(instance, serializer_data):
@@ -152,10 +154,11 @@ def before_send_down_policy_set(instance, item):
 
         policy_map = defaultdict(list)  # 策略-策略详情
         # policy map
-        policy_ids = set(
-            policyset.policys.filter_by().values_list('id', flat=True))
+        policy_ids = set(policyset.policys.filter_by().values_list('id', flat=True))
         for policy_id in policy_ids:
-            policy_map[policy_id] = Policy.objects.get(id=policy_id).item
+            # TODO 根据不同item产生不同结果
+            a = Policy.objects.get(id=policy_id).item
+            policy_map[policy_id] = convert_item(Policy.objects.get(id=policy_id).item)
 
         policys = defaultdict(list)  # 分组-日期/策略
         # 没有分组 默认为全部 标记为100
@@ -174,6 +177,68 @@ def before_send_down_policy_set(instance, item):
             group_num=int(group_num)
         )
         return policy_map, policys
+
+
+def convert_item(items):
+    """
+    将不同类型item转换为统一格式的item(暂时只处理时控和经纬控，其他的之后在处理)
+    :param item:
+    时控:
+    {
+        "type": 0,
+        "action": "99,99",
+        "minute": "55",
+        "hour": "16"
+    }
+    经纬控:
+    {
+        "type": 1,
+        "action": "99,99",
+        "longitude": 122.22,
+        "latitude": 22,
+        "s_type": "sunset",
+        "offset": -1
+    }
+    :return: 统一格式
+    {
+        "hour": "6",
+        "minute": "30",
+        "second": "20",
+        "action": "0,0"
+    }
+    """
+    ret_items = []
+    for item in items:
+        type = item.get('type')
+        ret_item = {}
+        # 如果添加type类型，直接加条件语句进行处理
+        if type == 0:
+            # 时控
+            ret_item["hour"] = item.get("hour")
+            ret_item["minute"] = item.get("minute")
+            ret_item["second"] = item.get("second", "0")
+            ret_item["action"] = item.get("action")
+        elif type == 1:
+            # 经纬控
+            # TODO 这里固定date值，之后经纬度的计算需要放到集控上进行
+            ss = calculate_sunrise_sunset(longitude=item.get("longitude"), latitude=item.get("latitude"), date="2019-06-04")
+            sunrise = ss.get('sunrise')
+            sunset = ss.get('sunset')
+            s_type = item.get('s_type')
+            if s_type == 'sunset':
+                t = sunset + datetime.timedelta(minutes=item['offset'])
+            elif s_type == 'sunrise':
+                t = sunrise + datetime.timedelta(minutes=item['offset'])
+            ret_item["hour"] = str(t.hour)
+            ret_item["minute"] = str(t.minute)
+            ret_item["second"] = str(t.second)
+            ret_item["action"] = item.get("action")
+        else:
+            # 无效type
+            pass
+        if ret_item:
+            ret_items.append(ret_item)
+    return ret_items
 
 
 def after_load_inventory(instance, inventory):

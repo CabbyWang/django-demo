@@ -52,22 +52,23 @@ class StatusViewSet(viewsets.GenericViewSet):
         threads_count = 1
         mysql_memory = 0
 
-        if platform.system() == 'Linux':
-            # mysql当前连接数
-            process = subprocess.Popen('mysqladmin -uroot -psmartlamp status',
-                                       shell=True, stdout=subprocess.PIPE)
-            ret = process.stdout.readline()
-            if ret:
-                match_str = re.search('Threads.*?(\d+).*?', ret)
-                threads_count = match_str.group(1)
-            # mysql数据库占用内存
-            process2 = subprocess.Popen("ps -e -o 'args,rsz' | grep mysqld",
-                                        shell=True, stdout=subprocess.PIPE)
-            ret2 = ' '.join(process2.stdout.readlines())
-            if ret2:
-                match_str2 = re.search(
-                    '/usr/sbin/mysqld --basedir=.*?(\d+).*?', ret2)
-                mysql_memory = match_str2.group(1)
+        # TODO 使用docker怎么获取相应数据
+        # if platform.system() == 'Linux':
+        #     # mysql当前连接数
+        #     process = subprocess.Popen('mysqladmin -uroot -psmartlamp status',
+        #                                shell=True, stdout=subprocess.PIPE)
+        #     ret = process.stdout.readline()
+        #     if ret:
+        #         match_str = re.search('Threads.*?(\d+).*?', ret)
+        #         threads_count = match_str.group(1)
+        #     # mysql数据库占用内存
+        #     process2 = subprocess.Popen("ps -e -o 'args,rsz' | grep mysqld",
+        #                                 shell=True, stdout=subprocess.PIPE)
+        #     ret2 = ' '.join(process2.stdout.readlines())
+        #     if ret2:
+        #         match_str2 = re.search(
+        #             '/usr/sbin/mysqld --basedir=.*?(\d+).*?', ret2)
+        #         mysql_memory = match_str2.group(1)
         ret_data = {
             "hub_status_count": hub_status_count,
             "lamp_status_count": lamp_status_count,
@@ -117,6 +118,11 @@ class LampCtrlStatusViewSet(ListModelMixin,
 
 class HubLogViewSet(mixins.RetrieveModelMixin,
                     viewsets.GenericViewSet):
+    """
+    集控日志
+    retrieve:
+        获取集控日志
+    """
 
     queryset = Hub.objects.filter_by()
     serializer_class = HubDetailSerializer

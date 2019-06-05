@@ -49,32 +49,32 @@ def record_alarm(event, object_type, alert_source, object, level, status, occurr
         defaults=dict(occurred_time=occurred_time)
     )
 
-    if is_created:
-        # 生成告警语音
-        tts = AlertTTS()
-        body = dict(
-            id=alert.id,
-            event=event,
-            object_type=object_type,
-            alert_source=alert_source,
-            object=object,
-            level=level
-        )
-        tts.generate_audio(body)
+    # if is_created:
+    #     # 生成告警语音
+    #     tts = AlertTTS()
+    #     body = dict(
+    #         id=alert.id,
+    #         event=event,
+    #         object_type=object_type,
+    #         alert_source=alert_source,
+    #         object=object,
+    #         level=level
+    #     )
+    #     tts.generate_audio(body)
+    #
+    #     # 生成工单
+    #     # TODO 工单type需要根据之后的类型进行修改
+    #     WorkOrder.objects.create(
+    #         alert=alert, type=2 if object_type == 'lamp' else 1,
+    #         obj_sn=object,
+    #         memo='{}，由告警自动生成'.format(event), status='todo'
+    #     )
+    #
+    #     # 发送告警短信
+    #     send_alert_sms(**body)
 
-        # 生成工单
-        # TODO 工单type需要根据之后的类型进行修改
-        WorkOrder.objects.create(
-            alert=alert, type=2 if object_type == 'lamp' else 1,
-            obj_sn=object,
-            memo='{}，由告警自动生成'.format(event), status='todo'
-        )
 
-        # 发送告警短信
-        send_alert_sms(**body)
-
-
-def record_report_alarm(event, object_type, alert_source, object, level, status, occurred_time, value):
+def record_report_alarm(event, object_type, alert_source, object, level, status, occurred_time, h_level):
     """
     处理集控上报告警
     :param event: 故障名称
@@ -84,10 +84,10 @@ def record_report_alarm(event, object_type, alert_source, object, level, status,
     :param level: 故障级别
     :param status: 1正常、2故障还是3脱网
     :param occurred_time: 告警发生时间, 默认为当前时间
-    :param value: 0/1 0：无告警  1：有告警
+    :param h_level: 集控上报告警级别 0/1/2/3 0：无告警  1/2/3：有告警
     """
-    if value == 0:
-        # value为0，表示没有故障  消除告警
+    if h_level == 0:
+        # h_level为0，表示没有故障  消除告警
         unsolved_alert = Alert.objects.filter_by(
             event=event, object_type=object_type, alert_source=alert_source,
             object=object, level=level, status=status, is_solved=False
@@ -102,15 +102,15 @@ def record_report_alarm(event, object_type, alert_source, object, level, status,
                 solved_time=datetime.datetime.now(),
                 is_solved=True, memo='集控重连'
             )
-    elif value == 1:
-        # value为1, 表示存在故障  记录告警
+    elif h_level in (1, 2, 3):
+        # h_level为1,2,3, 表示存在故障  记录告警
         record_alarm(
             event=event, object_type=object_type, alert_source=alert_source,
             object=object, level=level, status=status,
             occurred_time=occurred_time
         )
     else:
-        # TODO 无效value，日志记录
+        # TODO 无效h_level，日志记录
         pass
 
 

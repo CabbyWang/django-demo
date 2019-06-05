@@ -77,8 +77,8 @@ class ReportViewSet(ListModelMixin,
         # 预期总能耗
         expect_consumption = daily_consumption * days
         # 实际总能耗
-        hub_total = HubConsumption.objects.aggregate(total=Sum('consumption'))['total']
-        lampctrl_total = LampCtrlConsumption.objects.aggregate(total=Sum('consumption'))['total']
+        hub_total = HubConsumption.objects.aggregate(total=Sum('consumption'))['total'] or 0
+        lampctrl_total = LampCtrlConsumption.objects.aggregate(total=Sum('consumption'))['total'] or 0
         real_consumption = hub_total if hub_total else lampctrl_total
         real_consumption = round(real_consumption)  # 不保留小数点
         energy_saving = round(expect_consumption - real_consumption)  # 不保留小数点
@@ -112,7 +112,7 @@ class ReportViewSet(ListModelMixin,
                 # 集控上报功率不为0，说明装有三相电， 使用集控功率计算
                 cur_power += HubLatestStatus.objects.aggregate(Sum('power'))['power__sum']
         # 不保留小数点
-        cur_power = round(cur_power)
+        cur_power = round(cur_power / 1000)
         return Response(data=dict(current_power=cur_power))
 
     @action(methods=['GET'], detail=False, url_path='total-consumption')
@@ -123,7 +123,7 @@ class ReportViewSet(ListModelMixin,
         :return:
         [
             {
-                "expected_consumption": 5000,
+                "expected_consumption": 5000, # KW
                 "real_consumption": 4000,
                 "date": "2019-04-15"
             },
@@ -141,12 +141,12 @@ class ReportViewSet(ListModelMixin,
         date_csps = HubConsumption.objects.values_list('date').annotate(csp=Sum('consumption'))
         ret = []
         tem_csp = 0
-        for i, (date, csp) in enumerate(sorted(date_csps, key=lambda x:x[0])):
+        for i, (date, csp) in enumerate(sorted(date_csps, key=lambda x: x[0])):
             days = i + 1
             expected_consumption = daily_consumption * days
             tem_csp += csp
             ret.append(dict(
-                real_consumption=float(tem_csp),
+                real_consumption=round(float(tem_csp) / 1000),
                 date=date.strftime('%Y-%m-%d'),
                 expected_consumption=expected_consumption
             ))
@@ -158,7 +158,7 @@ class ReportViewSet(ListModelMixin,
         GET /reports/month-consumption/?start_month=&end_month=
         [
             {
-                "consumption": 5000,
+                "consumption": 5000,  # KW
                 "month": "2019-03"
             },
             {
@@ -187,7 +187,10 @@ class ReportViewSet(ListModelMixin,
             result = cursor.fetchall()
         ret = []
         for consumption, month in result:
-            tem = dict(consumption=float(consumption), month=month)
+            tem = dict(
+                consumption=round(float(consumption) / 1000),
+                month=month
+            )
             ret.append(tem)
         return Response(data=ret)
 
@@ -199,7 +202,7 @@ class ReportViewSet(ListModelMixin,
         [
             {
                 "hub": "hub_sn1",
-                "hub_consumption": 5000,
+                "hub_consumption": 5000,  # KW
                 "lamps_consumption": 4000,
                 "loss_consumption": 1000
             },
@@ -218,22 +221,28 @@ class ReportViewSet(ListModelMixin,
         if hub:
             hub_consumption = HubConsumption.objects.filter_by(hub=hub).aggregate(csp=Sum('consumption'))['csp'] or 0
             lamps_consumption = LampCtrlConsumption.objects.filter_by(hub=hub).aggregate(csp=Sum('consumption'))['csp'] or 0
+            hub_consumption = round(float(hub_consumption) / 1000)
+            lamps_consumption = round(float(lamps_consumption) / 1000)
+            loss_consumption = hub_consumption - lamps_consumption
             ret_data.append(dict(
                 hub=hub.sn,
-                hub_consumption=float(hub_consumption),
-                lamps_consumption=float(lamps_consumption),
-                loss_consumption=float(hub_consumption - lamps_consumption)
+                hub_consumption=hub_consumption,
+                lamps_consumption=lamps_consumption,
+                loss_consumption=loss_consumption
             ))
             return Response(data=ret_data)
         hub_csps = HubConsumption.objects.values_list('hub').annotate(csp=Sum('consumption'))
         lampctrl_csps = dict(LampCtrlConsumption.objects.values_list('hub').annotate(csp=Sum('consumption')))
         for hub_sn, hub_consumption in hub_csps:
-            lamps_consumption = lampctrl_csps.get(hub, 0)
+            lamps_consumption = lampctrl_csps.get(hub_sn, 0)
+            hub_consumption = round(float(hub_consumption) / 1000)
+            lamps_consumption = round(float(lamps_consumption) / 1000)
+            loss_consumption = hub_consumption - lamps_consumption
             ret_data.append(dict(
                 hub=hub_sn,
-                hub_consumption=float(hub_consumption),
-                lamps_consumption=float(lamps_consumption),
-                loss_consumption=float(hub_consumption - lamps_consumption)
+                hub_consumption=hub_consumption,
+                lamps_consumption=lamps_consumption,
+                loss_consumption=loss_consumption
             ))
         return Response(data=ret_data)
 
@@ -243,7 +252,7 @@ class ReportViewSet(ListModelMixin,
         GET /reports/hub-month-consumption/?hub=&month=
         [
             {
-                "consumption": 5000,
+                "consumption": 5000,  # KW
                 "month": "2019-03"
             },
             {
@@ -267,7 +276,10 @@ class ReportViewSet(ListModelMixin,
             result = cursor.fetchall()
         ret = []
         for consumption, month in result:
-            tem = dict(consumption=float(consumption), month=month)
+            tem = dict(
+                consumption=round(float(consumption) / 1000),
+                month=month
+            )
             ret.append(tem)
         return Response(data=ret)
 
@@ -278,7 +290,7 @@ class ReportViewSet(ListModelMixin,
         [
             {
                 "lampctrl": "001",
-                "consumption": 150
+                "consumption": 150  # KW
             },
             {
                 "lampctrl": "002",
@@ -290,5 +302,5 @@ class ReportViewSet(ListModelMixin,
         serializer.is_valid(raise_exception=True)
         hub = serializer.validated_data['hub']
 
-        data = list(LampCtrlConsumption.objects.filter_by(hub=hub).values('lampctrl').annotate(consumption=Sum('consumption')))
+        data = list(LampCtrlConsumption.objects.filter_by(hub=hub).values('lampctrl').annotate(consumption=Sum('consumption') / 1000))
         return Response(data=data)

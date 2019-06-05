@@ -34,10 +34,9 @@ class LogViewSet(ListModelMixin,
         if self.request.user.username == 'admin':
             return Log.objects.filter_by()
         elif self.request.user.is_superuser:
-            return Log.objects.filter_by().exclude(user__username='admin')
+            return Log.objects.filter_by().exclude(username='admin')
         else:
-            return Log.objects.filter_by(user=self.request.user)
-        return self.queryset
+            return Log.objects.filter_by(username=self.request.user.username)
 
 
 class AlertViewSet(ListModelMixin,
@@ -81,14 +80,5 @@ class AlertAudioViewSet(mixins.DestroyModelMixin,
     lookup_field = 'alert_id'
 
     def perform_destroy(self, instance):
-        # TODO times + 1
         instance.times += 1
         instance.save()
-        # TODO times==2时，删除告警语音文件
-        if instance.times == 2:
-            audio_file = instance.audio.path
-            try:
-                os.remove(audio_file)
-            except FileNotFoundError:
-                pass
-            instance.soft_delete()

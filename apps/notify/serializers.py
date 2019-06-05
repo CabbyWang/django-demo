@@ -12,15 +12,8 @@ from .models import Log, Alert, AlertAudio
 from user.models import User
 
 
-class UserSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = User
-        fields = ('id', 'username')
-
-
 class LogSerializer(serializers.ModelSerializer):
-    user = UserSerializer()
+    username = serializers.CharField(required=True)
 
     created_time = serializers.DateTimeField(read_only=True,
                                              format='%Y-%m-%d %H:%M:%S')
@@ -36,7 +29,8 @@ class AlertAudioSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = AlertAudio
-        fields = '__all__'
+        fields = ("id", "audio")
+        read_only_fields = ('audio', )
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -55,18 +49,7 @@ class AlertSerializer(serializers.ModelSerializer):
     solved_time = serializers.DateTimeField(read_only=True,
                                             format='%Y-%m-%d %H:%M:%S')
 
-    audio = serializers.SerializerMethodField()
-
-    @staticmethod
-    def get_audio(instance):
-        # 返回语音文件路径，或None
-        try:
-            alert_audio = instance.alert_audio
-            if alert_audio.is_deleted:
-                return
-            return alert_audio.audio.path
-        except:
-            return
+    alert_audio = AlertAudioSerializer(source='not_listen_audio')
 
     class Meta:
         model = Alert

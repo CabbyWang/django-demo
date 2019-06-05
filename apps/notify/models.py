@@ -1,6 +1,8 @@
 from datetime import datetime
 
 from django.db import models
+from rest_framework.request import Request
+from django.utils.translation import ugettext_lazy as _
 
 from equipment.models import Hub
 from user.models import User
@@ -14,7 +16,8 @@ class Log(BaseModel):
     """
     STATUS = ('success', 'fail')
 
-    user = models.ForeignKey(User, null=True, blank=True, related_name='user_log', help_text='操作人员用户名')
+    # user = models.ForeignKey(User, null=True, blank=True, related_name='user_log', help_text='操作人员用户名')
+    username = models.CharField(max_length=64, help_text='操作人员用户名')
     event = models.CharField(max_length=1024, help_text='操作事件')
     object = models.CharField(max_length=255, help_text='操作对象')
     status = models.IntegerField(choices=enumerate(STATUS), verbose_name='操作状态')
@@ -58,12 +61,19 @@ class Alert(BaseModel):
     def __str__(self):
         return self.event
 
+    def not_listen_audio(self):
+        try:
+            audio = self.alert_audio
+            return audio if audio.times < 2 else None
+        except models.ObjectDoesNotExist:
+            return
+
 
 class AlertAudio(BaseModel):
     """
     告警语音
     """
-    alert = models.OneToOneField(Alert, related_name='alert_audio')
+    alert = models.OneToOneField(Alert, null=True, blank=True, related_name='alert_audio')
     audio = models.FileField(upload_to='audio', verbose_name='告警语音')
     times = models.IntegerField(default=0)
 

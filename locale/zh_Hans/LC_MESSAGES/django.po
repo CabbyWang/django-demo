@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-05-24 16:48+0800\n"
+"POT-Creation-Date: 2019-05-30 17:36+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -33,9 +33,11 @@ msgstr "亮度值必须在0到255之间"
 
 #: .\apps\communication\serializers.py:71
 #: .\apps\communication\serializers.py:100
-#: .\apps\communication\serializers.py:166
-#: .\apps\communication\serializers.py:214
+#: .\apps\communication\serializers.py:165
+#: .\apps\communication\serializers.py:216
 #: .\apps\communication\serializers.py:293
+#: .\apps\communication\serializers.py:306 .\apps\report\serializers.py:32
+#: .\apps\report\serializers.py:53
 #, python-brace-format
 msgid "hub [{pk_value}] does not exist."
 msgstr "集控[{pk_value}]不存在"
@@ -70,80 +72,145 @@ msgstr "'segmentation'字段不能为空"
 msgid "field 'select' is required."
 msgstr "'select'字段不能为空"
 
-#: .\apps\communication\serializers.py:138
+#: .\apps\communication\serializers.py:137
+#: .\apps\communication\serializers.py:190
 #, fuzzy
 #| msgid "hub [{pk_value}] does not exist."
 msgid "hub '{}' does not exist"
 msgstr "集控[{pk_value}]不存在"
 
-#: .\apps\communication\serializers.py:142
+#: .\apps\communication\serializers.py:141
 msgid "custom group already exists"
 msgstr "自定义分组已经存在"
 
-#: .\apps\communication\serializers.py:146
+#: .\apps\communication\serializers.py:145
 msgid "two group id should be different"
 msgstr "两个分组编号不能相同"
 
-#: .\apps\communication\serializers.py:154
+#: .\apps\communication\serializers.py:153
 msgid "group number should be different with default groups"
 msgstr "分组编号不能与默认分组编号相同"
 
-#: .\apps\communication\serializers.py:196
+#: .\apps\communication\serializers.py:198
 msgid ""
 "fields('lampctrl', 'group_num', 'memo')should be include in the 'configs' "
 "items"
 msgstr "'configs'的项中必须包含'lampctrl','group_num'和'memo'字段"
 
-#: .\apps\communication\serializers.py:203
+#: .\apps\communication\serializers.py:205
 #, python-brace-format
 msgid "lamp control [{lampctrl_sn}] does not exist"
 msgstr "灯控[{lampctrl_sn}]不存在"
 
-#: .\apps\communication\serializers.py:280
+#: .\apps\communication\serializers.py:283
 msgid ""
 "fields('hub', 'group_num', 'policyset_id') should be include in the "
 "'configs' items"
 msgstr "'configs'的项中必须包含'hub','group_num'和'policyset_id'字段"
 
-#: .\apps\communication\views.py:133 .\apps\communication\views.py:194
-#: .\apps\communication\views.py:236 .\apps\communication\views.py:285
-#: .\apps\communication\views.py:327 .\apps\communication\views.py:426
-#: .\apps\communication\views.py:478 .\apps\communication\views.py:522
-#: .\apps\communication\views.py:562 .\apps\communication\views.py:614
-#: .\apps\communication\views.py:678 .\apps\communication\views.py:718
-#: .\apps\communication\views.py:772
+#: .\apps\communication\views.py:116 .\apps\communication\views.py:385
+#: .\apps\communication\views.py:436 .\apps\communication\views.py:480
+#: .\apps\communication\views.py:584 .\apps\communication\views.py:647
+#: .\apps\communication\views.py:755
 #, fuzzy, python-brace-format
 #| msgid "connect hub timeout"
 msgid "connect hub [{hub_sn}] time out"
 msgstr "连接集控[{hub_sn}]超时"
 
-#: .\apps\communication\views.py:136 .\apps\communication\views.py:197
-#: .\apps\communication\views.py:239 .\apps\communication\views.py:288
-#: .\apps\communication\views.py:330 .\apps\communication\views.py:429
-#: .\apps\communication\views.py:481 .\apps\communication\views.py:525
-#: .\apps\communication\views.py:565 .\apps\communication\views.py:617
-#: .\apps\communication\views.py:681 .\apps\communication\views.py:721
-#: .\apps\communication\views.py:775
+#: .\apps\communication\views.py:119 .\apps\communication\views.py:388
+#: .\apps\communication\views.py:439 .\apps\communication\views.py:483
+#: .\apps\communication\views.py:587 .\apps\communication\views.py:650
+#: .\apps\communication\views.py:758
 #, fuzzy, python-brace-format
 #| msgid "hub unknown error"
 msgid "hub [{hub_sn}] unknown error"
 msgstr "集控[{hub_sn}]未知错误"
 
-#: .\apps\communication\views.py:150
+#: .\apps\communication\views.py:136
 #, fuzzy, python-brace-format
 #| msgid "lamp control [{lampctrl_sn}] does not exist"
 msgid "gather lamp control [{lamps}] failed"
 msgstr "灯控[{lampctrl_sn}]不存在"
 
-#: .\apps\communication\views.py:688
+#: .\apps\communication\views.py:195
+#, fuzzy, python-brace-format
+#| msgid "connect hub timeout"
+msgid "connect hub '{error_hubs}' time out"
+msgstr "连接集控[{hub_sn}]超时"
+
+#: .\apps\communication\views.py:200 .\apps\communication\views.py:339
+#, fuzzy
+#| msgid "gather policy set success"
+msgid "control lamps success"
+msgstr "采集策略集成功"
+
+#: .\apps\communication\views.py:242
+#, python-brace-format
+msgid "hub '{error_hubs}' gather failed"
+msgstr "集控 '{error_hubs}' 采集失败"
+
+#: .\apps\communication\views.py:246
+#, fuzzy
+#| msgid "gather policy set success"
+msgid "gather success"
+msgstr "采集成功"
+
+#: .\apps\communication\views.py:287
+#, python-brace-format
+msgid "gather hub '{error_hubs}' status failed"
+msgstr "采集集控'{error_hubs}'状态失败"
+
+#: .\apps\communication\views.py:491
+#, python-brace-format
+msgid "hub '{error_hubs}' recycle group config failed"
+msgstr "集控 '{error_hubs}' 回收分组配置失败"
+
+#: .\apps\communication\views.py:495
+#, fuzzy
+#| msgid "recycle policy set success"
+msgid "recycle group config success"
+msgstr "回收分组配置成功"
+
+#: .\apps\communication\views.py:543
+#, python-brace-format
+msgid "hub '{error_hubs}' gather group config failed"
+msgstr "集控 '{error_hubs}' 采集分组配置失败"
+
+#: .\apps\communication\views.py:548
+#, fuzzy
+#| msgid "gather policy set success"
+msgid "gather group config success"
+msgstr "采集分组配置成功"
+
+#: .\apps\communication\views.py:593
+msgid "group configuration success"
+msgstr "分组配置成功"
+
+#: .\apps\communication\views.py:658
+#, fuzzy, python-brace-format
+#| msgid "send down policy scheme success"
+msgid "hub '{error_hubs}' send down policy scheme failed"
+msgstr "下发策略集成功"
+
+#: .\apps\communication\views.py:662
 msgid "send down policy scheme success"
 msgstr "下发策略集成功"
 
-#: .\apps\communication\views.py:736
+#: .\apps\communication\views.py:714
+#, python-brace-format
+msgid "hub '{error_hubs}' gather policy set failed"
+msgstr "集控 '{error_hubs}' 采集策略集失败"
+
+#: .\apps\communication\views.py:718
 msgid "gather policy set success"
 msgstr "采集策略集成功"
 
-#: .\apps\communication\views.py:782
+#: .\apps\communication\views.py:767
+#, python-brace-format
+msgid "hub '{error_hubs}' recycle policy set failed"
+msgstr "集控 '{error_hubs}' 回收策略集失败"
+
+#: .\apps\communication\views.py:771
 msgid "recycle policy set success"
 msgstr "回收策略集成功"
 
@@ -151,29 +218,25 @@ msgstr "回收策略集成功"
 #, fuzzy, python-brace-format
 #| msgid "the username already exists"
 msgid "pole '{sn}' already exist"
-msgstr "用户名已存在"
+msgstr "灯杆 '{sn}' 已存在"
 
 #: .\apps\equipment\views.py:176 .\apps\equipment\views.py:185
 #, fuzzy, python-brace-format
 #| msgid "the username already exists"
 msgid "lamp '{sn}' already exist"
-msgstr "用户名已存在"
+msgstr "路灯 '{sn}' 已存在"
 
 #: .\apps\equipment\views.py:274 .\apps\equipment\views.py:283
 #, fuzzy, python-brace-format
 #| msgid "custom group already exists"
 msgid "control box '{sn}' already exist"
-msgstr "自定义分组已经存在"
+msgstr "控制箱 '{sn}' 已经存在"
 
 #: .\apps\equipment\views.py:366 .\apps\equipment\views.py:375
 #, fuzzy, python-brace-format
 #| msgid "the username already exists"
 msgid "cable '{sn}' already exist"
-msgstr "用户名已存在"
-
-#: .\apps\policy\serializers.py:32
-msgid "the value of 'type' should be in (0,1,2,3)"
-msgstr "'type'的值必须在(0,1,2,3)的范围内"
+msgstr "电缆 '{sn}' 已存在"
 
 #: .\apps\policy\serializers.py:93
 msgid "item format error"
@@ -204,7 +267,11 @@ msgstr "集控在线, 不能删除"
 msgid "you can only delete your own policyset"
 msgstr "只能删除自己创建的策略集"
 
-#: .\apps\report\views.py:61 .\apps\report\views.py:115
+#: .\apps\report\serializers.py:31
+msgid "hub may not be null."
+msgstr "集控不能为空"
+
+#: .\apps\report\serializers.py:69 .\apps\report\views.py:73
 msgid "you may have not initialized settings"
 msgstr "数据未初始化"
 
@@ -296,6 +363,12 @@ msgstr "管理员不能被设置为只读用户"
 msgid "can't delete user group that has users"
 msgstr "用户组不为空，不允许删除"
 
+#: .\apps\user\views.py:278
+#, fuzzy
+#| msgid "Superusers can't be set to read_only user"
+msgid "read_only users can't be set to superuser"
+msgstr "管理员不能被设置为只读用户"
+
 #: .\apps\utils\exceptions.py:19
 msgid "can't delete the hub online"
 msgstr "集控在线, 不能删除"
@@ -341,6 +414,24 @@ msgstr "用户[{username}]在ip[{ip}]登录"
 msgid "the alert [{}] has generated a work order"
 msgstr "该告警[{}]已经生成过工单"
 
+#: .\apps\workorder\serializers.py:164
+msgid "Please assign work order first"
+msgstr "请先指派工单"
+
+#: .\apps\workorder\serializers.py:170
+#, fuzzy
+#| msgid "the alert [{}] has generated a work order"
+msgid "Only the user who has been assigned can confirm work order"
+msgstr "只有被指派人才可以确认工单"
+
+#: .\apps\workorder\serializers.py:175
+msgid "The work order has been finished"
+msgstr "工单已经处于完成状态"
+
+#: .\apps\workorder\serializers.py:180
+msgid "The work order's status is doing"
+msgstr "工单已经在处理中"
+
 #: .\initial\init_projectinfo.py:33
 msgid "voice"
 msgstr "语音"
@@ -376,6 +467,9 @@ msgstr "英文"
 #: .\smartlamp\settings.py:199
 msgid "中文简体"
 msgstr "Simple Chinese"
+
+#~ msgid "the value of 'type' should be in (0,1,2,3)"
+#~ msgstr "'type'的值必须在(0,1,2,3)的范围内"
 
 #~ msgid "test"
 #~ msgstr "测试"

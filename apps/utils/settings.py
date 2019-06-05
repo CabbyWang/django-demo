@@ -3,10 +3,13 @@
 """
 Create by 王思勇 on 2019/5/17
 """
+import enum
+
+from django.utils.translation import ugettext_lazy as _
 
 
 # server address
-SERVER_ADDR = ('127.0.0.1', 9994)
+SERVER_ADDR = ('127.0.0.1', 9999)
 
 # alarms dict
 # level: 1/2/3 告警/故障/严重故障
@@ -35,27 +38,7 @@ HUB_ALARMS = {
     'HighLuxCloseLamps': {'event': '自动关灯', 'level': 1, 'status': 2},
     'LowLuxOpenLamps': {'event': '自动开灯', 'level': 1, 'status': 2}
 }
-# HUB_ALARMS = {
-#     'Lost': {'event': u'集控脱网', 'level': 3},
-#     'OverTemp': {'event': u'集控过温', 'level': 2},
-#     'OverVol': {'event': u'集控过压', 'level': 2},
-#     'UnderVol': {'event': u'集控欠压', 'level': 2},
-#     'EngyErr': {'event': u'集控电能采集模块异常', 'level': 2},
-#     'GPSErr': {'event': u'集控GPS异常', 'level': 1},
-#     'PA_VolErr': {'event': u'A相电压异常', 'level': 3},
-#     'PA_CurErr': {'event': u'A相电流异常', 'level': 3},
-#     'PB_VolErr': {'event': u'B相电压异常', 'level': 3},
-#     'PB_CurErr': {'event': u'B相电流异常', 'level': 3},
-#     'PC_VolErr': {'event': u'C相电压异常', 'level': 3},
-#     'PC_CurErr': {'event': u'C相电流异常', 'level': 3},
-#     'DoorOpened': {'event': u'控制箱开门告警', 'level': 1},
-#     'Rel1Err': {'event': u'送电接触器1故障', 'level': 3},
-#     'Rel2Err': {'event': u'送电接触器2故障', 'level': 3},
-#     'Rel3Err': {'event': u'送电接触器3故障', 'level': 3},
-#     'IOErr': {'event': u'集控IO通讯模块异常', 'level': 2},
-#     'RTCErr': {'event': u'集控RTC异常', 'level': 2},
-#     'LampOnAhead': {'event': u'阴雨天提前亮灯', 'level': 1},
-# }
+
 
 LAMP_ALARMS = {
     'Lost': {'event': u'节点通讯丢失', 'level': 2, 'status': 3},
@@ -70,3 +53,28 @@ LAMP_ALARMS = {
     'FlashWtErr': {'event': u'节点FLASH写异常', 'level': 1, 'status': 2},
     'LampErr': {'event': u'节点异常', 'level': 1, 'status': 2},
 }
+
+
+# 工单类型(model和view要求一致)
+# 注意: 修改只能往后加, 不要修改
+# 用于model中
+WORK_ORDER_TYPES = (
+    (0, _("others")),    # 其它
+    (1, _("hub")),       # 集控
+    (2, _("lampctrl")),  # 灯控
+    (3, _("lamp")),      # 灯具
+    (4, _("pole")),      # 灯杆
+    (5, _("cable")),     # 电缆
+    (6, _("cbox"))       # 控制箱
+)
+
+
+# 用于view中
+class WorkOrderType(enum.Enum):
+    others = 0
+    hub = 1
+    lampctrl = 2
+    lamp = 3
+    pole = 4
+    cable = 5
+    cbox = 6

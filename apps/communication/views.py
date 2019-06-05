@@ -239,10 +239,18 @@ class CommunicateViewSet(mixins.ListModelMixin,
                     raise DMLError(str(ex))
 
         if error_hubs:
-            msg = _("hub '{error_hubs}' gather failed").format(
+            msg = _("gather hub '{error_hubs}' failed").format(
                 error_hubs=','.join(error_hubs)
             )
-            raise HubError(msg)
+            # raise HubError(msg)
+            return Response(
+                status=status.HTTP_408_REQUEST_TIMEOUT,
+                data=dict(
+                    detail=msg,
+                    message=msg,
+                    error_hubs=error_hubs
+                )
+            )
         return Response(data={'detail': _('gather success')})
 
     @action(methods=['POST'], detail=False, url_path='get-hub-status')
@@ -287,7 +295,15 @@ class CommunicateViewSet(mixins.ListModelMixin,
             msg = _("gather hub '{error_hubs}' status failed").format(
                 error_hubs=','.join(error_hubs)
             )
-            raise HubError(msg)
+            # raise HubError(msg)
+            return Response(
+                status=status.HTTP_408_REQUEST_TIMEOUT,
+                data=dict(
+                    detail=msg,
+                    message=msg,
+                    error_hubs=error_hubs
+                )
+            )
         return Response(data=ret_data)
 
     @action(methods=['POST'], detail=False, url_path='control-all')
@@ -543,7 +559,15 @@ class CommunicateViewSet(mixins.ListModelMixin,
             msg = _("hub '{error_hubs}' gather group config failed").format(
                 error_hubs=','.join(error_hubs)
             )
-            raise HubError(msg)
+            # raise HubError(msg)
+            return Response(
+                status=status.HTTP_408_REQUEST_TIMEOUT,
+                data=dict(
+                    detail=msg,
+                    message=msg,
+                    error_hubs=error_hubs
+                )
+            )
         return Response(
             data={'detail': _('gather group config success')})
 

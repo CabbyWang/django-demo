@@ -4,6 +4,7 @@
 Create by 王思勇 on 2019/3/6
 """
 from django.http import Http404
+from django.conf import settings
 from django.core.exceptions import PermissionDenied
 
 from rest_framework import exceptions
@@ -74,8 +75,8 @@ class DMLError(exceptions.APIException):
     default_code = 'server error'
 
 
-class UnknownError(exceptions.APIException):
-    status_code = status.HTTP_408_REQUEST_TIMEOUT
+class ServerError(exceptions.APIException):
+    status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
     default_detail = _('Server Error')
     default_code = 'server error'
 
@@ -119,5 +120,13 @@ def custom_exception_handler(exc, context):
 
         set_rollback()
         return Response(data, status=exc.status_code, headers=headers)
+    if not settings.DEBUG and isinstance(exc, Exception):
+        return Response(
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            data=dict(
+                detail=str(exc),
+                message=str(exc)
+            )
+        )
 
     return None

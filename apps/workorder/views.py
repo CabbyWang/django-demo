@@ -1,7 +1,10 @@
 import enum
 import os
 
+# from django.conf import settings
+
 from django_filters.rest_framework import DjangoFilterBackend
+
 from rest_framework import viewsets, mixins
 from rest_framework.decorators import action
 from rest_framework.authentication import SessionAuthentication
@@ -21,15 +24,8 @@ from .serializers import (WorkOrderSerializer, WorkOrderImageSerializer,
                           InspectionImageSerializer,
                           InspectionDetailSerializer)
 from utils.mixins import ListModelMixin
+from utils.settings import WorkOrderType
 
-
-class OrderType(enum.Enum):
-    others = 0
-    hub = 1
-    lamp = 2
-    pole = 3
-    cable = 4
-    cbox = 5
 
 # TODO 创建工单和重新指派工单后需要生成语音
 
@@ -88,15 +84,14 @@ class WorkOrderViewSet(ListModelMixin,
             return WorkOrderImageSerializer
         return WorkOrderSerializer
 
-    @action(methods=['GET'], detail=False, url_path="malfunction_status")
+    @action(methods=['GET'], detail=False, url_path="malfunction-status")
     def get_malfunction_status(self, request, *args, **kwargs):
         """
         资产故障情况
         GET /workorders/malfunction_status/
         """
         ret = []
-        for i in range(len(OrderType)):
-            order = OrderType(i)
+        for order in WorkOrderType:
             d = dict(
                 name=order.name,
                 value=WorkOrder.objects.filter_by(type=order.value).count()
@@ -184,15 +179,6 @@ class WorkOrderAudioViewSet(mixins.DestroyModelMixin,
     def perform_destroy(self, instance):
         instance.times += 1
         instance.save()
-        # TODO 可以保留语音一段时间， 不急着删除
-        # audio_file = instance.audio.path
-        # try:
-        #     os.remove(audio_file)
-        # except FileNotFoundError:
-        #     pass
-        # 语音听两遍后删除
-        if instance.times == 2:
-            instance.soft_delete()
 
 
 class InspectionViewSet(ListModelMixin,
