@@ -11,7 +11,7 @@ from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 
 from communication.datahandle import after_gather_group, after_load_inventory, \
     before_custom_grouping, before_pattern_grouping, before_recycle_group, \
-    before_update_group, before_send_down_policy_set
+    before_update_group, before_send_down_policy_set, before_recycle_policy_set
 from communication.serializers import GatherLampCtrlSerializer, \
     ControlLampSerializer, HubIsExistedSerializer, ControlAllSerializer, \
     PatternGroupSerializer, CustomGroupingSerializer, UpdateGroupSerializer, \
@@ -113,28 +113,31 @@ class CommunicateViewSet(mixins.ListModelMixin,
             if code == 101:
                 # 集控脱网, 告警
                 record_hub_disconnect(hub)
-                msg = _("connect hub [{hub_sn}] time out")
-                raise ConnectHubTimeOut(msg.format(hub_sn=hub.sn))
             if code != 0:
-                msg = _("hub [{hub_sn}] unknown error")
-                raise HubError(msg.format(hub_sn=hub.sn))
-            lamp_status = recv.get('data')
-            # 灯控状态返回值为{}时，采集失败
-            for lampctrl_sn, l_status in lamp_status.items():
-                if not l_status:
-                    error_lampctrls.append(lampctrl_sn)
-                    record_lamp_ctrl_trouble(
-                        LampCtrl.objects.filter_by(sn=lampctrl_sn).first()
-                    )
-                    continue
-                route_one, route_two = l_status.get('brightness', [0, 0])
-                electric_energy = l_status.get("electric_energy", {})
-                routes = dict(route_one=route_one, route_two=route_two)
-                ret_data.append({'lampctrl': lampctrl_sn, 'hub_sn': hub.sn,
-                                 **routes, **electric_energy})
+                error_lampctrls.extend(lampctrl_sns)
+            if code == 0:
+                lamp_status = recv.get('data')
+                # 灯控状态返回值为{}时，采集失败
+                for lampctrl_sn, l_status in lamp_status.items():
+                    if not l_status:
+                        error_lampctrls.append(lampctrl_sn)
+                        record_lamp_ctrl_trouble(
+                            LampCtrl.objects.filter_by(sn=lampctrl_sn).first()
+                        )
+                        continue
+                    route_one, route_two = l_status.get('brightness', [0, 0])
+                    electric_energy = l_status.get("electric_energy", {})
+                    routes = dict(route_one=route_one, route_two=route_two)
+                    ret_data.append({'lampctrl': lampctrl_sn, 'hub_sn': hub.sn,
+                                     **routes, **electric_energy})
         if error_lampctrls:
-            msg = _("gather lamp control [{lamps}] failed")
-            message = msg.format(lamps=', '.join(error_lampctrls)) if error_lampctrls else ret_data
+            msg = _("gather lamp control '{error_lamps}' failed").format(
+                error_lamps=','.join(error_lampctrls)
+            )
+            # msg = _("gather hub '{error_hubs}' status failed").format(
+            #     error_hubs=','.join(error_hubs)
+            # )
+            message = msg
             return Response(
                 data=dict(message=message, detail=ret_data),
                 status=status.HTTP_408_REQUEST_TIMEOUT
@@ -195,7 +198,6 @@ class CommunicateViewSet(mixins.ListModelMixin,
             msg = _("connect hub '{error_hubs}' time out").format(
                 error_hubs=','.join(error_hubs)
             )
-        if msg:
             raise HubError(msg)
         return Response(data={'detail': _("control lamps success")})
 
@@ -281,12 +283,8 @@ class CommunicateViewSet(mixins.ListModelMixin,
             if code == 101:
                 # 集控脱网, 告警
                 record_hub_disconnect(hub)
-                # msg = _("connect hub [{hub_sn}] time out")
-                # raise ConnectHubTimeOut(msg.format(hub_sn=hub.sn))
             if code != 0:
                 error_hubs.append(hub.sn)
-                # msg = _("hub [{hub_sn}] unknown error")
-                # raise HubError(msg.format(hub_sn=hub.sn))
             if code == 0:
                 hub_status = recv.get('data')
                 ret_data.append(hub_status)
@@ -657,8 +655,9 @@ class CommunicateViewSet(mixins.ListModelMixin,
                                        sender=sender) as msg_socket:
                         body = {
                             "action": "send_down_policyset",
+                            "type": "cmd",
                             "policy_map": policy_map,
-                            "policys": policy_items
+                            **policy_items
                         }
                         msg_socket.send_single_message(receiver=hub.sn,
                                                        body=body,
@@ -760,7 +759,7 @@ class CommunicateViewSet(mixins.ListModelMixin,
             try:
                 with transaction.atomic():
                     # TODO 删除下发策略
-                    pass
+                    before_recycle_policy_set(instance=hub)
                     # 回收策略
                     sender = 'cmd-{}'.format(uuid.uuid1())
                     with MessageSocket(*settings.NS_ADDR,

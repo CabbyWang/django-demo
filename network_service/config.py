@@ -10,7 +10,7 @@ LISTEN_PORT = 9999
 HEART_CYCLE = 60
 # 集控全量数据上报周期(秒)  根据集控来配置，和集控一致
 # REPORT_STATUS_CYCLE = 3600
-REPORT_STATUS_CYCLE = 60
+REPORT_STATUS_CYCLE = 180
 
 # 集控接三相电后是否能上报consumption(能耗)
 # IS_REPORT_CONSUMPTION = True

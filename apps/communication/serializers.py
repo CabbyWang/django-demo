@@ -134,8 +134,8 @@ class PatternGroupSerializer(serializers.Serializer):
         hub_sn = self.initial_data['hub']
         hub = Hub.objects.filter_by(sn=hub_sn).first()
         if not hub:
-            msg = _("hub '{}' does not exist")
-            raise serializers.ValidationError(msg.format(hub_sn))
+            msg = _("hub '{hub_sn}' does not exist")
+            raise serializers.ValidationError(msg.format(hub_sn=hub_sn))
         # 自定义分组已存在
         if LampCtrlGroup.objects.filter_by(hub=hub, is_default=False).exists():
             msg = _('custom group already exists')
@@ -187,8 +187,8 @@ class CustomGroupingSerializer(serializers.Serializer):
         hub_sn = self.initial_data['hub']
         hub = Hub.objects.filter_by(sn=hub_sn).first()
         if not hub:
-            msg = _("hub '{}' does not exist")
-            raise serializers.ValidationError(msg.format(hub_sn))
+            msg = _("hub '{hub_sn}' does not exist")
+            raise serializers.ValidationError(msg.format(hub_sn=hub_sn))
         # 自定义分组已存在
         if LampCtrlGroup.objects.filter_by(hub=hub, is_default=False).exists():
             raise serializers.ValidationError('custom group already exists')

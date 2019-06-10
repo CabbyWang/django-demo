@@ -54,10 +54,8 @@ class Server(Protocol):
     def connectionMade(self):
         log.msg("New connection established.")
         log.msg("The host of new connection is:", self.transport.getPeer().host)
-        print("connectionMade: ", hash(self.transport))
         invalid_conns[hash(self)] = self
-        print('connectionMad invalid_conns: ', invalid_conns)
-        print("hash self: ", hash(self))
+        log.msg('connectionMad invalid_conns: ', invalid_conns)
 
     def is_hub(self):
         # if not self.user:
@@ -120,7 +118,7 @@ class Server(Protocol):
         1. 管控客户端
         2. 集控客户端
         """
-        print("register: ", hash(self.transport))
+        log.msg("register: ", hash(self.transport))
         content = json.loads(content)
         sender = content.get('sender', '')
         if sender.startswith('cmd'):
@@ -163,7 +161,6 @@ class Server(Protocol):
 
             body = dict(
                 action="{}_ack".format(action),
-                # type="ack",
                 code=code,
                 # message=message,
                 reason=reason
@@ -201,8 +198,6 @@ class Server(Protocol):
         """
         处理心跳包
         """
-        print("heartbeat: ", hash(self.transport))
-        print("hash self: ", hash(self))
         log.msg("receive heartbeat from {}".format(self.user))
         self.last_heartbeat_time = int(time.time())
 
@@ -219,11 +214,10 @@ class Server(Protocol):
         log.msg("Online clients now: {}".format(clients))
         success_content = dict(
             action="register_server_ack",
-            type="ack",
             code=0,
             message="Successful registration with server"
         )
-        self.write(101, json.dumps(success_content))
+        self.write(101, success_content)
 
     def _register_hub(self, content):
         """集控客户端注册"""
@@ -318,14 +312,14 @@ class Server(Protocol):
             self.transport.write(header + content.encode('utf-8'))
 
     def _send_to_cmd(self, content, cmd, sender='NS'):
-        print("_send_to_cmd: ", hash(self.transport))
         assert isinstance(content, dict)
         # 给管控发送(ack)
         content = json.dumps(content)
         header = self.pack_header(12 + len(content), __version__, 102)
         if cmd not in clients:
             # 管控指令超时, 断开连接, 不在线, 和集控(self.user)断开连接
-            self.abort_connection()
+            print(11111111111)
+            # self.abort_connection()
             return
         # 管控指令在线， 正常发送
         log.msg("[{}] send_content to [{}]: {}".format(sender, cmd, content))

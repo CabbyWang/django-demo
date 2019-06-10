@@ -116,8 +116,8 @@ class WorkOrderSerializer(serializers.ModelSerializer):
     def validate_alert(alert):
         if WorkOrder.objects.filter_by(alert=alert).exists():
             # raise serializers.ValidationError("该告警已生成工单")
-            msg = _('the alert [{}] has generated a work order'.format(
-                alert.event))
+            msg = _('the alert [{event}] has generated a work order'.format(
+                event=alert.event))
             raise InvalidInputError(msg)
         return alert
 

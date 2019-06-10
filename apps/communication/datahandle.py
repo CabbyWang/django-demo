@@ -118,6 +118,14 @@ def before_recycle_group(instance):
         i.soft_delete()
 
 
+def before_recycle_policy_set(instance):
+    """回收集控下发策略集之前 数据库操作"""
+    hub = instance
+    # 删除所有自定义策略
+    for i in hub.hub_send_down_policysets.all():
+        i.soft_delete()
+
+
 def after_gather_group(instance, custom_group, default_group):
     """
     采集分组后
@@ -146,6 +154,9 @@ def before_send_down_policy_set(instance, item):
         }
     ]
     """
+    # 先删除已有的下发策略
+    for i in PolicySetSendDown.objects.filter_by(hub=instance):
+        i.soft_delete()
     # 数据处理
     for im in item:
         group_num = im.get('group_num')
@@ -163,9 +174,15 @@ def before_send_down_policy_set(instance, item):
         policys = defaultdict(list)  # 分组-日期/策略
         # 没有分组 默认为全部 标记为100
         group_num = group_num or "100"
+        # policys[group_num] = {'detail': [], 'policyset_name': "xx", "policyset_id": 1}
+        policys[group_num] = {'detail': []}
         for relation in policyset.policyset_relations.filter_by():
-            policys[group_num].append(
-                dict(execute_date=relation.execute_date.strftime('%Y-%m-%d'),
+            # policys[group_num].append(
+            #     dict(execute_date=relation.execute_date.strftime('%Y-%m-%d'),
+            #          policy=relation.policy.id)
+            # )
+            policys[group_num]['detail'].append(
+                dict(execute_date="'{}'".format(relation.execute_date.strftime('%Y-%m-%d')),
                      policy=relation.policy.id)
             )
 
@@ -182,7 +199,7 @@ def before_send_down_policy_set(instance, item):
 def convert_item(items):
     """
     将不同类型item转换为统一格式的item(暂时只处理时控和经纬控，其他的之后在处理)
-    :param item:
+    :param items:
     时控:
     {
         "type": 0,

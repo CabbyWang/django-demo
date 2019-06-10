@@ -67,7 +67,8 @@ class MessageSocket(object):
         length, version, command_id = struct.unpack('!3I', data[:12])
         content = data[12:length]
         content = json.loads(content)
-        code = content.get('code')
+        body = content.get('body', {})
+        code = body.get('code')
         return True if code == 0 else False
 
     def send_single_message(self, receiver, body, sender=SENDER):
@@ -116,6 +117,8 @@ class MessageSocket(object):
         用来接收、处理消息，返回处理好的消息
         """
         # 数据可能不能一次性接收完整
+        import time
+        start = time.time()
         pack_data = bytes()
         recv_len = 0
         buf_data = self.socket.recv(buffer_size)
@@ -132,6 +135,8 @@ class MessageSocket(object):
         content = pack_data[12:length]
         content_dict = json.loads(content)
         body = content_dict.get('body')
+        end = time.time()
+        print(11111111111111111111111, end - start)
         if isinstance(body, str):
             return json.loads(body)
         elif isinstance(body, dict):

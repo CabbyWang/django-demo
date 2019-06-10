@@ -3,7 +3,7 @@
 """
 Create by 王思勇 on 2019/3/14
 """
-import numpy
+# import numpy
 
 
 def hasPath(matrix, rows, cols, path):
@@ -37,7 +37,19 @@ def hasPath(matrix, rows, cols, path):
     return False
 
 
+def my_generator():
+    print('start')
+    yield 1
+    print('work')
+    yield 2
+    print('work')
+    yield 3
+    print('done')
+
+
 if __name__ == '__main__':
-    a = hasPath('ABCESFCSADEE', 3, 4, 'ABCCED')
+    # a = hasPath('ABCESFCSADEE', 3, 4, 'ABCCED')
     # a = hasPath('ABCESFCSADEE', 3, 4, 'AB')
-    print(a)
+    # print(a)
+    for i in my_generator():
+        print(i)

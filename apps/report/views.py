@@ -1,3 +1,5 @@
+import math
+
 from django.db.models import Sum, F
 from django.db import connection
 from django.utils.translation import ugettext_lazy as _
@@ -77,12 +79,13 @@ class ReportViewSet(ListModelMixin,
         # 预期总能耗
         expect_consumption = daily_consumption * days
         # 实际总能耗
-        hub_total = HubConsumption.objects.aggregate(total=Sum('consumption'))['total'] or 0
-        lampctrl_total = LampCtrlConsumption.objects.aggregate(total=Sum('consumption'))['total'] or 0
+        hub_total = HubConsumption.objects.aggregate(total=Sum('consumption') / 1000)['total'] or 0
+        lampctrl_total = LampCtrlConsumption.objects.aggregate(total=Sum('consumption') / 1000)['total'] or 0
         real_consumption = hub_total if hub_total else lampctrl_total
         real_consumption = round(real_consumption)  # 不保留小数点
         energy_saving = round(expect_consumption - real_consumption)  # 不保留小数点
-        energy_saving_rate = '0%' if not expect_consumption else '{:.0%}'.format(energy_saving / expect_consumption)
+        # energy_saving_rate = '0%' if not expect_consumption else '{:.0%}'.format(energy_saving / expect_consumption)
+        energy_saving_rate = '0%' if not expect_consumption else '{}%'.format(math.floor(energy_saving / expect_consumption * 100))
         return Response(data=dict(
             energy_saving_rate=energy_saving_rate,
             energy_saving=energy_saving,
@@ -146,7 +149,7 @@ class ReportViewSet(ListModelMixin,
             expected_consumption = daily_consumption * days
             tem_csp += csp
             ret.append(dict(
-                real_consumption=round(float(tem_csp) / 1000),
+                real_consumption=round(float(tem_csp) / 1000, 2),
                 date=date.strftime('%Y-%m-%d'),
                 expected_consumption=expected_consumption
             ))
@@ -188,7 +191,7 @@ class ReportViewSet(ListModelMixin,
         ret = []
         for consumption, month in result:
             tem = dict(
-                consumption=round(float(consumption) / 1000),
+                consumption=round(float(consumption) / 1000, 2),
                 month=month
             )
             ret.append(tem)
@@ -221,9 +224,9 @@ class ReportViewSet(ListModelMixin,
         if hub:
             hub_consumption = HubConsumption.objects.filter_by(hub=hub).aggregate(csp=Sum('consumption'))['csp'] or 0
             lamps_consumption = LampCtrlConsumption.objects.filter_by(hub=hub).aggregate(csp=Sum('consumption'))['csp'] or 0
-            hub_consumption = round(float(hub_consumption) / 1000)
-            lamps_consumption = round(float(lamps_consumption) / 1000)
-            loss_consumption = hub_consumption - lamps_consumption
+            hub_consumption = round(float(hub_consumption) / 1000, 2)
+            lamps_consumption = round(float(lamps_consumption) / 1000, 2)
+            loss_consumption = round(hub_consumption - lamps_consumption, 2)
             ret_data.append(dict(
                 hub=hub.sn,
                 hub_consumption=hub_consumption,
@@ -235,9 +238,9 @@ class ReportViewSet(ListModelMixin,
         lampctrl_csps = dict(LampCtrlConsumption.objects.values_list('hub').annotate(csp=Sum('consumption')))
         for hub_sn, hub_consumption in hub_csps:
             lamps_consumption = lampctrl_csps.get(hub_sn, 0)
-            hub_consumption = round(float(hub_consumption) / 1000)
-            lamps_consumption = round(float(lamps_consumption) / 1000)
-            loss_consumption = hub_consumption - lamps_consumption
+            hub_consumption = round(float(hub_consumption) / 1000, 2)
+            lamps_consumption = round(float(lamps_consumption) / 1000, 2)
+            loss_consumption = round(hub_consumption - lamps_consumption, 2)
             ret_data.append(dict(
                 hub=hub_sn,
                 hub_consumption=hub_consumption,
@@ -267,7 +270,7 @@ class ReportViewSet(ListModelMixin,
         months = serializer.validated_data['month']
 
         query_param = 'and DATE_FORMAT(date,"%Y-%m") in ("{}")'.format(
-            '","'.join(months)) if months else ''
+            '","'.join(months.split(','))) if months else ''
         sql = """select sum(consumption), DATE_FORMAT(date,'%Y-%m') as mon from hub_consumption WHERE hub_id='{hub_sn}' {query_param} GROUP BY  mon;
                       """.format(hub_sn=hub.sn, query_param=query_param)
 
@@ -277,7 +280,7 @@ class ReportViewSet(ListModelMixin,
         ret = []
         for consumption, month in result:
             tem = dict(
-                consumption=round(float(consumption) / 1000),
+                consumption=round(float(consumption) / 1000, 2),
                 month=month
             )
             ret.append(tem)
@@ -303,4 +306,7 @@ class ReportViewSet(ListModelMixin,
         hub = serializer.validated_data['hub']
 
         data = list(LampCtrlConsumption.objects.filter_by(hub=hub).values('lampctrl').annotate(consumption=Sum('consumption') / 1000))
+        # 保留两位小数
+        for i in data:
+            i['consumption'] = round(i.get('consumption', 0), 2)
         return Response(data=data)
