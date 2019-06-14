@@ -1,9 +1,10 @@
-import platform
 import re
+import platform
 import subprocess
 from pathlib import Path
 
 from django.conf import settings
+from django.db import connection
 from django.http import FileResponse
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets, mixins, status
@@ -52,23 +53,23 @@ class StatusViewSet(viewsets.GenericViewSet):
         threads_count = 1
         mysql_memory = 0
 
-        # TODO 使用docker怎么获取相应数据
-        # if platform.system() == 'Linux':
-        #     # mysql当前连接数
-        #     process = subprocess.Popen('mysqladmin -uroot -psmartlamp status',
-        #                                shell=True, stdout=subprocess.PIPE)
-        #     ret = process.stdout.readline()
-        #     if ret:
-        #         match_str = re.search('Threads.*?(\d+).*?', ret)
-        #         threads_count = match_str.group(1)
-        #     # mysql数据库占用内存
-        #     process2 = subprocess.Popen("ps -e -o 'args,rsz' | grep mysqld",
-        #                                 shell=True, stdout=subprocess.PIPE)
-        #     ret2 = ' '.join(process2.stdout.readlines())
-        #     if ret2:
-        #         match_str2 = re.search(
-        #             '/usr/sbin/mysqld --basedir=.*?(\d+).*?', ret2)
-        #         mysql_memory = match_str2.group(1)
+        if platform.system() == 'Linux':
+            # mysql当前连接数
+            process = subprocess.Popen('mysqladmin -uroot -psmartlamp status',
+                                       shell=True, stdout=subprocess.PIPE)
+            ret = process.stdout.readline()
+            if ret:
+                match = re.search('Threads.*?(\d+).*?', ret.decode('utf-8'))
+                try:
+                    threads_count = match.group(1)
+                except IndexError:
+                    pass
+            # mysql数据库占用内存
+            sql = "SELECT SUM(DATA_LENGTH+INDEX_LENGTH) as total FROM information_schema.TABLES"
+            with connection.cursor() as cursor:
+                cursor.execute(sql)
+                result = cursor.fetchone()
+                mysql_memory = int(result[0]) if result else 0
         ret_data = {
             "hub_status_count": hub_status_count,
             "lamp_status_count": lamp_status_count,

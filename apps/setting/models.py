@@ -13,7 +13,7 @@ class SettingType(BaseModel):
     """
     option = models.CharField(max_length=255, unique=True,
                               verbose_name='设置类型名')
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=255, verbose_name='设置类型名(显示)')
 
     class Meta:
         verbose_name = '系统设置分类'
@@ -31,8 +31,8 @@ class Setting(BaseModel):
     option = models.CharField(max_length=255, unique=True,
                               verbose_name='设置名')
     name = models.CharField(max_length=255, verbose_name='设置名(显示)')
-    value = models.CharField(max_length=255)
-    type = models.ForeignKey(SettingType, related_name='settings')
+    value = models.CharField(max_length=255, verbose_name='值')
+    type = models.ForeignKey(SettingType, db_column='type', related_name='settings', verbose_name='设置类型')
 
     class Meta:
         verbose_name = '系统设置'

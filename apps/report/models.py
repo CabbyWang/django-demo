@@ -8,10 +8,10 @@ class LampCtrlConsumption(BaseModel):
     """
     灯控每日能耗表
     """
-    lampctrl = models.ForeignKey(LampCtrl, related_name='lampctrl_consumption')
-    hub = models.ForeignKey(Hub, related_name='hub_lampctrlconsumption')
-    consumption = models.DecimalField(max_digits=32, decimal_places=1)
-    date = models.DateField()
+    lampctrl = models.ForeignKey(LampCtrl, db_column='lampctrl_sn', related_name='lampctrl_consumption', verbose_name='灯控编号')
+    hub = models.ForeignKey(Hub, db_column='hub_sn', related_name='hub_lampctrlconsumption', verbose_name='集控编号')
+    consumption = models.DecimalField(max_digits=32, decimal_places=2, verbose_name='能耗')
+    date = models.DateField(verbose_name='日期')
 
     class Meta:
         verbose_name = "路灯每日能耗表"
@@ -23,9 +23,9 @@ class HubConsumption(BaseModel):
     """
     集控每日能耗表
     """
-    hub = models.ForeignKey(Hub, related_name='hub_consumption')
-    consumption = models.DecimalField(max_digits=32, decimal_places=1)
-    date = models.DateField()
+    hub = models.ForeignKey(Hub, db_column='hub_sn', related_name='hub_consumption', verbose_name='集控编号')
+    consumption = models.DecimalField(max_digits=32, decimal_places=2, verbose_name='能耗')
+    date = models.DateField(verbose_name='日期')
 
     class Meta:
         verbose_name = "集控每日能耗表"

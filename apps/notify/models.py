@@ -47,10 +47,10 @@ class Alert(BaseModel):
     object_type = models.CharField(max_length=16, choices=OBJECT_TYPE, help_text='告警设备类型')
     object = models.CharField(max_length=64, help_text='产生告警的设备(集控/灯控)')
     memo = models.CharField(max_length=255, null=True, blank=True, help_text='备注')
-    occurred_time = models.DateTimeField(default=datetime.now)
+    occurred_time = models.DateTimeField(default=datetime.now, help_text='发生时间')
     is_solved = models.BooleanField(default=False, help_text='是否解决')
-    solver = models.ForeignKey(User, related_name='solved_alert', null=True, blank=True, help_text='处理人员')
-    solved_time = models.DateTimeField(auto_now=True, null=True, blank=True, help_text='处理时间')
+    solver = models.ForeignKey(User, db_column='solver', related_name='solved_alert', null=True, blank=True, help_text='处理人员')
+    solved_time = models.DateTimeField(auto_now=True, help_text='处理时间')
 
     class Meta:
         verbose_name = '告警'
@@ -73,9 +73,9 @@ class AlertAudio(BaseModel):
     """
     告警语音
     """
-    alert = models.OneToOneField(Alert, null=True, blank=True, related_name='alert_audio')
+    alert = models.OneToOneField(Alert, related_name='alert_audio', verbose_name='告警编号')
     audio = models.FileField(upload_to='audio', verbose_name='告警语音')
-    times = models.IntegerField(default=0)
+    times = models.IntegerField(default=0, verbose_name='被听次数')
 
     class Meta:
         verbose_name = '告警语音'

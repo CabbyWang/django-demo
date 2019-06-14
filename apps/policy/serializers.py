@@ -127,13 +127,45 @@ class PolicySetRelationSerializer(serializers.ModelSerializer):
         )
 
 
+class PolicySetDetailSerializer(serializers.ModelSerializer):
+    policys = serializers.SerializerMethodField()
+    name = serializers.CharField(
+        max_length=255,
+        validators=[
+            UniqueValidator(
+                queryset=PolicySet.objects.filter_by(),
+                message="policyset name already exists")]
+    )
+    creator = serializers.SlugRelatedField(
+        # write_only=True,
+        slug_field='username',
+        queryset=User.objects.filter_by(),
+        default=serializers.CurrentUserDefault()
+    )
+    created_time = serializers.DateTimeField(read_only=True,
+                                             format='%Y-%m-%d %H:%M:%S')
+    updated_time = serializers.DateTimeField(read_only=True,
+                                             format='%Y-%m-%d %H:%M:%S')
+    is_used = serializers.SerializerMethodField()
+
+    @staticmethod
+    def get_policys(obj):
+        qs = obj.policyset_relations.filter(is_deleted=False)
+        serializer = PolicySetRelationSerializer(qs, many=True)
+        return serializer.data
+
+    @staticmethod
+    def get_is_used(instance):
+        return PolicySetSendDown.objects.filter_by(policyset=instance).exists()
+
+    class Meta:
+        model = PolicySet
+        fields = ('id', 'policys', 'name', 'memo', 'creator', 'created_time',
+                  'updated_time', 'is_used')
+
+
 class PolicySetSerializer(serializers.ModelSerializer):
 
-    # policys = PolicySetRelationSerializer(
-    #     source='policyset_relations',
-    #     many=True,
-    #     read_only=True)
-    policys = serializers.SerializerMethodField()
     name = serializers.CharField(
         max_length=255,
         validators=[
@@ -179,12 +211,6 @@ class PolicySetSerializer(serializers.ModelSerializer):
                 msg = _('policy id [{policy_id}] does not exist')
                 raise serializers.ValidationError(msg.format(policy_id))
         return attrs
-
-    @staticmethod
-    def get_policys(obj):
-        qs = obj.policyset_relations.filter(is_deleted=False)
-        serializer = PolicySetRelationSerializer(qs, many=True)
-        return serializer.data
 
     @staticmethod
     def get_is_used(instance):

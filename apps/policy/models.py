@@ -35,11 +35,11 @@ class Policy(BaseModel):
     POLICY_TYPE = ('时控', '经纬度', '光控', '回路控制')
 
     name = models.CharField(max_length=255, verbose_name='策略名称')
-    item = ListField(default=[])
+    item = ListField(default=[], verbose_name='策略项')
     memo = models.CharField(max_length=255, null=True, blank=True, verbose_name='备注')
     creator = models.ForeignKey(User, db_column='creator',
                                 related_name='user_policys',
-                                blank=True, null=True)
+                                blank=True, null=True, verbose_name='创建人')
 
     class Meta:
         verbose_name = "策略"
@@ -56,11 +56,11 @@ class PolicySet(BaseModel):
     策略集
     """
     policys = models.ManyToManyField(Policy, through='PolicySetRelation')
-    name = models.CharField(max_length=255)
-    memo = models.CharField(max_length=255, null=True, blank=True)
+    name = models.CharField(max_length=255, verbose_name='策略集名称')
+    memo = models.CharField(max_length=255, null=True, blank=True, verbose_name='备注')
     creator = models.ForeignKey(User, db_column='creator',
                                 related_name='user_policysets',
-                                blank=True, null=True)
+                                blank=True, null=True, verbose_name='创建人')
 
     def get_policys(self, obj):
         return obj.policyset_relations.filter(is_deleted=False)
@@ -79,11 +79,11 @@ class PolicySetRelation(BaseModel):
     """
     策略集映射
     """
-    policy = models.ForeignKey(Policy, related_name='policy_relations')
+    policy = models.ForeignKey(Policy, related_name='policy_relations', verbose_name='策略编号')
     policyset = models.ForeignKey(
-        PolicySet, related_name='policyset_relations'
+        PolicySet, related_name='policyset_relations', verbose_name='策略集编号'
     )
-    execute_date = models.DateField()
+    execute_date = models.DateField(verbose_name='执行时间')
 
     class Meta:
         verbose_name = '策略集映射'
@@ -98,9 +98,10 @@ class PolicySetSendDown(BaseModel):
     """
     policyset = models.ForeignKey(
         PolicySet,
-        related_name='policyset_send_down_policysets'
+        related_name='policyset_send_down_policysets',
+        verbose_name='策略集编号'
     )
-    hub = models.ForeignKey(Hub, related_name='hub_send_down_policysets')
+    hub = models.ForeignKey(Hub, db_column='hub_sn', related_name='hub_send_down_policysets', verbose_name='集控编号')
     group_num = models.IntegerField(help_text='分组编号')
 
     class Meta:

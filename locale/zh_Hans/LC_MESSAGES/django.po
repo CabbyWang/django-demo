@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-06-06 15:51+0800\n"
+"POT-Creation-Date: 2019-06-14 16:27+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -105,113 +105,120 @@ msgid ""
 "'configs' items"
 msgstr "'configs'的项中必须包含'hub','group_num'和'policyset_id'字段"
 
-#: .\apps\communication\views.py:134
+#: .\apps\communication\views.py:133
 #, python-brace-format
 msgid "gather lamp control '{error_lamps}' failed"
 msgstr "采集灯控'{error_lamps}'失败"
 
-#: .\apps\communication\views.py:198
+#: .\apps\communication\views.py:200 .\apps\equipment\views.py:302
 #, python-brace-format
 msgid "connect hub '{error_hubs}' time out"
 msgstr "连接集控'{error_hubs}'超时"
 
-#: .\apps\communication\views.py:202 .\apps\communication\views.py:353
+#: .\apps\communication\views.py:204 .\apps\communication\views.py:355
+#: .\apps\equipment\views.py:309
 msgid "control lamps success"
 msgstr "控灯成功"
 
-#: .\apps\communication\views.py:244
+#: .\apps\communication\views.py:246
 #, python-brace-format
 msgid "gather hub '{error_hubs}' failed"
 msgstr "采集集控'{error_hubs}'失败"
 
-#: .\apps\communication\views.py:256
+#: .\apps\communication\views.py:258
 msgid "gather success"
 msgstr "采集成功"
 
-#: .\apps\communication\views.py:293
+#: .\apps\communication\views.py:295
 #, python-brace-format
 msgid "gather hub '{error_hubs}' status failed"
 msgstr "采集集控'{error_hubs}'状态失败"
 
-#: .\apps\communication\views.py:399 .\apps\communication\views.py:450
-#: .\apps\communication\views.py:494 .\apps\communication\views.py:606
-#: .\apps\communication\views.py:670 .\apps\communication\views.py:778
+#: .\apps\communication\views.py:401 .\apps\communication\views.py:452
+#: .\apps\communication\views.py:496 .\apps\communication\views.py:616
+#: .\apps\communication\views.py:679 .\apps\communication\views.py:794
 #, python-brace-format
 msgid "connect hub [{hub_sn}] time out"
 msgstr "连接集控[{hub_sn}]超时"
 
-#: .\apps\communication\views.py:402 .\apps\communication\views.py:453
-#: .\apps\communication\views.py:497 .\apps\communication\views.py:609
-#: .\apps\communication\views.py:673 .\apps\communication\views.py:781
+#: .\apps\communication\views.py:404 .\apps\communication\views.py:455
+#: .\apps\communication\views.py:499 .\apps\communication\views.py:619
+#: .\apps\communication\views.py:682 .\apps\communication\views.py:797
 #, python-brace-format
 msgid "hub [{hub_sn}] unknown error"
 msgstr "集控[{hub_sn}]未知错误"
 
-#: .\apps\communication\views.py:505
+#: .\apps\communication\views.py:507
 #, python-brace-format
 msgid "hub '{error_hubs}' recycle group config failed"
 msgstr "集控'{error_hubs}'回收分组配置失败"
 
-#: .\apps\communication\views.py:509
+#: .\apps\communication\views.py:519
 msgid "recycle group config success"
 msgstr "回收分组配置成功"
 
-#: .\apps\communication\views.py:557
+#: .\apps\communication\views.py:567
 #, python-brace-format
 msgid "hub '{error_hubs}' gather group config failed"
 msgstr "集控'{error_hubs}'采集分组配置失败"
 
-#: .\apps\communication\views.py:570
+#: .\apps\communication\views.py:580
 msgid "gather group config success"
 msgstr "采集分组配置成功"
 
-#: .\apps\communication\views.py:615
+#: .\apps\communication\views.py:625
 msgid "group configuration success"
 msgstr "下发分组配置成功"
 
-#: .\apps\communication\views.py:681
+#: .\apps\communication\views.py:692
 #, python-brace-format
 msgid "hub '{error_hubs}' send down policy scheme failed"
 msgstr "集控'{error_hubs}'下发策略方案失败"
 
-#: .\apps\communication\views.py:685
+#: .\apps\communication\views.py:696
 msgid "send down policy scheme success"
 msgstr "下发策略方案成功"
 
-#: .\apps\communication\views.py:737
+#: .\apps\communication\views.py:747
 #, python-brace-format
 msgid "hub '{error_hubs}' gather policy set failed"
 msgstr "集控'{error_hubs}'采集策略集失败"
 
-#: .\apps\communication\views.py:741
+#: .\apps\communication\views.py:759
 msgid "gather policy set success"
 msgstr "采集策略集成功"
 
-#: .\apps\communication\views.py:790
+#: .\apps\communication\views.py:806
 #, python-brace-format
 msgid "hub '{error_hubs}' recycle policy set failed"
 msgstr "集控'{error_hubs}'回收策略集失败"
 
-#: .\apps\communication\views.py:794
+#: .\apps\communication\views.py:810
 msgid "recycle policy set success"
 msgstr "回收策略集成功"
 
-#: .\apps\equipment\views.py:78 .\apps\equipment\views.py:87
+#: .\apps\equipment\serializers.py:47
+#, fuzzy
+#| msgid "pole '{sn}' already exist"
+msgid "pole sn already exist"
+msgstr "灯杆'{sn}'已存在"
+
+#: .\apps\equipment\views.py:82 .\apps\equipment\views.py:91
 #, python-brace-format
 msgid "pole '{sn}' already exist"
 msgstr "灯杆'{sn}'已存在"
 
-#: .\apps\equipment\views.py:176 .\apps\equipment\views.py:185
+#: .\apps\equipment\views.py:181 .\apps\equipment\views.py:190
 #, python-brace-format
 msgid "lamp '{sn}' already exist"
 msgstr "灯具'{sn}'已存在"
 
-#: .\apps\equipment\views.py:274 .\apps\equipment\views.py:283
+#: .\apps\equipment\views.py:355 .\apps\equipment\views.py:364
 #, python-brace-format
 msgid "control box '{sn}' already exist"
 msgstr "控制箱'{sn}'已存在"
 
-#: .\apps\equipment\views.py:366 .\apps\equipment\views.py:375
+#: .\apps\equipment\views.py:446 .\apps\equipment\views.py:455
 #, python-brace-format
 msgid "cable '{sn}' already exist"
 msgstr "电缆'{sn}'已存在"
@@ -235,7 +242,7 @@ msgstr "只能删除自己创建的策略"
 
 #: .\apps\policy\views.py:50 .\apps\policy\views.py:89
 msgid "you cant't delete the policy in use"
-msgstr "集控在线, 不能删除"
+msgstr "策略正在被使用，不能删除"
 
 #: .\apps\policy\views.py:86
 msgid "you can only delete your own policyset"
@@ -359,34 +366,80 @@ msgstr "数据格式错误"
 msgid "Server Error"
 msgstr "服务器错误"
 
-#: .\apps\utils\middleware.py:118
+#: .\apps\utils\middleware.py:180
+#, fuzzy
+#| msgid "control lamps success"
+msgid "control lamps"
+msgstr "控灯"
+
+#: .\apps\utils\middleware.py:206
+#, fuzzy
+#| msgid "gather hub status"
+msgid "gather lamp control status"
+msgstr "采集灯控状态"
+
+#: .\apps\utils\middleware.py:224
+msgid "control all"
+msgstr "全开全关"
+
+#: .\apps\utils\middleware.py:249
+#, fuzzy
+#| msgid "gather policy set success"
+msgid "gather policy set"
+msgstr "采集策略集"
+
+#: .\apps\utils\middleware.py:270
+#, fuzzy
+#| msgid "gather hub groups"
+msgid "update group"
+msgstr "修改集控分组"
+
+#: .\apps\utils\middleware.py:296
+#, fuzzy
+#| msgid "gather hub groups"
+msgid "recycle hub group"
+msgstr "回收集控分组"
+
+#: .\apps\utils\middleware.py:314
+#, fuzzy
+#| msgid "gather hub groups"
+msgid "update user group"
+msgstr "修改用户组"
+
+#: .\apps\utils\middleware.py:330
+#, fuzzy
+#| msgid "gather hub groups"
+msgid "create user group"
+msgstr "创建用户组"
+
+#: .\apps\utils\middleware.py:348
 msgid "send down groups(custom group)"
-msgstr "下发分组(自定义)"
+msgstr "下发集控分组(自定义)"
 
-#: .\apps\utils\middleware.py:145
+#: .\apps\utils\middleware.py:374
 msgid "send down groups(group by pattern)"
-msgstr "下发模式分组(自定义)"
+msgstr "下发集控分组(模式)"
 
-#: .\apps\utils\middleware.py:172
+#: .\apps\utils\middleware.py:400
 msgid "gather hub groups"
 msgstr "采集集控分组"
 
-#: .\apps\utils\middleware.py:199
+#: .\apps\utils\middleware.py:426
 msgid "gather hub status"
 msgstr "采集集控状态"
 
-#: .\apps\utils\middleware.py:226
+#: .\apps\utils\middleware.py:452
 msgid "gather hub configuration"
 msgstr "采集集控配置"
 
-#: .\apps\utils\middleware.py:255
-msgid "log in"
-msgstr "登录"
-
-#: .\apps\utils\middleware.py:258
+#: .\apps\utils\middleware.py:463
 #, python-brace-format
-msgid "user [{username}] log in on ip [{ip}]"
-msgstr "用户[{username}]在ip[{ip}]上登录"
+msgid "user [{username}] log in on ip [{object}]"
+msgstr "用户[{username}]在ip[{object}]登陆"
+
+#: .\apps\utils\middleware.py:470
+msgid "log in"
+msgstr "用户登陆"
 
 #: .\apps\utils\settings.py:62 .\initial\init_projectinfo.py:63
 msgid "others"
@@ -461,10 +514,10 @@ msgstr "告警"
 msgid "report"
 msgstr "报表"
 
-#: .\smartlamp\settings.py:199
+#: .\smartlamp\settings.py:200
 msgid "English"
 msgstr "英文"
 
-#: .\smartlamp\settings.py:200
+#: .\smartlamp\settings.py:201
 msgid "中文简体"
 msgstr "Simple Chinese"

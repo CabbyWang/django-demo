@@ -92,7 +92,6 @@ class CommunicateViewSet(mixins.ListModelMixin,
             "lampctrl": ["001", "002"]
         }
         """
-        # TODO 灯控根据集控分类
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         lampctrls = serializer.validated_data['lampctrl']
@@ -137,10 +136,13 @@ class CommunicateViewSet(mixins.ListModelMixin,
             # msg = _("gather hub '{error_hubs}' status failed").format(
             #     error_hubs=','.join(error_hubs)
             # )
-            message = msg
             return Response(
-                data=dict(message=message, detail=ret_data),
-                status=status.HTTP_408_REQUEST_TIMEOUT
+                status=status.HTTP_408_REQUEST_TIMEOUT,
+                data=dict(
+                    detail=msg,
+                    message=msg,
+                    error_lampctrls=error_lampctrls
+                )
             )
         return Response(dict(message=ret_data, detail=ret_data))
 
@@ -505,7 +507,15 @@ class CommunicateViewSet(mixins.ListModelMixin,
             msg = _("hub '{error_hubs}' recycle group config failed").format(
                 error_hubs=','.join(error_hubs)
             )
-            raise HubError(msg)
+            # raise HubError(msg)
+            return Response(
+                status=status.HTTP_408_REQUEST_TIMEOUT,
+                data=dict(
+                    detail=msg,
+                    message=msg,
+                    error_hubs=error_hubs
+                )
+            )
         return Response(data={'detail': _('recycle group config success')})
 
     @action(methods=['POST'], detail=False, url_path='gather-group')
@@ -655,9 +665,8 @@ class CommunicateViewSet(mixins.ListModelMixin,
                                        sender=sender) as msg_socket:
                         body = {
                             "action": "send_down_policyset",
-                            "type": "cmd",
                             "policy_map": policy_map,
-                            **policy_items
+                            "policys": policy_items
                         }
                         msg_socket.send_single_message(receiver=hub.sn,
                                                        body=body,
@@ -674,8 +683,10 @@ class CommunicateViewSet(mixins.ListModelMixin,
                         raise HubError(msg.format(hub_sn=hub.sn))
             except (ConnectHubTimeOut, HubError):
                 error_hubs.append(hub.sn)
+                print('time out or hub error')
             except Exception as ex:
                 error_hubs.append(hub.sn)
+                print('exception -- > ', str(ex))
                 # raise DMLError(str(ex))
         if error_hubs:
             msg = _("hub '{error_hubs}' send down policy scheme failed").format(
@@ -694,7 +705,6 @@ class CommunicateViewSet(mixins.ListModelMixin,
             "hub": [hub1, hub2, ...]
         }
         """
-        # TODO 采集策略集
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         hubs = serializer.validated_data['hub']
@@ -737,7 +747,15 @@ class CommunicateViewSet(mixins.ListModelMixin,
             msg = _("hub '{error_hubs}' gather policy set failed").format(
                 error_hubs=','.join(error_hubs)
             )
-            raise HubError(msg)
+            # raise HubError(msg)
+            return Response(
+                status=status.HTTP_408_REQUEST_TIMEOUT,
+                data=dict(
+                    detail=msg,
+                    message=msg,
+                    error_hubs=error_hubs
+                )
+            )
         msg = _('gather policy set success')
         return Response(data={'detail': msg})
 
@@ -750,7 +768,6 @@ class CommunicateViewSet(mixins.ListModelMixin,
             "hub": [hub1, hub2, ...]
         }
         """
-        # TODO 回收策略集
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         hubs = serializer.validated_data['hub']
@@ -758,7 +775,6 @@ class CommunicateViewSet(mixins.ListModelMixin,
         for hub in hubs:
             try:
                 with transaction.atomic():
-                    # TODO 删除下发策略
                     before_recycle_policy_set(instance=hub)
                     # 回收策略
                     sender = 'cmd-{}'.format(uuid.uuid1())

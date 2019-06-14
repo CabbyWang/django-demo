@@ -170,7 +170,6 @@ class ReportViewSet(ListModelMixin,
             }
         ]
         """
-        # TODO 实现
         params = request.query_params
         start_month = params.get('start_month')
         end_month = params.get('end_month')

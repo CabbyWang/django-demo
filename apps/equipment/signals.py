@@ -12,6 +12,7 @@ from .models import Hub
 from workorder.models import WorkOrder
 
 
+# TODO 自定义删除信号， 实现逻辑删除时的信号发送
 @receiver(pre_delete, sender=Hub)
 def delete_hub(sender, instance=None, using=None, **kwargs):
     """删除集控时， 同步删除相关联项"""
@@ -36,8 +37,5 @@ def delete_hub(sender, instance=None, using=None, **kwargs):
     instance.hub_permision.update(**del_kw)
     # 删除巡检报告
     instance.hub_inspetion.update(**del_kw)
-    # TODO 删除工单？
-    # type=1 obj_sn=self.sn
-    # self.hub_lampctrl.update(deleted_time=datetime.now(), is_deleted=True)
     # 删除巡检报告具体项表
     instance.hub_inspection_item.update(**del_kw)

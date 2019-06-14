@@ -45,7 +45,7 @@ obtain_jwt_token = CustomObtainJSONWebToken.as_view()
 router = routers.DefaultRouter()
 
 # 用户组
-router.register('user-groups', UserGroupViewSet, basename='user-groups')
+router.register('user-groups', UserGroupViewSet, basename='user_groups')
 
 # 用户
 router.register('users', UserViewSet, basename='users')
@@ -143,3 +143,10 @@ urlpatterns = [
                                         permission_classes=[])),
     url(r'^(?P<path>.*)$', serve, {'document_root': settings.BASE_DIR})
 ]
+
+if settings.DEBUG:
+    import debug_toolbar
+
+    urlpatterns = [
+        url('^__debug__/', include(debug_toolbar.urls)),
+    ] + urlpatterns

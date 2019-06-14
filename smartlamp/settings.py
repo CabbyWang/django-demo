@@ -14,8 +14,6 @@ import sys
 import enum
 import datetime
 
-from django.utils.translation import ugettext_lazy as _
-
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -65,7 +63,8 @@ INSTALLED_APPS = [
     'xadmin',
     'crispy_forms',
     'reversion',
-    'rest_framework'
+    'rest_framework',
+    'debug_toolbar'
 ]
 
 MIDDLEWARE = [
@@ -80,6 +79,7 @@ MIDDLEWARE = [
     'apps.utils.middleware.LogMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
 ]
 
 ROOT_URLCONF = 'smartlamp.urls'
@@ -117,9 +117,9 @@ DATABASES = {
         "NAME": "smartlamp",
         "USER": "root",
         "PASSWORD": "smartlamp",
-        "HOST": "localhost",
-        # "HOST": "127.0.0.1",
-        "PORT": "3305",
+        # "HOST": "localhost",
+        "HOST": "172.16.31.247",
+        "PORT": "3306",
         # 'ATOMIC_REQUESTS': True,  # wrap each request in a transaction
         'OPTIONS': {
             # 'init_command': 'SET storage_engine=INNODB;'
@@ -195,9 +195,12 @@ LOCALE_PATHS = [
     os.path.join(BASE_DIR, 'locale')
 ]
 
+
+ugettext = lambda s: s
+
 LANGUAGES = (
-    ('en', _('English')),
-    ('zh-Hans', _('中文简体')),
+    ('en', ugettext('English')),
+    ('zh-Hans', ugettext('中文简体')),
 )
 
 LOGGING = {

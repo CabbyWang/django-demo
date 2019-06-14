@@ -8,10 +8,10 @@ class LampCtrlGroup(BaseModel):
     """
     灯控分组
     """
-    hub = models.ForeignKey(Hub, related_name='hub_group', help_text='集控编号')
-    lampctrl = models.ForeignKey(LampCtrl, related_name='lampctrl_group', help_text='灯控编号')
+    hub = models.ForeignKey(Hub, db_column='hub_sn', related_name='hub_group', help_text='集控编号')
+    lampctrl = models.ForeignKey(LampCtrl, db_column='lampctrl_sn', related_name='lampctrl_group', help_text='灯控编号')
     group_num = models.IntegerField(help_text='分组编号')
-    memo = models.CharField(max_length=255, null=True, help_text='备注')
+    memo = models.CharField(max_length=255, null=True, blank=True, help_text='备注')
     is_default = models.BooleanField(default=False, help_text='是否为默认分组')
 
     class Meta:

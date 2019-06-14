@@ -11,13 +11,13 @@ from notify.models import Log, Alert, AlertAudio
 class LogAdmin(object):
 
     list_display = [
-        "user", "event", "object", "memo", "created_time"
+        "username", "event", "object", "memo", "created_time"
     ]
     list_filter = [
-        "user", "event", "object", "memo"
+        "username", "event", "object", "memo"
     ]
     search_fields = [
-        "user", "event", "object", "memo", "created_time"
+        "username", "event", "object", "memo", "created_time"
     ]
 
 

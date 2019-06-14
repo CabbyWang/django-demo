@@ -134,7 +134,34 @@ def after_gather_group(instance, custom_group, default_group):
     :param default_group: 默认分组
     :return:
     """
-    pass
+    hub = instance
+    # 删除已有分组
+    for i in hub.hub_group.filter_by():
+        i.soft_delete()
+    # 添加自定义分组
+    for group_num, lampctrl_sns in custom_group.items():
+        for lampctrl_sn in lampctrl_sns:
+            lampctrl = LampCtrl.objects.filter_by(sn=lampctrl_sn).first()
+            if not lampctrl:
+                continue
+            LampCtrlGroup.objects.create(
+                hub=hub,
+                lampctrl=lampctrl,
+                group_num=int(group_num),
+                is_default=0
+            )
+    # 添加默认分组
+    for group_num, lampctrl_sns in default_group.items():
+        for lampctrl_sn in lampctrl_sns:
+            lampctrl = LampCtrl.objects.filter_by(sn=lampctrl_sn).first()
+            if not lampctrl:
+                continue
+            LampCtrlGroup.objects.create(
+                hub=hub,
+                lampctrl=lampctrl,
+                group_num=int(group_num),
+                is_default=1
+            )
 
 
 def before_send_down_policy_set(instance, item):
@@ -174,19 +201,12 @@ def before_send_down_policy_set(instance, item):
         policys = defaultdict(list)  # 分组-日期/策略
         # 没有分组 默认为全部 标记为100
         group_num = group_num or "100"
-        # policys[group_num] = {'detail': [], 'policyset_name': "xx", "policyset_id": 1}
-        policys[group_num] = {'detail': []}
         for relation in policyset.policyset_relations.filter_by():
-            # policys[group_num].append(
-            #     dict(execute_date=relation.execute_date.strftime('%Y-%m-%d'),
-            #          policy=relation.policy.id)
-            # )
-            policys[group_num]['detail'].append(
-                dict(execute_date="'{}'".format(relation.execute_date.strftime('%Y-%m-%d')),
-                     policy=relation.policy.id)
+            policys[group_num].append(
+                dict(execute_date=relation.execute_date.strftime('%Y-%m-%d'),
+                     policy=str(relation.policy.id))
             )
 
-        # TODO 不指定分组， 如何存策略集下发表
         # 数据库同步 100分组代表下发所有分组
         PolicySetSendDown.objects.create(
             hub=instance,
@@ -237,8 +257,9 @@ def convert_item(items):
             ret_item["action"] = item.get("action")
         elif type == 1:
             # 经纬控
-            # TODO 这里固定date值，之后经纬度的计算需要放到集控上进行
-            ss = calculate_sunrise_sunset(longitude=item.get("longitude"), latitude=item.get("latitude"), date="2019-06-04")
+            # TODO 这里固定date值，之后需要修改集控协议，通过经纬度下发
+            #  每天的策略都不一样，不需要policy_map了，直接平摊
+            ss = calculate_sunrise_sunset(longitude=item.get("longitude"), latitude=item.get("latitude"), date="2019-06-14")
             sunrise = ss.get('sunrise')
             sunset = ss.get('sunset')
             s_type = item.get('s_type')
@@ -260,5 +281,4 @@ def convert_item(items):
 
 def after_load_inventory(instance, inventory):
     """采集集控配置后 数据库操作"""
-    # TODO 采集配置和注册时的操作相似， 是否需要合并?
     record_inventory(inventory=inventory)

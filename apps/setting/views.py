@@ -62,12 +62,13 @@ class SettingViewSet(ListModelMixin,
             os.makedirs(backup_dir)
         cmd = 'mysqldump -uroot -psmartlamp smartlamp > {}/smartlamp.sql'.format(
             backup_dir)
-        cmd_tar = 'tar zcvf {backup_dir}/smartlamp.tar.gz {backup_dir}/smartlamp.sql'.format(
-            backup_dir=backup_dir)
+        cmd_cd = 'cd {}'.format(backup_dir)
+        cmd_tar = 'tar zcvf smartlamp.tar.gz smartlamp.sql'
         cmd_rm = 'rm -f {backup_dir}/smartlamp.sql'.format(
             backup_dir=backup_dir)
         try:
             subprocess.check_call(cmd, shell=True)
+            subprocess.check_call(cmd_cd, shell=True)
             subprocess.check_call(cmd_tar, shell=True)
             subprocess.check_call(cmd_rm, shell=True)
         except subprocess.CalledProcessError:

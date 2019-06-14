@@ -8,7 +8,7 @@ class HubStatus(BaseModel):
     """
     集控状态历史记录
     """
-    hub = models.ForeignKey(Hub, related_name='hub_status', help_text='集控编号')
+    hub = models.ForeignKey(Hub, db_column='hub_sn', related_name='hub_status', help_text='集控编号')
     A_voltage = models.DecimalField(max_digits=32, decimal_places=2, default=0, help_text='A相电压')
     A_current = models.DecimalField(max_digits=32, decimal_places=2, default=0, help_text='A相电流')
     A_power = models.DecimalField(max_digits=32, decimal_places=2, default=0, help_text='A相功率')
@@ -37,7 +37,7 @@ class HubLatestStatus(BaseModel):
     """
     集控最新状态
     """
-    hub = models.ForeignKey(Hub, related_name='hub_latest_status', help_text='集控编号')
+    hub = models.ForeignKey(Hub, db_column='hub_sn', related_name='hub_latest_status', help_text='集控编号')
     A_voltage = models.DecimalField(max_digits=32, decimal_places=2, default=0, help_text='A相电压')
     A_current = models.DecimalField(max_digits=32, decimal_places=2, default=0, help_text='A相电流')
     A_power = models.DecimalField(max_digits=32, decimal_places=2, default=0, help_text='A相功率')
@@ -66,10 +66,10 @@ class LampCtrlStatus(BaseModel):
     """
     灯控状态历史
     """
-    lampctrl = models.ForeignKey(LampCtrl, related_name='lampctrl_status', help_text='灯控编号')
-    hub = models.ForeignKey(Hub, related_name='hub_lampctrlstatus', help_text='集控编号')
-    route_one = models.IntegerField(null=True, blank=True)
-    route_two = models.IntegerField(null=True, blank=True)
+    lampctrl = models.ForeignKey(LampCtrl, db_column='lampctrl_sn', related_name='lampctrl_status', help_text='灯控编号')
+    hub = models.ForeignKey(Hub, db_column='hub_sn', related_name='hub_lampctrlstatus', help_text='集控编号')
+    route_one = models.IntegerField(null=True, blank=True, help_text='亮度1')
+    route_two = models.IntegerField(null=True, blank=True, help_text='亮度2')
     voltage = models.DecimalField(max_digits=32, decimal_places=2, help_text='电压')
     current = models.DecimalField(max_digits=32, decimal_places=2, help_text='电流')
     power = models.DecimalField(max_digits=32, decimal_places=2, help_text='功率')
@@ -86,8 +86,8 @@ class LampCtrlLatestStatus(BaseModel):
     """
     灯控最新状态
     """
-    lampctrl = models.OneToOneField(LampCtrl, related_name='lampctrl_latest_status', help_text='灯控编号')
-    hub = models.ForeignKey(Hub, related_name='hub_lampctrllststatus', help_text='集控编号')
+    lampctrl = models.OneToOneField(LampCtrl, db_column='lampctrl_sn', related_name='lampctrl_latest_status', help_text='灯控编号')
+    hub = models.ForeignKey(Hub, db_column='hub_sn', related_name='hub_lampctrllststatus', help_text='集控编号')
     route_one = models.IntegerField(null=True, blank=True)
     route_two = models.IntegerField(null=True, blank=True)
     voltage = models.DecimalField(max_digits=32, decimal_places=2, help_text='电压')

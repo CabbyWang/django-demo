@@ -20,19 +20,19 @@ from django.contrib.auth import get_user_model
 User = get_user_model()
 
 
-# TODO 使用django中的createsuperuser创建用户， 密码会二次加密(待解决)
 def create_superuser(username='admin', password='smartlamp'):
     # TODO
-    if User.objects.filter_by(username=username).exists():
-        # 用户名存在
-        user = User.objects.get(username=username)
-        user.is_superuser = True
-        user.is_staff = True
-        user.set_password(password)
-        user.save()
-    else:
-        User.objects.create(username=username, password=password,
-                            is_superuser=True, is_staff=True)
+    # password = User.set_password(raw_password=password)
+    user, _ = User.objects.update_or_create(
+        username=username,
+        defaults=dict(
+            is_superuser=True,
+            is_staff=True,
+            password=password
+        )
+    )
+    user.set_password(password)
+    user.save()
 
 
 if __name__ == '__main__':

@@ -54,7 +54,7 @@ class Hub(BaseModel):
         help_text='编号'
     )
     pole = models.ForeignKey(
-        Pole, null=True, blank=True,
+        Pole, null=True, blank=True, db_column='pole_id',
         related_name='pole_hub', verbose_name='灯杆'
     )
     unit = models.ForeignKey(
@@ -64,9 +64,8 @@ class Hub(BaseModel):
     status = models.IntegerField(
         choices=STATUS_CHOICE, verbose_name='状态', help_text='状态'
     )  # （1：正常，2：故障，3：脱网）
-    rf_band = models.IntegerField(verbose_name='信道', help_text='信道')
-    rf_addr = models.IntegerField(verbose_name='通讯模块逻辑地址',
-                                  help_text='通讯模块逻辑地址')
+    rf_band = models.IntegerField(help_text='射频频率')
+    rf_addr = models.IntegerField(help_text='射频地址')
     address = models.CharField(
         max_length=60, verbose_name='地址', help_text='地址'
     )
@@ -113,7 +112,7 @@ class LampCtrl(BaseModel):
     __model_fields = []  # 所有字段的字符列表
 
     sn = models.CharField(max_length=16, primary_key=True, help_text='灯控编号')
-    hub = models.ForeignKey(Hub, related_name='hub_lampctrl', help_text='集控编号')
+    hub = models.ForeignKey(Hub, db_column='hub_sn', related_name='hub_lampctrl', help_text='集控编号')
     sequence = models.IntegerField(help_text='序列号')
     status = models.SmallIntegerField(default=1, choices=STATUS_CHOICE,
                                       help_text='灯控状态(正常/故障/脱网)')
@@ -180,8 +179,8 @@ class Lamp(BaseModel):
     sn = models.CharField(max_length=32, help_text='编号')
     vendor = models.CharField(max_length=32, help_text='厂家名称')
     model = models.CharField(max_length=32, help_text='型号')
-    bearer = models.ForeignKey(Pole, related_name='pole_lamp', help_text='灯杆编号')
-    controller = models.ForeignKey(LampCtrl, related_name='lampctrl_lamp', help_text='灯控编号')
+    bearer = models.ForeignKey(Pole, db_column='bearer', related_name='pole_lamp', help_text='灯杆编号')
+    controller = models.ForeignKey(LampCtrl, db_column='controller', related_name='lampctrl_lamp', help_text='灯控编号')
     date = models.DateField(help_text='购买时间')
     address = models.CharField(max_length=255, null=True, blank=True, help_text='安装地址')
     memo = models.CharField(max_length=255, null=True, blank=True, help_text='备注')

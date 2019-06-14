@@ -1,4 +1,6 @@
+import uuid
 import zipfile
+import warnings
 from pathlib import Path
 from math import sqrt
 
@@ -24,11 +26,13 @@ from equipment.serializers import CableSerializer, CableBatchDeleteSerializer, \
     LampImageSerializer, LampDetailSerializer, PoleSerializer, \
     PoleBatchDeleteSerializer, PoleImageSerializer, PoleDetailSerializer, \
     LampCtrlPartialUpdateSerializer, LampCtrlSerializer, HubDetailSerializer, \
-    HubPartialUpdateSerializer
+    HubPartialUpdateSerializer, LampIdAddressSerializer
 from group.models import LampCtrlGroup
 from policy.models import PolicySetSendDown
+from utils.alert import record_hub_disconnect
 from utils.exceptions import ObjectHasExisted, DeleteOnlineHubError
 from utils.mixins import ListModelMixin, UploadModelMixin
+from utils.msg_socket import MessageSocket
 from utils.permissions import IsAdminUser
 
 
@@ -118,7 +122,6 @@ class PoleViewSet(ListModelMixin,
         """灯杆使用状态
         GET /poles/use-status/
         """
-        # TODO 是否需要使用serializer
         is_used = Pole.objects.filter_by(is_used=True).count()
         not_used = Pole.objects.filter_by(is_used=False).count()
         total = is_used + not_used
@@ -150,6 +153,8 @@ class LampViewSet(ListModelMixin,
         灯具使用状态
     upload_images:
         上传灯具图片
+    app_control_lamp:
+        下发控制动作(兼容APP)
     """
 
     queryset = Lamp.objects.filter_by()
@@ -216,7 +221,6 @@ class LampViewSet(ListModelMixin,
         """灯具使用状态
         GET /lamps/use-status/
         """
-        # TODO 是否需要使用serializer
         is_used = Lamp.objects.filter_by(is_used=True).count()
         not_used = Lamp.objects.filter_by(is_used=False).count()
         total = is_used + not_used
@@ -227,6 +231,83 @@ class LampViewSet(ListModelMixin,
             use_status='{:.0%}'.format(
                 float(is_used) / total if total else 0)
         ))
+
+    @action(methods=['POST'], detail=False, url_path='action')
+    def app_control_lamp(self, request, *args, **kwargs):
+        """下发控制动作(兼容APP)
+        POST /lamps/action/
+        {
+            "action": [
+                {
+                    "hub_sn": "hub1",
+                    "lamp_sn": ["lamp1", "lamp2"],
+                    "action": "100,100"
+                },
+                {
+                    "hub_sn": "hub1",
+                    "lamp_sn": ["lamp3", "lamp4"],
+                    "action": "100,100"
+                }
+            ]
+        }
+        """
+        warnings.warn("This api is deprecated. Only use it to support old APP")
+        actions = request.data.get('action')
+        # if not actions:
+        #     return Response(status=status.HTTP_406_NOT_ACCEPTABLE,
+        #                     data={'code': 1, 'message': '至少勾选一个灯、分组或集控'})
+
+        error_hubs = []
+        for detail in actions:
+            hub = Hub.objects.get(sn=detail.get('hub_sn'))
+            lampctrl_sns = detail.get('lamp_sn')
+            action = detail.get('action')
+            switch_status = 0 if action == "0,0" else 1
+
+            # 是否是控制所有灯控
+            is_all = all(i in lampctrl_sns for i in
+                         LampCtrl.objects.filter(hub=hub).values_list('sn',
+                                                                      flat=True))
+            sender = 'cmd-{}'.format(uuid.uuid1())
+            with MessageSocket(*settings.NS_ADDR, sender=sender) as msg_socket:
+                body = {
+                    "action": "lighten",
+                    "detail": {
+                        "hub_sn": hub.sn,
+                        "lamp_sn": lampctrl_sns,
+                        "action": action,
+                        "all": is_all
+                    }
+                }
+                msg_socket.send_single_message(receiver=hub.sn, body=body,
+                                               sender=sender)
+                recv = msg_socket.receive_data()
+            code = recv.get('code')
+            if code == 101:
+                # 集控脱网, 告警
+                record_hub_disconnect(hub)
+            if code != 0:
+                error_hubs.append(hub.sn)
+            if code == 0:
+                # 控灯成功 更新灯具状态
+                if is_all:
+                    LampCtrl.objects.filter(hub=hub).update(
+                        switch_status=switch_status
+                    )
+                else:
+                    LampCtrl.objects.filter(sn__in=lampctrl_sns).update(
+                        switch_status=switch_status
+                    )
+        if error_hubs:
+            msg = _("connect hub '{error_hubs}' time out").format(
+                error_hubs=','.join(error_hubs)
+            )
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST,
+                data=dict(code=1, message=msg, error_hubs=error_hubs)
+            )
+        msg = _("control lamps success")
+        return Response(data=dict(code=1, message=msg))
 
 
 class CBoxViewSet(ListModelMixin,
@@ -314,7 +395,6 @@ class CBoxViewSet(ListModelMixin,
         """控制箱使用状态
         GET /cboxs/use-status/
         """
-        # TODO 是否需要使用serializer
         is_used = CBox.objects.filter_by(is_used=True).count()
         not_used = CBox.objects.filter_by(is_used=False).count()
         total = is_used + not_used
@@ -424,7 +504,7 @@ class LampCtrlViewSet(ListModelMixin,
             return LampCtrl.objects.filter_by()
         queryset = LampCtrl.objects.none()
         for hub in self.request.user.hubs.all():
-            queryset |= hub.hub_lampctrl.all()
+            queryset |= hub.hub_lampctrl.filter(is_deleted=False)
         return queryset
 
     def get_serializer_class(self):
@@ -446,12 +526,11 @@ class LampCtrlViewSet(ListModelMixin,
             "putin_rate": 95 %
         }
         """
-        # TODO 使用serializer
-        # TODO 是否需要根据集控权限不同来显示不同的投运率
-        total = LampCtrl.objects.filter_by().count()
-        normal = LampCtrl.objects.filter_by(status=1).count()
-        trouble = LampCtrl.objects.filter_by(status=2).count()
-        offline = LampCtrl.objects.filter_by(status=3).count()
+        queryset = self.get_queryset()
+        total = queryset.count()
+        normal = queryset.filter(status=1).count()
+        trouble = queryset.filter(status=2).count()
+        offline = queryset.filter(status=3).count()
         putin_rate = '{:.0%}'.format(float(normal) / float(total) if total else 0)
         return Response(data=dict(
             name="灯控投运率",
@@ -491,6 +570,8 @@ class HubViewSet(ListModelMixin,
         获取集控下的自定义分组
     get_default_groups:
         获取集控下的默认分组
+    get_id_address:
+        获取集控下的所有路灯id和address(兼容APP)
     """
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
     filter_backends = (DjangoFilterBackend, )
@@ -508,6 +589,8 @@ class HubViewSet(ListModelMixin,
             return HubDetailSerializer
         if self.action == 'partial_update':
             return HubPartialUpdateSerializer
+        if self.action == 'get_id_address':
+            return LampIdAddressSerializer
         return HubDetailSerializer
 
     def get_permissions(self):
@@ -535,12 +618,11 @@ class HubViewSet(ListModelMixin,
             "putin_rate": 95 %
         }
         """
-        # TODO 使用serializer
-        # TODO 是否需要根据集控权限不同来显示不同的投运率
-        total = Hub.objects.filter_by().count()
-        normal = Hub.objects.filter_by(status=1).count()
-        trouble = Hub.objects.filter_by(status=2).count()
-        offline = Hub.objects.filter_by(status=3).count()
+        queryset = self.get_queryset()
+        total = queryset.count()
+        normal = queryset.filter(status=1).count()
+        trouble = queryset.filter(status=2).count()
+        offline = queryset.filter(status=3).count()
         putin_rate = '{:.0%}'.format(
             float(normal) / float(total) if total else 0)
         return Response(dict(
@@ -651,7 +733,9 @@ class HubViewSet(ListModelMixin,
         ret_data = []
         group_nums = set(hub.hub_group.filter_by(is_default=False).values_list('group_num', flat=True))
         for group_num in group_nums:
-            ins = PolicySetSendDown.objects.filter_by(hub=hub, group_num=group_num).first()
+            ins = PolicySetSendDown.objects.filter_by(
+                hub=hub, group_num__in=[group_num, 100]
+            ).first()
             working_policyset = ins.policyset.name if ins else '默认策略'
             group = LampCtrlGroup.objects.filter_by(hub=hub,
                                                     group_num=group_num).first()
@@ -679,8 +763,10 @@ class HubViewSet(ListModelMixin,
             hub.hub_group.filter_by(is_default=True).values_list('group_num',
                                                                  flat=True))
         for group_num in group_nums:
-            ins = PolicySetSendDown.objects.filter_by(hub=hub,
-                                                      group_num=group_num).first()
+            ins = PolicySetSendDown.objects.filter_by(
+                hub=hub,
+                group_num__in=[group_num, 100]
+            ).first()
             working_policyset = ins.policyset.name if ins else '默认策略'
             group = LampCtrlGroup.objects.filter_by(hub=hub, group_num=group_num).first()
             ret_data.append(dict(
@@ -755,3 +841,15 @@ class HubViewSet(ListModelMixin,
             y = (y2 - y1) * d / distance + y1
             ret_points.append((x, y))
         return ret_points
+
+    @action(methods=['GET'], detail=True, url_path='lamps')
+    def get_id_address(self, request, *args, **kwargs):
+        """获取集控下的所有路灯id和address(用于兼容APP)
+        GET /hubs/{sn}/lamps/
+        """
+        warnings.warn("This api is deprecated. Only use it to support old APP")
+        instance = self.get_object()
+        serializer = self.get_serializer(
+            instance.hub_lampctrl.filter_by(), many=True
+        )
+        return Response(serializer.data)

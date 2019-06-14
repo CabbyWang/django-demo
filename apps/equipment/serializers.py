@@ -3,9 +3,12 @@
 """
 Create by 王思勇 on 2019/5/9
 """
+from django.utils.translation import ugettext_lazy as _
+
 from rest_framework import serializers
 
 from base.serializers import UnitSerializer
+from utils.validators import UniqueValidator
 from equipment.models import PoleImage, Pole, LampImage, Lamp, CBoxImage, CBox, \
     Cable, LampCtrl, Hub
 from status.serializers import LampCtrlStatusSerializer, \
@@ -36,6 +39,15 @@ class PoleDetailSerializer(serializers.ModelSerializer):
 
 
 class PoleSerializer(serializers.ModelSerializer):
+    sn = serializers.CharField(
+        max_length=32,
+        validators=[
+            UniqueValidator(
+                queryset=Pole.objects.filter_by(),
+                message=_("pole sn already exist")
+            )
+        ]
+    )
 
     created_time = serializers.DateTimeField(read_only=True,
                                              format='%Y-%m-%d %H:%M:%S')
@@ -307,3 +319,13 @@ class HubPartialUpdateSerializer(serializers.ModelSerializer):
         model = Hub
         fields = "__all__"
 
+
+class LampIdAddressSerializer(serializers.ModelSerializer):
+
+    @staticmethod
+    def get_address(obj):
+        return obj.new_address or obj.address
+
+    class Meta:
+        model = LampCtrl
+        fields = ('sn', 'address')

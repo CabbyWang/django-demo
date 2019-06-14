@@ -8,8 +8,8 @@ from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 from policy.filters import PolicyFilter, PolicySetFilter
 from .models import Policy, PolicySet
 from .serializers import (
-    PolicySerializer, PolicySetSerializer
-)
+    PolicySerializer, PolicySetSerializer,
+    PolicySetDetailSerializer)
 from utils.mixins import ListModelMixin
 
 
@@ -46,7 +46,7 @@ class PolicyViewSet(ListModelMixin,
         if not is_admin and instance.creator != self.request.user:
             msg = _('you can only delete your own policy')
             raise serializers.ValidationError(msg)
-        if instance.policy_relations.exists():
+        if instance.policy_relations.filter_by().exists():
             msg = _("you cant't delete the policy in use")
             raise serializers.ValidationError(msg)
         instance.soft_delete()
@@ -79,13 +79,18 @@ class PolicySetViewSet(ListModelMixin,
     filter_backends = (DjangoFilterBackend, )
     filter_class = PolicySetFilter
 
+    def get_serializer_class(self):
+        if self.action == 'retrieve':
+            return PolicySetDetailSerializer
+        return PolicySetSerializer
+
     def perform_destroy(self, instance):
         # 只能删除自己创建的策略
         is_admin = self.request.user.username == 'admin'
         if not is_admin and instance.creator != self.request.user:
             msg = _("you can only delete your own policyset")
             raise serializers.ValidationError(msg)
-        if instance.policyset_send_down_policysets.exists():
+        if instance.policyset_send_down_policysets.filter_by().exists():
             msg = _("you cant't delete the policy in use")
             raise serializers.ValidationError(msg)
         instance.policyset_relations.update(is_deleted=True)

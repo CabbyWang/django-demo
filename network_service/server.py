@@ -85,32 +85,55 @@ class Server(Protocol):
             2. register
             3. ack
         """
-        # TODO 过滤干扰字符(无效command_id，长度不够等)
         log.msg('receive: {}, {}'.format(data, type(data)))
         self._data_buffer += data
         if len(self._data_buffer) < 12:
             return
 
-        length, _, command_id = struct.unpack("!3I", self._data_buffer[:12])
-        if length > len(self._data_buffer):
-            # 长度不够， 未接收完
-            return
+        while True:
+            length, _, command_id = struct.unpack("!3I", self._data_buffer[:12])
+            if length > len(self._data_buffer):
+                break
 
-        content = self._data_buffer[12:length]
+            content = self._data_buffer[12:length]
 
-        if command_id not in (1, 2, 3, 4, 5):
-            log.msg("Invalid command_id.")
-            return
+            if command_id not in [1, 2, 3, 4, 5]:
+                log.msg("Invalid command_id.")
+                return
 
-        # 不同的command_id执行不同操作
-        log.msg("command_id = {}, content = {}".format(command_id, content))
-        self.promise[command_id](content=content)
+            self.promise[command_id](content=content)
 
-        # 重置buffer
-        self._data_buffer = self._data_buffer[length:]
+            self._data_buffer = self._data_buffer[length:]
 
-        if len(self._data_buffer) < 12:
-            return
+            if len(self._data_buffer) < 12:
+                break
+
+        # TODO 过滤干扰字符(无效command_id，长度不够等)
+        # log.msg('receive: {}, {}'.format(data, type(data)))
+        # self._data_buffer += data
+        # if len(self._data_buffer) < 12:
+        #     return
+        #
+        # length, _, command_id = struct.unpack("!3I", self._data_buffer[:12])
+        # if length > len(self._data_buffer):
+        #     # 长度不够， 未接收完
+        #     return
+        #
+        # content = self._data_buffer[12:length]
+        #
+        # if command_id not in (1, 2, 3, 4, 5):
+        #     log.msg("Invalid command_id.")
+        #     return
+        #
+        # # 不同的command_id执行不同操作
+        # log.msg("command_id = {}, content = {}".format(command_id, content))
+        # self.promise[command_id](content=content)
+        #
+        # # 重置buffer
+        # self._data_buffer = self._data_buffer[length:]
+        #
+        # if len(self._data_buffer) < 12:
+        #     return
 
     def register(self, content):
         """
