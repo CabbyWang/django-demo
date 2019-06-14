@@ -64,7 +64,7 @@ INSTALLED_APPS = [
     'crispy_forms',
     'reversion',
     'rest_framework',
-    'debug_toolbar'
+    'debug_toolbar.apps.DebugToolbarConfig'
 ]
 
 MIDDLEWARE = [
@@ -252,3 +252,7 @@ NS_ADDR = ('127.0.0.1', 9999)
 
 # 备份目录
 BACKUP_ROOT = os.path.join(BASE_DIR, 'backup')
+
+# debug_toolbar设置
+DEBUG_TOOLBAR_PATCH_SETTINGS = False
+INTERNAL_IPS = ("192.168.8.77", )

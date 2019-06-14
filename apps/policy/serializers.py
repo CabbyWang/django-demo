@@ -115,15 +115,14 @@ class PolicySetRelationSerializer(serializers.ModelSerializer):
 
     id = serializers.ReadOnlyField(source='policy.id')
     name = serializers.ReadOnlyField(source='policy.name')
-    type = serializers.ReadOnlyField(source='policy.type')
-    item = serializers.ReadOnlyField(source='policy.item')
+    # item = serializers.ReadOnlyField(source='policy.item')
     creator = serializers.ReadOnlyField(source='policy.creator.username')
     memo = serializers.ReadOnlyField(source='policy.memo')
 
     class Meta:
         model = PolicySetRelation
         fields = (
-            'id', 'name', 'creator', 'memo', 'type', 'item', 'execute_date'
+            'id', 'name', 'creator', 'memo', 'execute_date'
         )
 
 
@@ -150,7 +149,19 @@ class PolicySetDetailSerializer(serializers.ModelSerializer):
 
     @staticmethod
     def get_policys(obj):
+        # TODO 性能问题
         qs = obj.policyset_relations.filter(is_deleted=False)
+        # tem = []
+        # for i in qs:
+        #     policy = i.policy
+        #     tem.append(dict(
+        #         id=policy.id,
+        #         name=policy.name,
+        #         creator=policy.creator.username,
+        #         memo=policy.memo,
+        #         execute_date=i.execute_date
+        #     ))
+        # return tem
         serializer = PolicySetRelationSerializer(qs, many=True)
         return serializer.data
 
@@ -216,11 +227,11 @@ class PolicySetSerializer(serializers.ModelSerializer):
     def get_is_used(instance):
         return PolicySetSendDown.objects.filter_by(policyset=instance).exists()
 
-    class Meta:
-        model = PolicySet
-        fields = ("id", "name", "policys", "creator", "memo", "created_time",
-                  "updated_time")
-        depth = 1
+    # class Meta:
+    #     model = PolicySet
+    #     fields = ("id", "name", "creator", "memo", "created_time",
+    #               "updated_time")
+    #     depth = 1
 
     @transaction.atomic
     def update(self, instance, validated_data):
@@ -258,5 +269,5 @@ class PolicySetSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PolicySet
-        fields = ('id', 'policys', 'name', 'memo', 'creator', 'created_time',
+        fields = ('id', 'name', 'memo', 'creator', 'created_time',
                   'updated_time', 'is_used')
