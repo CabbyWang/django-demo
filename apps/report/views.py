@@ -270,7 +270,7 @@ class ReportViewSet(ListModelMixin,
 
         query_param = 'and DATE_FORMAT(date,"%Y-%m") in ("{}")'.format(
             '","'.join(months.split(','))) if months else ''
-        sql = """select sum(consumption), DATE_FORMAT(date,'%Y-%m') as mon from hub_consumption WHERE hub_id='{hub_sn}' {query_param} GROUP BY  mon;
+        sql = """select sum(consumption), DATE_FORMAT(date,'%Y-%m') as mon from hub_consumption WHERE hub_sn='{hub_sn}' {query_param} GROUP BY  mon;
                       """.format(hub_sn=hub.sn, query_param=query_param)
 
         with connection.cursor() as cursor:
@@ -285,7 +285,7 @@ class ReportViewSet(ListModelMixin,
             ret.append(tem)
         return Response(data=ret)
 
-    @action(methods=['GET'], detail=False, url_path='lampctrl_consumption')
+    @action(methods=['GET'], detail=False, url_path='lampctrl-consumption')
     def get_lamp_ctrl_consumption(self, request, *args, **kwargs):
         """路灯能耗图(集控下各灯控的能耗情况)
         GET /reports/lampctrl_consumption/?hub=

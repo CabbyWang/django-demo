@@ -144,9 +144,9 @@ urlpatterns = [
     url(r'^(?P<path>.*)$', serve, {'document_root': settings.BASE_DIR})
 ]
 
-if settings.DEBUG:
-    import debug_toolbar
-
-    urlpatterns = [
-        url('^__debug__/', include(debug_toolbar.urls)),
-    ] + urlpatterns
+# if settings.DEBUG:
+#     import debug_toolbar
+#
+#     urlpatterns = [
+#         url('^__debug__/', include(debug_toolbar.urls)),
+#     ] + urlpatterns

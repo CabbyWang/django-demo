@@ -198,8 +198,6 @@ msgid "recycle policy set success"
 msgstr "回收策略集成功"
 
 #: .\apps\equipment\serializers.py:47
-#, fuzzy
-#| msgid "pole '{sn}' already exist"
 msgid "pole sn already exist"
 msgstr "灯杆'{sn}'已存在"
 
@@ -367,14 +365,10 @@ msgid "Server Error"
 msgstr "服务器错误"
 
 #: .\apps\utils\middleware.py:180
-#, fuzzy
-#| msgid "control lamps success"
 msgid "control lamps"
 msgstr "控灯"
 
 #: .\apps\utils\middleware.py:206
-#, fuzzy
-#| msgid "gather hub status"
 msgid "gather lamp control status"
 msgstr "采集灯控状态"
 
@@ -383,32 +377,22 @@ msgid "control all"
 msgstr "全开全关"
 
 #: .\apps\utils\middleware.py:249
-#, fuzzy
-#| msgid "gather policy set success"
 msgid "gather policy set"
 msgstr "采集策略集"
 
 #: .\apps\utils\middleware.py:270
-#, fuzzy
-#| msgid "gather hub groups"
 msgid "update group"
 msgstr "修改集控分组"
 
 #: .\apps\utils\middleware.py:296
-#, fuzzy
-#| msgid "gather hub groups"
 msgid "recycle hub group"
 msgstr "回收集控分组"
 
 #: .\apps\utils\middleware.py:314
-#, fuzzy
-#| msgid "gather hub groups"
 msgid "update user group"
 msgstr "修改用户组"
 
 #: .\apps\utils\middleware.py:330
-#, fuzzy
-#| msgid "gather hub groups"
 msgid "create user group"
 msgstr "创建用户组"
 
@@ -439,7 +423,7 @@ msgstr "用户[{username}]在ip[{object}]登陆"
 
 #: .\apps\utils\middleware.py:470
 msgid "log in"
-msgstr "用户登陆"
+msgstr "用户登录"
 
 #: .\apps\utils\settings.py:62 .\initial\init_projectinfo.py:63
 msgid "others"

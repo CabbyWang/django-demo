@@ -106,7 +106,7 @@ class PoleViewSet(ListModelMixin,
         }
         """
         serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=False)
+        serializer.is_valid(raise_exception=True)
         sns = serializer.data.get('sn')
         for pole_sn in sns:
             pole = Pole.objects.filter_by(sn=pole_sn).first()
@@ -149,6 +149,8 @@ class LampViewSet(ListModelMixin,
         修改灯具信息
     destroy:
         删除灯具
+    batch_delete:
+        批量删除
     lamp_use_status:
         灯具使用状态
     upload_images:
@@ -325,6 +327,8 @@ class CBoxViewSet(ListModelMixin,
         修改控制箱信息
     destroy:
         删除控制箱
+    batch_delete:
+        批量删除
     cbox_use_status:
         控制箱使用状态
     upload_images:
@@ -367,7 +371,7 @@ class CBoxViewSet(ListModelMixin,
 
     @action(methods=['POST'], detail=False, url_path='images')
     def upload_images(self, request, *args, **kwargs):
-        """上传灯杆图片"""
+        """上传控制箱图片"""
         return super(CBoxViewSet, self).create(request, *args, **kwargs)
 
     @action(methods=['DELETE'], detail=False, url_path='batch')
@@ -416,14 +420,14 @@ class CableViewSet(ListModelMixin,
     """
     list:
         获取电缆列表信息
-    retrieve:
-        获取电缆详细信息
     create:
         创建电缆信息
     update:
         修改电缆信息
     destroy:
         删除电缆
+    batch_delete:
+        批量删除
     """
 
     queryset = Cable.objects.filter_by()
@@ -668,8 +672,10 @@ class HubViewSet(ListModelMixin,
             # 奇偶分布
             odd_points = points.get('odd')
             even_points = points.get('even')
-            odd_sequence = sequence[::2]
-            even_sequence = sequence[1::2]
+            # odd_sequence = sequence[::2]
+            # even_sequence = sequence[1::2]
+            odd_sequence = sequence[1::2]
+            even_sequence = sequence[::2]
             odd_ret_points = self.average_endpoints(odd_points,
                                                     len(odd_sequence))
             even_ret_points = self.average_endpoints(even_points,

@@ -257,6 +257,8 @@ class Server(Protocol):
         # default_group = data.get('default_group')
         ret_msg = SLMS.register(data=data)
         code = ret_msg.get("code")
+        # 记录到日志表中
+        SLMS.log_register(hub=user, status=0 if code == 0 else 1)
         if code != 0:
             # 注册失败
             failure_content = dict(
@@ -364,7 +366,8 @@ class ServerFactory(Factory):
     @staticmethod
     def check_users_online():
         log.msg("Check whether hubs are online.")
-        for hub, server in clients.items():
+        for hub in clients.keys():
+            server = clients[hub]
             if not server.is_hub():
                 continue
             now = int(time.time())

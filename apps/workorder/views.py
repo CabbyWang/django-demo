@@ -88,7 +88,7 @@ class WorkOrderViewSet(ListModelMixin,
     def get_malfunction_status(self, request, *args, **kwargs):
         """
         资产故障情况
-        GET /workorders/malfunction_status/
+        GET /workorders/malfunction-status/
         """
         ret = []
         for order in WorkOrderType:
@@ -217,12 +217,12 @@ class InspectionViewSet(ListModelMixin,
             return InspectionDetailSerializer
         return InspectionSerializer
 
-    @action(methods=['POST'], detail=False, url_path='images')
+    @action(methods=['POST'], detail=True, url_path='images')
     def upload_images(self, request, *args, **kwargs):
         """上传巡检图片"""
         # TODO 这里直接改动request.data 是否可行？ 是否有其他方式？ 研究一下
-        order_id = kwargs.get('pk')
-        request.data['order'] = order_id
+        inspection_id = kwargs.get('pk')
+        request.data['inspection'] = inspection_id
         return super(InspectionViewSet, self).create(request, *args, **kwargs)
 
 

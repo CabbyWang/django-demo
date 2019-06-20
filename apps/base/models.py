@@ -50,6 +50,9 @@ class MyUserManage(UserManager):
         return super(MyUserManage, self).filter(*args, **kwargs)
 
 
+# TODO 这里的模型类添加属性和方法，可以尝试使用mixin的方式来解决
+
+
 class BaseModel(models.Model):
 
     is_deleted = models.BooleanField(

@@ -5,13 +5,17 @@ Create by 王思勇 on 2019/2/28
 """
 import os
 import sys
-import django
+from pathlib import Path
 
-base_dir = os.path.dirname(os.path.dirname(__file__))
-sys.path.insert(0, base_dir)
 
-sys.path.append(os.path.dirname(__file__))
+# the base_dir should be added into system path.
+cur_file = Path(__file__).cwd()
+base_dir = cur_file.parent
+sys.path.insert(0, str(base_dir))
+
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "smartlamp.settings")
+
+import django
 django.setup()
 
 from django.contrib.auth import get_user_model

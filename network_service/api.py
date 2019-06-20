@@ -7,6 +7,7 @@ Create by 王思勇 on
 import datetime
 
 from django.db import transaction
+from django.utils.translation import ugettext as _
 
 from equipment.models import LampCtrl
 from network_service.config import REPORT_STATUS_CYCLE
@@ -18,6 +19,7 @@ from setting.models import Setting
 from status.models import HubStatus, HubLatestStatus, LampCtrlStatus, \
     LampCtrlLatestStatus
 from workorder.models import WorkOrder
+from notify.models import Log
 from utils.alert import record_alarm, record_report_alarm, \
     record_hub_disconnect
 from utils import refresh_connections
@@ -50,6 +52,19 @@ class SLMS(object):
             return dict(code=1, message=str(ex))
         else:
             return dict(code=0, message='注册成功')
+
+    def log_register(hub, status):
+        """
+        记录集控注册
+        """
+        memo = "集控[{hub}]注册".format(hub=hub)
+        Log.objects.create(
+            event=_("hub register"),
+            username='{NS}',
+            object=hub,
+            status=status,
+            memo=memo
+        )
 
     @staticmethod
     def record_offline_hub(hub_sn):

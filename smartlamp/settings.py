@@ -64,7 +64,7 @@ INSTALLED_APPS = [
     'crispy_forms',
     'reversion',
     'rest_framework',
-    'debug_toolbar.apps.DebugToolbarConfig'
+    # 'debug_toolbar.apps.DebugToolbarConfig'
 ]
 
 MIDDLEWARE = [
@@ -79,7 +79,7 @@ MIDDLEWARE = [
     'apps.utils.middleware.LogMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'debug_toolbar.middleware.DebugToolbarMiddleware',
+    # 'debug_toolbar.middleware.DebugToolbarMiddleware',
 ]
 
 ROOT_URLCONF = 'smartlamp.urls'

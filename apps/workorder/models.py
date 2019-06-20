@@ -127,7 +127,7 @@ class InspectionItem(BaseModel):
     STATUS_CHOICE = ((1, '正常'), (2, '故障'))
 
     inspection = models.ForeignKey(Inspection, related_name="inspection_item", verbose_name='巡检编号')
-    hub = models.ForeignKey(Hub, db_column='hub_sn', related_name='hub_inspection_item', verbose_name='集控编号')
+    # hub = models.ForeignKey(Hub, db_column='hub_sn', related_name='hub_inspection_item', verbose_name='集控编号')
     lampctrl = models.ForeignKey(LampCtrl, db_column='lampctrl_sn',
                                  related_name='lampctrl_inspection_item', verbose_name='灯控编号')
     status = models.IntegerField(choices=STATUS_CHOICE, verbose_name='状态')
@@ -136,7 +136,7 @@ class InspectionItem(BaseModel):
     class Meta:
         verbose_name = '巡检具体项'
         verbose_name_plural = verbose_name
-        ordering = ('hub', 'lampctrl')
+        ordering = ('lampctrl', )
         db_table = "inspection_item"
 
     def __str__(self):

@@ -82,13 +82,13 @@ class InspectionImageAdmin(object):
 class InspectionItemAdmin(object):
 
     list_display = [
-        "inspection", "hub", "lampctrl", "status", "memo"
+        "inspection", "lampctrl", "status", "memo"
     ]
     list_filter = [
-        "inspection", "hub", "lampctrl", "status", "memo"
+        "inspection", "lampctrl", "status", "memo"
     ]
     search_fields = [
-        "inspection", "hub", "lampctrl", "status", "memo"
+        "inspection", "lampctrl", "status", "memo"
     ]
 
 

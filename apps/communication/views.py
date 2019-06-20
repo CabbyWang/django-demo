@@ -18,7 +18,6 @@ from communication.serializers import GatherLampCtrlSerializer, \
     SendDownPolicySetSerializer, DownloadHubLogSerializer
 from equipment.models import Hub, LampCtrl
 from equipment.serializers import HubDetailSerializer
-from policy.models import PolicySetSendDown, PolicySet, Policy
 from utils.alert import record_hub_disconnect, record_lamp_ctrl_trouble
 from utils.exceptions import ConnectHubTimeOut, HubError, DMLError
 from utils.msg_socket import MessageSocket
@@ -288,8 +287,8 @@ class CommunicateViewSet(mixins.ListModelMixin,
             if code != 0:
                 error_hubs.append(hub.sn)
             if code == 0:
-                hub_status = recv.get('data')
-                ret_data.append(hub_status)
+                hub_status = recv.get('data', {})
+                ret_data.append({"hub": hub.sn, **hub_status})
 
         if error_hubs:
             msg = _("gather hub '{error_hubs}' status failed").format(
@@ -359,9 +358,9 @@ class CommunicateViewSet(mixins.ListModelMixin,
         """
         下发分组(自定义分组)
         POST /communicate/custom-grouping/
-        "{
+        {
             "hub": "001"
-            configs": [
+            "configs": [
                 {
                     "lampctrl": ["001", "002"],
                     "group_num": 1,
@@ -401,13 +400,16 @@ class CommunicateViewSet(mixins.ListModelMixin,
                     msg = _("connect hub [{hub_sn}] time out")
                     raise ConnectHubTimeOut(msg.format(hub_sn=hub.sn))
                 if code != 0:
-                    msg = _("hub [{hub_sn}] unknown error")
+                    if recv.get('reason') == 'group id duplicate':
+                        msg = _('group number should be different with default groups')
+                    else:
+                        msg = _("hub [{hub_sn}] unknown error")
                     raise HubError(msg.format(hub_sn=hub.sn))
         except (ConnectHubTimeOut, HubError):
             raise
         except Exception as ex:
             raise DMLError(str(ex))
-        return Response(data={'detail': 'group configuration success'})
+        return Response(data={'detail': _('group configuration success')})
 
     @action(methods=['POST'], detail=False, url_path='pattern-grouping')
     def pattern_grouping(self, request, *args, **kwargs):
@@ -452,13 +454,16 @@ class CommunicateViewSet(mixins.ListModelMixin,
                     msg = _("connect hub [{hub_sn}] time out")
                     raise ConnectHubTimeOut(msg.format(hub_sn=hub.sn))
                 if code != 0:
-                    msg = _("hub [{hub_sn}] unknown error")
+                    if recv.get('reason') == 'group id duplicate':
+                        msg = _('group number should be different with default groups')
+                    else:
+                        msg = _("hub [{hub_sn}] unknown error")
                     raise HubError(msg.format(hub_sn=hub.sn))
         except (ConnectHubTimeOut, HubError):
             raise
         except Exception as ex:
             raise DMLError(str(ex))
-        return Response(data={'detail': 'group configuration success'})
+        return Response(data={'detail': _('group configuration success')})
 
     @action(methods=['POST'], detail=False, url_path='recycle-group')
     def recycle_group(self, request, *args, **kwargs):
@@ -616,7 +621,10 @@ class CommunicateViewSet(mixins.ListModelMixin,
                     msg = _("connect hub [{hub_sn}] time out")
                     raise ConnectHubTimeOut(msg.format(hub_sn=hub.sn))
                 if code != 0:
-                    msg = _("hub [{hub_sn}] unknown error")
+                    if recv.get('reason') == 'group id duplicate':
+                        msg = _('group number should be different with default groups')
+                    else:
+                        msg = _("hub [{hub_sn}] unknown error")
                     raise HubError(msg.format(hub_sn=hub.sn))
         except (ConnectHubTimeOut, HubError):
             raise
@@ -632,17 +640,17 @@ class CommunicateViewSet(mixins.ListModelMixin,
         {
             "policys": [
                 {
-                    "hub": "hub_sn1"
+                    "hub": "hub_sn1",
                     "group_num": null,
                     "policyset_id": "1"
                 },
                 {
-                    "hub": "hub_sn2"
+                    "hub": "hub_sn2",
                     "group_num": "1",
                     "policyset_id": "1"
                 },
                 {
-                    "hub": "hub_sn2"
+                    "hub": "hub_sn2",
                     "group_num": "2",
                     "policyset_id": "1"
                 }
@@ -731,18 +739,17 @@ class CommunicateViewSet(mixins.ListModelMixin,
                 # raise HubError(msg.format(hub_sn=hub.sn))
             if code == 0:
                 data = recv.get('data')
-                # 去掉不需要的字段
-                for i in ("action", "message", "code", "reason"):
-                    data.pop(i, None)
-                try:
-                    with transaction.atomic():
-                        # TODO 采集策略集后如何操作， 展示 or 存入数据库  最好是展示
-                        pass
-                        # after_gather_group(instance=hub,
-                        #                    policy_data=data)
-                except Exception as ex:
-                    error_hubs.append(hub.sn)
-                    # raise DMLError(str(ex))
+                policy_map = data.get('policy_map')
+                policys = data.get('policys')
+                # try:
+                #     with transaction.atomic():
+                #         # TODO 采集策略集后如何操作， 展示 or 存入数据库  最好是展示
+                #         pass
+                #         # after_gather_group(instance=hub,
+                #         #                    policy_data=data)
+                # except Exception as ex:
+                #     error_hubs.append(hub.sn)
+                #     # raise DMLError(str(ex))
         if error_hubs:
             msg = _("hub '{error_hubs}' gather policy set failed").format(
                 error_hubs=','.join(error_hubs)
@@ -757,7 +764,8 @@ class CommunicateViewSet(mixins.ListModelMixin,
                 )
             )
         msg = _('gather policy set success')
-        return Response(data={'detail': msg})
+        # return Response(data={'detail': msg})
+        return Response(data=data)
 
     @action(methods=['POST'], detail=False, url_path='recycle-policyset')
     def recycle_policyset(self, request, *args, **kwargs):

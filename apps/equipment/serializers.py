@@ -65,7 +65,10 @@ class PoleBatchDeleteSerializer(serializers.ModelSerializer):
         min_length=1,
         child=serializers.SlugRelatedField(
             queryset=Pole.objects.filter_by(),
-            slug_field='sn'
+            slug_field='sn',
+            error_messages={
+                'does_not_exist': _("pole '{value}' does not exist.")
+            }
         )
     )
 
@@ -126,7 +129,10 @@ class LampBatchDeleteSerializer(serializers.ModelSerializer):
         min_length=1,
         child=serializers.SlugRelatedField(
             queryset=Lamp.objects.filter_by(),
-            slug_field='sn'
+            slug_field='sn',
+            error_messages={
+                'does_not_exist': _("lamp '{value}' does not exist.")
+            }
         )
     )
 
@@ -175,7 +181,10 @@ class CBoxBatchDeleteSerializer(serializers.ModelSerializer):
         min_length=1,
         child=serializers.SlugRelatedField(
             queryset=CBox.objects.filter_by(),
-            slug_field='sn'
+            slug_field='sn',
+            error_messages={
+                'does_not_exist': _("control box '{value}' does not exist.")
+            }
         )
     )
 
@@ -203,7 +212,10 @@ class CableBatchDeleteSerializer(serializers.ModelSerializer):
         min_length=1,
         child=serializers.SlugRelatedField(
             queryset=Cable.objects.filter_by(),
-            slug_field='sn'
+            slug_field='sn',
+            error_messages={
+                'does_not_exist': _("cable '{value}' does not exist.")
+            }
         )
     )
 

@@ -185,12 +185,14 @@ def before_send_down_policy_set(instance, item):
     for i in PolicySetSendDown.objects.filter_by(hub=instance):
         i.soft_delete()
     # 数据处理
+    policy_map = defaultdict(list)  # 策略-策略详情
+    policys = defaultdict(list)  # 分组-日期/策略
     for im in item:
         group_num = im.get('group_num')
         policyset_id = im.get('policyset_id')
         policyset = PolicySet.objects.filter_by(id=policyset_id).first()
 
-        policy_map = defaultdict(list)  # 策略-策略详情
+        # policy_map = defaultdict(list)  # 策略-策略详情
         # policy map
         policy_ids = set(policyset.policys.filter_by().values_list('id', flat=True))
         for policy_id in policy_ids:
@@ -198,7 +200,7 @@ def before_send_down_policy_set(instance, item):
             a = Policy.objects.get(id=policy_id).item
             policy_map[policy_id] = convert_item(Policy.objects.get(id=policy_id).item)
 
-        policys = defaultdict(list)  # 分组-日期/策略
+        # policys = defaultdict(list)  # 分组-日期/策略
         # 没有分组 默认为全部 标记为100
         group_num = group_num or "100"
         for relation in policyset.policyset_relations.filter_by():
@@ -213,7 +215,7 @@ def before_send_down_policy_set(instance, item):
             policyset=policyset,
             group_num=int(group_num)
         )
-        return policy_map, policys
+    return policy_map, policys
 
 
 def convert_item(items):

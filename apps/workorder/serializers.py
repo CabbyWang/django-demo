@@ -124,7 +124,7 @@ class WorkOrderSerializer(serializers.ModelSerializer):
     def validate_obj_sn(self, obj_sn):
         w_type = self.initial_data.get("type")
         # 判断集控是否存在
-        if w_type == 1 and obj_sn and not Hub.objects.filter_by(
+        if w_type == 1  and not Hub.objects.filter_by(
                 sn=obj_sn).exists():
             raise InvalidInputError("hub [{}] does not exist".format(obj_sn))
         # # 判断灯控或灯具是否存在
@@ -273,9 +273,13 @@ class InspectionImageSerializer(serializers.ModelSerializer):
     updated_time = serializers.DateTimeField(read_only=True,
                                              format='%Y-%m-%d %H:%M:%S')
 
+    inspection = serializers.PrimaryKeyRelatedField(
+        required=True, queryset=Inspection.objects.filter_by()
+    )
+
     class Meta:
         model = InspectionImage
-        fields = ("id", "file", "created_time", "updated_time")
+        fields = ("id", "file", "inspection", "created_time", "updated_time")
 
 
 class InspectionItemSerializer(serializers.ModelSerializer):
@@ -287,13 +291,15 @@ class InspectionItemSerializer(serializers.ModelSerializer):
                                              format='%Y-%m-%d %H:%M:%S')
 
     inspection = serializers.PrimaryKeyRelatedField(queryset=Inspection.objects.filter_by())
-    hub = serializers.PrimaryKeyRelatedField(queryset=Hub.objects.filter_by())
+    # inspection = serializers.IntegerField(required=False, read_only=True)
+    # inspection = serializers.PrimaryKeyRelatedField(queryset=Inspection.objects.filter_by(), required=False, read_only=True)
+    # hub = serializers.PrimaryKeyRelatedField(queryset=Hub.objects.filter_by())
     lampctrl = serializers.PrimaryKeyRelatedField(queryset=LampCtrl.objects.filter_by())
     status = serializers.ChoiceField(choices=STATUS_CHOICE)
     memo = serializers.CharField(required=True, max_length=1023, allow_blank=True)
 
-    sequence = serializers.SerializerMethodField()
-    real_address = serializers.SerializerMethodField()
+    sequence = serializers.SerializerMethodField(read_only=True)
+    real_address = serializers.SerializerMethodField(read_only=True)
 
     @staticmethod
     def get_sequence(instance):
@@ -329,6 +335,52 @@ class InspectionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Inspection
         fields = "__all__"
+
+    def validate(self, attrs):
+        """验证inspection_item 格式如下
+        [
+            {
+                "lampctrl": "000000000001",
+                "status": 1,
+                "memo": ""
+            },
+            {
+                "lampctrl": "000000000001",
+                "status": 1,
+                "memo": ""
+            }
+        ]
+        """
+        isp_items = self.initial_data.get('inspection_item')
+        if not isp_items or not isinstance(isp_items, list):
+            msg = _("'invalid input'")
+            raise serializers.ValidationError(msg)
+        for item in isp_items:
+            if 'lampctrl' not in item or 'status' not in item:
+                msg = _("'invalid input'")
+                raise serializers.ValidationError(msg)
+            lampctrl_sn = item['lampctrl']
+            if not LampCtrl.objects.filter_by(sn=lampctrl_sn).exists():
+                msg = _("lampctrl '{lampctrl_sn}' does not exist")
+                raise serializers.ValidationError(msg.format(lampctrl_sn=lampctrl_sn))
+        return attrs
+
+    def create(self, validated_data):
+        inspection = Inspection.objects.create(**validated_data)
+        if "inspection_item" in self.initial_data:
+            isp_items = self.initial_data.get('inspection_item')
+            for item in isp_items:
+                lampctrl_sn = item.get('lampctrl')
+                lampctrl = LampCtrl.objects.get(sn=lampctrl_sn)
+                status = item.get('status')
+                memo = item.get('memo')
+                InspectionItem.objects.create(
+                    inspection=inspection,
+                    lampctrl=lampctrl,
+                    status=status,
+                    memo=memo
+                )
+        return inspection
 
 
 class UserSerializer(serializers.ModelSerializer):

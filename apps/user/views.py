@@ -272,6 +272,7 @@ class UserViewSet(ListModelMixin,
     @action(methods=['PUT'], detail=True, url_path='set-superuser')
     def set_superuser(self, request, *args, **kwargs):
         """设置管理员"""
+        # TODO 修改实现方式， 参考set_ready_only
         instance = self.get_object()
         if instance.is_read_only:
             # 只读用户不能设置为管理员

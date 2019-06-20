@@ -116,7 +116,7 @@ class LogMiddleware(MiddlewareMixin):
     def __get_request_data(self, request):
         try:
             self.request_data = json.loads(request.body.decode('utf-8') or '{}')
-        except json.JSONDecodeError:
+        except (json.JSONDecodeError, UnicodeDecodeError):
             self.request_data = {}
 
     def __get_query_params(self, request):
@@ -231,8 +231,8 @@ class LogMiddleware(MiddlewareMixin):
     def communicate_post_gather_policyset(self, request_data, response_data, pk):
         """采集策略集"""
         hubs = ','.join(request_data.get('hub'))
-        error_hubs = ','.join(response_data.get('error_hubs', []))
         if self.status == FAIL:
+            error_hubs = ','.join(response_data.get('error_hubs', []))
             msg = "[{username}]采集了集控[{object}]的策略集, 集控[{error_hubs}]采集失败"
             memo = msg.format(
                 username=self.username,
@@ -277,8 +277,8 @@ class LogMiddleware(MiddlewareMixin):
     def communicate_post_recycle_group(self, request_data, response_data, pk):
         """回收分组"""
         hubs = ','.join(request_data.get('hub'))
-        error_hubs = ','.join(response_data.get('error_hubs', []))
         if self.status == FAIL:
+            error_hubs = ','.join(response_data.get('error_hubs', []))
             # TODO 翻译
             msg = "[{username}]回收了集控[{object}]的分组, 集控[{error_hubs}]采集失败"
             memo = msg.format(
@@ -381,8 +381,8 @@ class LogMiddleware(MiddlewareMixin):
     def communicate_post_gather_group(self, request_data, response_data, pk):
         """集控分组采集"""
         hubs = ','.join(request_data.get('hub'))
-        error_hubs = ','.join(response_data.get('error_hubs', []))
         if self.status == FAIL:
+            error_hubs = ','.join(response_data.get('error_hubs', []))
             # TODO 翻译
             msg = "[{username}]采集了集控[{object}]的分组, 集控[{error_hubs}]采集失败"
             memo = msg.format(
@@ -407,8 +407,8 @@ class LogMiddleware(MiddlewareMixin):
     def communicate_post_gather_hub_status(self, request_data, response_data, pk):
         """采集集控状态"""
         hubs = ','.join(request_data.get('hub'))
-        error_hubs = ','.join(response_data.get('error_hubs', []))
         if self.status == FAIL:
+            error_hubs = ','.join(response_data.get('error_hubs', []))
             # TODO 翻译
             msg = "[{username}]采集了集控[{object}]的状态, 集控[{error_hubs}]采集失败"
             memo = msg.format(
@@ -433,8 +433,8 @@ class LogMiddleware(MiddlewareMixin):
     def communicate_post_load_inventory(self, request_data, response_data, pk):
         """采集集控配置"""
         hubs = ','.join(request_data.get('hub'))
-        error_hubs = ','.join(response_data.get('error_hubs', []))
         if self.status == FAIL:
+            error_hubs = ','.join(response_data.get('error_hubs', []))
             # TODO 翻译
             msg = "[{username}]采集了集控[{object}]的配置, 集控[{error_hubs}]采集失败"
             memo = msg.format(
