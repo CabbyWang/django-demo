@@ -8,9 +8,6 @@ import enum
 from django.utils.translation import ugettext_lazy as _
 
 
-# server address
-SERVER_ADDR = ('127.0.0.1', 9999)
-
 # alarms dict
 # level: 1/2/3 告警/故障/严重故障
 # status: 1/2/3 正常/故障/脱网

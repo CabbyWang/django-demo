@@ -267,7 +267,7 @@ class Server(Protocol):
                 message="Failed to register with the server",
                 reason=ret_msg.get('message')
             )
-            self.write(101, json.dumps(failure_content))
+            self.write(101, failure_content)
             self.abort_connection()
             return
 
@@ -282,7 +282,7 @@ class Server(Protocol):
             code=0,
             message="Successful registration with server"
         )
-        self.write(101, json.dumps(success_content))
+        self.write(101, success_content)
 
     def write(self, command_id, body):
         """通过transport发送(接收者为self.user)
