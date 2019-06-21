@@ -499,9 +499,3 @@ class LogMiddleware(MiddlewareMixin):
             status=self.status,
             memo=memo
         )
-
-
-class APPMiddleware(MiddlewareMixin):
-
-    def process_request(self, request):
-        return None

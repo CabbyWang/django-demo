@@ -1,3 +1,4 @@
+import copy
 import uuid
 import zipfile
 import warnings
@@ -29,10 +30,11 @@ from equipment.serializers import CableSerializer, CableBatchDeleteSerializer, \
     HubPartialUpdateSerializer, LampIdAddressSerializer
 from group.models import LampCtrlGroup
 from policy.models import PolicySetSendDown
-from utils.alert import record_hub_disconnect
+from utils.alert import record_hub_disconnect, record_lamp_ctrl_trouble
 from utils.exceptions import ObjectHasExisted, DeleteOnlineHubError
 from utils.mixins import ListModelMixin, UploadModelMixin
 from utils.msg_socket import MessageSocket
+from utils.paginator import CustomPagination
 from utils.permissions import IsAdminUser
 
 
@@ -167,6 +169,45 @@ class LampViewSet(ListModelMixin,
     filter_class = LampFilter
     lookup_field = 'sn'
 
+    @staticmethod
+    def __is_web(request):
+        ua = request.META.get('HTTP_USER_AGENT')
+        if ua.startswith('Mozilla/'):
+            return True
+        return False
+
+    def app_get_lampctrl_sns(self, request, *args, **kwargs):
+        # APP请求 获取集控下的灯控信息 page hub_sn
+        # if request.query_params.get('all') != 'true':
+        self.pagination_class = CustomPagination
+        params = request.query_params
+        hub_sn = params.get('hub_sn')
+        hub = Hub.objects.filter_by(sn=hub_sn).first()
+        queryset = LampCtrl.objects.filter_by(hub=hub)
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = LampCtrlSerializer(page, many=True)
+            data = serializer.data
+            ret_data = []
+            for item in data:
+                tem = {"sn": item.get('sn')}
+                ret_data.append(tem)
+            return self.get_paginated_response(ret_data)
+
+        serializer = LampCtrlSerializer(queryset, many=True)
+        data = serializer.data
+        ret_data = []
+        for item in data:
+            tem = {"sn": item.get('sn')}
+            ret_data.append(tem)
+        return Response(ret_data)
+
+    def list(self, request, *args, **kwargs):
+        if not self.__is_web(request=request):
+            return self.app_get_lampctrl_sns(request, *args, **kwargs)
+        return super(LampViewSet, self).list(request, *args, **kwargs)
+
     def get_serializer_class(self):
         if self.action == 'list':
             return LampDetailSerializer
@@ -234,6 +275,58 @@ class LampViewSet(ListModelMixin,
                 float(is_used) / total if total else 0)
         ))
 
+    @action(methods=['GET'], detail=True, url_path='status')
+    def app_get_lampctl_status(self, request, *args, **kwargs):
+        """
+        GET /lamps/{sn}/status/
+        """
+        warnings.warn("This api is deprecated. Only use it to support old APP")
+        lampctrl_sn = kwargs.get('sn')
+        lampctrl = LampCtrl.objects.filter_by(sn=lampctrl_sn).first()
+        hub = lampctrl.hub
+
+        error_lampctrls = []
+        sender = 'cmd-{}'.format(uuid.uuid1())
+        with MessageSocket(*settings.NS_ADDR, sender=sender) as msg_socket:
+            body = {
+                "action": "get_lamp_status",
+                "lamp_sn": [lampctrl_sn]
+            }
+            msg_socket.send_single_message(receiver=hub.sn, body=body,
+                                           sender=sender)
+            recv = msg_socket.receive_data()
+        code = recv.get('code')
+        if code == 101:
+            # 集控脱网, 告警
+            record_hub_disconnect(hub)
+        if code != 0:
+            error_lampctrls.append(lampctrl_sn)
+        if code == 0:
+            lamp_status = recv.get('data')
+            # 灯控状态返回值为{}时，采集失败
+            lampctrl_sn, l_status = list(lamp_status.items())[0]
+            if not l_status:
+                error_lampctrls.append(lampctrl_sn)
+                record_lamp_ctrl_trouble(
+                    LampCtrl.objects.filter_by(sn=lampctrl_sn).first()
+                )
+            route1, route2 = l_status.get('brightness', [0, 0])
+            electric_energy = l_status.get("electric_energy", {})
+            electric_energy['power_consumption'] = electric_energy.get('consumption')
+            routes = dict(route1=route1, route2=route2)
+            ret = {'lampctrl': lampctrl_sn, 'hub_sn': hub.sn, **routes, **electric_energy}
+        if error_lampctrls:
+            msg = _("gather lamp control '{error_lamps}' failed").format(
+                error_lamps=','.join(error_lampctrls)
+            )
+            return Response(
+                status=status.HTTP_408_REQUEST_TIMEOUT,
+                data={'code': 2, 'message': msg}
+            )
+        for i in ('lampctrl', 'hub_sn', 'consumption', 'date'):
+            ret.pop(i, None)
+        return Response(data=ret)
+
     @action(methods=['POST'], detail=False, url_path='action')
     def app_control_lamp(self, request, *args, **kwargs):
         """下发控制动作(兼容APP)
@@ -241,44 +334,44 @@ class LampViewSet(ListModelMixin,
         {
             "action": [
                 {
-                    "hub_sn": "hub1",
+                    # "hub_sn": "hub1",
                     "lamp_sn": ["lamp1", "lamp2"],
                     "action": "100,100"
                 },
                 {
-                    "hub_sn": "hub1",
+                    # "hub_sn": "hub1",
                     "lamp_sn": ["lamp3", "lamp4"],
                     "action": "100,100"
+                },
+                {
+                    "hub_sn": "hub2",
+                    "action": "0,0"
                 }
             ]
         }
         """
         warnings.warn("This api is deprecated. Only use it to support old APP")
         actions = request.data.get('action')
-        # if not actions:
-        #     return Response(status=status.HTTP_406_NOT_ACCEPTABLE,
-        #                     data={'code': 1, 'message': '至少勾选一个灯、分组或集控'})
 
         error_hubs = []
-        for detail in actions:
-            hub = Hub.objects.get(sn=detail.get('hub_sn'))
-            lampctrl_sns = detail.get('lamp_sn')
+        detail = actions[0]
+        if "lamp_sn" in detail:
+            # 控灯
+            lampctrl_sn = detail.get('lamp_sn')[0]
+            lampctrl = LampCtrl.objects.filter_by(sn=lampctrl_sn).first()
+            hub = lampctrl.hub
             action = detail.get('action')
             switch_status = 0 if action == "0,0" else 1
 
-            # 是否是控制所有灯控
-            is_all = all(i in lampctrl_sns for i in
-                         LampCtrl.objects.filter(hub=hub).values_list('sn',
-                                                                      flat=True))
             sender = 'cmd-{}'.format(uuid.uuid1())
             with MessageSocket(*settings.NS_ADDR, sender=sender) as msg_socket:
                 body = {
                     "action": "lighten",
                     "detail": {
                         "hub_sn": hub.sn,
-                        "lamp_sn": lampctrl_sns,
+                        "lamp_sn": [lampctrl_sn],
                         "action": action,
-                        "all": is_all
+                        "all": False
                     }
                 }
                 msg_socket.send_single_message(receiver=hub.sn, body=body,
@@ -288,42 +381,55 @@ class LampViewSet(ListModelMixin,
             if code == 101:
                 # 集控脱网, 告警
                 record_hub_disconnect(hub)
+                return Response(status=status.HTTP_408_REQUEST_TIMEOUT, data={'code': 2, 'message': '连接该集控超时'})
             if code != 0:
                 error_hubs.append(hub.sn)
+                return Response(status=status.HTTP_408_REQUEST_TIMEOUT, data={'code': 2, 'message': '控灯失败'})
             if code == 0:
                 # 控灯成功 更新灯具状态
-                if is_all:
-                    LampCtrl.objects.filter(hub=hub).update(
-                        switch_status=switch_status
-                    )
-                else:
-                    LampCtrl.objects.filter(sn__in=lampctrl_sns).update(
-                        switch_status=switch_status
-                    )
-        if error_hubs:
-            msg = _("connect hub '{error_hubs}' time out").format(
-                error_hubs=','.join(error_hubs)
-            )
-            return Response(
-                status=status.HTTP_400_BAD_REQUEST,
-                data=dict(code=1, message=msg, error_hubs=error_hubs)
-            )
-        msg = _("control lamps success")
-        return Response(data=dict(code=1, message=msg))
+                LampCtrl.objects.filter(sn=lampctrl_sn).update(
+                    switch_status=switch_status
+                )
+            if error_hubs:
+                msg = _("connect hub '{error_hubs}' time out").format(
+                    error_hubs=','.join(error_hubs)
+                )
+                return Response(
+                    status=status.HTTP_400_BAD_REQUEST,
+                    data=dict(code=1, message=msg, error_hubs=error_hubs)
+                )
+            msg = _("control lamps success")
+            return Response(data=dict(code=0, message=msg))
+        else:
+            # 全开全关
+            hub = Hub.objects.get(sn=detail.get('hub_sn'))
+            action = detail.get('action')
 
-    # @action(methods=['GET'], detail=True, url_path='lamps')
-    # def get_id_address(self, request, *args, **kwargs):
-    #     """集控下的所有路灯(用于兼容APP)
-    #     GET /lamps/hub_sn=
-    #     """
-    #     # /lamps/?page=1&hub_sn=711905030040
-    #     warnings.warn("This api is deprecated. Only use it to support old APP")
-    #
-    #     instance = self.get_object()
-    #     serializer = self.get_serializer(
-    #         instance.hub_lampctrl.filter_by(), many=True
-    #     )
-    #     return Response(serializer.data)
+            sender = 'cmd-{}'.format(uuid.uuid1())
+            with MessageSocket(*settings.NS_ADDR, sender=sender) as msg_socket:
+                body = {
+                    "action": "lighten",
+                    "detail": {
+                        "lamp_sn": [],
+                        "action": action,
+                        "all": True
+                    }
+                }
+                msg_socket.send_single_message(receiver=hub.sn, body=body,
+                                               sender=sender)
+                recv = msg_socket.receive_data()
+            code = recv.get('code')
+            if code == 101:
+                # 集控脱网, 告警
+                record_hub_disconnect(hub)
+            if code == 0:
+                # 控灯成功 更新灯具状态
+                switch_status = 0 if action == '0,0' else 1
+                LampCtrl.objects.filter_by(hub=hub).update(
+                    switch_status=switch_status
+                )
+            msg = _("control lamps success")
+            return Response(data=dict(code=0, message=msg))
 
 
 class CBoxViewSet(ListModelMixin,
