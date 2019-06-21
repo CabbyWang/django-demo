@@ -8,6 +8,7 @@ from re import sub
 
 from django.conf import settings
 from django.http import HttpResponse
+from django.http import HttpResponseRedirect
 from django.utils.translation import ugettext_lazy as _
 from django.utils.deprecation import MiddlewareMixin
 
@@ -20,6 +21,7 @@ from rest_framework_jwt.authentication import (
 from rest_framework_jwt.serializers import VerifyJSONWebTokenSerializer
 
 from user.models import User, UserGroup
+from policy.models import PolicySet
 from notify.models import Log
 
 # from rest_framework_jwt.utils import
@@ -55,6 +57,7 @@ class LogMiddleware(MiddlewareMixin):
         修改分组
     communicate_post_recycle_group:
         回收集控下的所有分组
+    communicate_post_send_down_policyset:
         下发策略集
     communicate_post_gather_policyset:
         策略集采集
@@ -165,6 +168,30 @@ class LogMiddleware(MiddlewareMixin):
                 response_data=self.response_data,
                 pk=self.pk
             )
+
+    def communicate_post_send_down_policyset(self, request_data, response_data, pk):
+        """下发策略集"""
+        memo = "[{username}]下发策略集: ".format(username=self.username)
+        hubs = []
+        for item in request_data.get('policys'):
+            hub_sn = item.get('hub')
+            hubs.append(hub_sn)
+            policyset_id = item.get('policyset_id')
+            name = PolicySet.objects.get(id=policyset_id).name
+            memo += " 集控[{hub}]的[{group_num}]分组使用策略集[{policyset_name}] ".format(
+                hub=hub_sn,
+                group_num=item.get('group_num') or '所有',
+                policyset_name=name
+            )
+
+        Log.objects.create(
+            event=_("send down policy set"),
+            username=self.username,
+            object=','.join(hubs),
+            status=self.status,
+            memo=memo
+        )
+        pass
 
     def communicate_post_control_lamp(self, request_data, response_data, pk):
         """控灯"""
@@ -472,3 +499,9 @@ class LogMiddleware(MiddlewareMixin):
             status=self.status,
             memo=memo
         )
+
+
+class APPMiddleware(MiddlewareMixin):
+
+    def process_request(self, request):
+        return None

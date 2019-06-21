@@ -311,6 +311,20 @@ class LampViewSet(ListModelMixin,
         msg = _("control lamps success")
         return Response(data=dict(code=1, message=msg))
 
+    # @action(methods=['GET'], detail=True, url_path='lamps')
+    # def get_id_address(self, request, *args, **kwargs):
+    #     """集控下的所有路灯(用于兼容APP)
+    #     GET /lamps/hub_sn=
+    #     """
+    #     # /lamps/?page=1&hub_sn=711905030040
+    #     warnings.warn("This api is deprecated. Only use it to support old APP")
+    #
+    #     instance = self.get_object()
+    #     serializer = self.get_serializer(
+    #         instance.hub_lampctrl.filter_by(), many=True
+    #     )
+    #     return Response(serializer.data)
+
 
 class CBoxViewSet(ListModelMixin,
                   mixins.CreateModelMixin,

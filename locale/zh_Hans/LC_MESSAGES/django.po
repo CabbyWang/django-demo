@@ -505,3 +505,6 @@ msgstr "英文"
 #: .\smartlamp\settings.py:201
 msgid "中文简体"
 msgstr "Simple Chinese"
+
+msgid "send down policy set"
+msgstr "下发策略集"
