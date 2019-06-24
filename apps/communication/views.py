@@ -400,7 +400,7 @@ class CommunicateViewSet(mixins.ListModelMixin,
                     msg = _("connect hub [{hub_sn}] time out")
                     raise ConnectHubTimeOut(msg.format(hub_sn=hub.sn))
                 if code != 0:
-                    if recv.get('reason') == 'group id duplicate':
+                    if recv.get('reason') == 'group id already exists':
                         msg = _('group number should be different with default groups')
                     else:
                         msg = _("hub [{hub_sn}] unknown error")
@@ -454,7 +454,7 @@ class CommunicateViewSet(mixins.ListModelMixin,
                     msg = _("connect hub [{hub_sn}] time out")
                     raise ConnectHubTimeOut(msg.format(hub_sn=hub.sn))
                 if code != 0:
-                    if recv.get('reason') == 'group id duplicate':
+                    if recv.get('reason') == 'group id already exists':
                         msg = _('group number should be different with default groups')
                     else:
                         msg = _("hub [{hub_sn}] unknown error")
@@ -621,7 +621,7 @@ class CommunicateViewSet(mixins.ListModelMixin,
                     msg = _("connect hub [{hub_sn}] time out")
                     raise ConnectHubTimeOut(msg.format(hub_sn=hub.sn))
                 if code != 0:
-                    if recv.get('reason') == 'group id duplicate':
+                    if recv.get('reason') == 'group id already exists':
                         msg = _('group number should be different with default groups')
                     else:
                         msg = _("hub [{hub_sn}] unknown error")
