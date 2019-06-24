@@ -419,7 +419,7 @@ msgstr "采集集控配置"
 #: .\apps\utils\middleware.py:463
 #, python-brace-format
 msgid "user [{username}] log in on ip [{object}]"
-msgstr "用户[{username}]在ip[{object}]登陆"
+msgstr "用户[{username}]在ip[{object}登录"
 
 #: .\apps\utils\middleware.py:470
 msgid "log in"
